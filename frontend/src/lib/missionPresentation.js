@@ -3,12 +3,13 @@ const STATUS = { assigned: "New mission", learning: "In training", awaiting_evid
 
 export function normaliseMissionResponse(payload, previous = null) {
   const reason = payload?.reasonCode || payload?.availability;
-  if (reason === "missions_disabled") return { kind: "disabled", mission: null };
-  if (["schema_unavailable", "training_schema_unavailable", "temporarily_unavailable", "database_unavailable", "unavailable", "offline"].includes(reason)) return { kind: "unavailable", mission: previous?.mission || null };
-  if (reason === "no_trusted_candidate") return { kind: "no_candidate", mission: null };
-  if (reason === "analysis_required") return { kind: "analysis_required", mission: null };
-  if (!payload?.mission) return { kind: "no_active_mission", mission: null };
-  return { kind: payload.mission.status || "assigned", mission: payload.mission };
+  const metadata = { capabilities: payload?.capabilities || previous?.capabilities || null, rolloutCohort: payload?.rolloutCohort || previous?.rolloutCohort || null };
+  if (reason === "missions_disabled") return { kind: "disabled", mission: null, ...metadata };
+  if (["schema_unavailable", "training_schema_unavailable", "temporarily_unavailable", "database_unavailable", "unavailable", "offline", "rollout_unavailable", "rollout_not_configured"].includes(reason)) return { kind: "unavailable", mission: previous?.mission || null, ...metadata };
+  if (reason === "no_trusted_candidate") return { kind: "no_candidate", mission: null, ...metadata };
+  if (reason === "analysis_required") return { kind: "analysis_required", mission: null, ...metadata };
+  if (!payload?.mission) return { kind: "no_active_mission", mission: null, ...metadata };
+  return { kind: payload.mission.status || "assigned", mission: payload.mission, ...metadata };
 }
 
 export const missionStatusLabel = (status) => STATUS[status] || "Current mission";

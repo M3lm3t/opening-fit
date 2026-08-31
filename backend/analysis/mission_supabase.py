@@ -58,6 +58,9 @@ class SupabaseMissionRepository:
             result = self._execute(self.client.rpc("openingfit_missions_schema_readiness"))
             data = result.data or {}
             return {"ready": bool(data.get("ready")), "training_ready": bool(data.get("trainingReady")),
+                    "activity_projector_ready": bool(data.get("activityProjectorReady")),
+                    "analytics_ready": bool(data.get("analyticsReady")),
+                    "notification_scheduling_ready": bool(data.get("notificationSchedulingReady")),
                     "schema_version": data.get("schemaVersion"), "reason": "ready" if data.get("ready") else "schema_unavailable"}
         except MissionPersistenceError as exc:
             return {"ready": False, "reason": exc.code}
@@ -89,6 +92,34 @@ class SupabaseMissionRepository:
 
     def list_candidates(self, user_id: str, limit: int = 20) -> list[dict[str, Any]]:
         return [dict(row) for row in (self._execute(self.client.table("openingfit_missions").select("*").eq("user_id", user_id).eq("status", "candidate").order("candidate_score", desc=True).order("candidate_key").limit(max(1, min(20, limit)))).data or [])]
+
+    def get_entitlement(self, user_id: str) -> dict[str, Any] | None:
+        rows = self._execute(self.client.table("premium_entitlements").select("access_type,status,is_grandfathered_lifetime,current_period_end,expires_at,premium_since").eq("user_id", user_id).limit(1)).data or []
+        return dict(rows[0]) if rows else None
+
+    def get_allowance(self, user_id: str) -> dict[str, Any]:
+        rows = self._execute(self.client.table("openingfit_mission_allowances").select("assignment_count,last_assigned_at,next_available_at").eq("user_id", user_id).limit(1)).data or []
+        return dict(rows[0]) if rows else {"assignment_count": 0}
+
+    def assign_with_allowance(self, *, user_id: str, mission_id: str, paid: bool, idempotency_key: str) -> dict[str, Any]:
+        result = self._execute(self.client.rpc("assign_openingfit_mission_with_allowance", {"p_user_id": user_id, "p_mission_id": mission_id, "p_paid_access": paid, "p_idempotency_key": idempotency_key}))
+        return dict(result.data or {})
+
+    def project_activity(self, outbox_id: str) -> dict[str, Any]:
+        return dict(self._execute(self.client.rpc("project_openingfit_mission_activity", {"p_outbox_id": outbox_id})).data or {})
+
+    def project_session_activity(self, user_id: str, session_id: str) -> dict[str, Any]:
+        return dict(self._execute(self.client.rpc("project_openingfit_mission_session_activity", {"p_user_id": user_id, "p_session_id": session_id})).data or {})
+
+    def operator_diagnostics(self, window_hours: int = 24) -> dict[str, Any]:
+        return dict(self._execute(self.client.rpc("openingfit_missions_operator_diagnostics", {"p_window_hours": max(1, min(168, window_hours))})).data or {})
+
+    def record_event(self, *, user_id: str, mission_id: str | None, event_name: str,
+                     deduplication_key: str, properties: Mapping[str, Any]) -> dict[str, Any]:
+        result = self._execute(self.client.rpc("record_openingfit_mission_event", {"p_user_id": user_id,
+            "p_mission_id": mission_id, "p_event_name": event_name, "p_deduplication_key": deduplication_key,
+            "p_properties": dict(properties)}))
+        return dict(result.data or {})
 
     def list_verifying(self, user_id: str, limit: int = 10) -> list[dict[str, Any]]:
         return [dict(row) for row in (self._execute(self.client.table("openingfit_missions").select("*").eq("user_id", user_id).in_("status", ["awaiting_evidence", "improving"]).limit(max(1, min(10, limit)))).data or [])]

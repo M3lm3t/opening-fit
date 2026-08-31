@@ -8,3 +8,8 @@ test("sample report analytics retain only their safe discriminator", () => asser
 test("report analytics preserve the canonical count contract", () => assert.deepEqual(safeAnalyticsProperties({ fetchedGames: 20, dateRangeEligibleGames: 20, timeControlEligibleGames: 18, analysisCandidateGames: 18, analysedGames: 14, excludedGames: 6, openingGames: 999 }), { fetchedGames: 20, dateRangeEligibleGames: 20, timeControlEligibleGames: 18, analysisCandidateGames: 18, analysedGames: 14, excludedGames: 6 }));
 test("device category is deterministic", () => { assert.equal(deviceCategory(390), "mobile"); assert.equal(deviceCategory(800), "tablet"); assert.equal(deviceCategory(1400), "desktop"); });
 test("weekly recap analytics use the existing allow-list", () => { for (const event of ["weekly_recap_shown", "weekly_recap_opened", "weekly_recap_dismissed", "weekly_recap_action_clicked"]) assert.equal(normalizeProductEvent(event), event); });
+test("mission presentation events are bounded and cannot claim lifecycle truth", () => {
+  for (const event of ["mission_card_viewed", "mission_why_opened", "mission_start_clicked", "mission_history_opened", "mission_upgrade_clicked"]) assert.equal(normalizeProductEvent(event), event);
+  assert.equal(normalizeProductEvent("mission_repaired"), null);
+  assert.deepEqual(safeAnalyticsProperties({ surface: "home", tier: "free", cohort: "beta", pgn: "1.e4", username: "private" }), { surface: "home", tier: "free", cohort: "beta" });
+});

@@ -16,6 +16,13 @@ test("known mission survives an unavailable background refresh", () => {
   assert.equal(next.mission.id, "m1");
 });
 
+test("capabilities survive normalization and rollout denial is not an upgrade denial", () => {
+  const capabilities = { canSelectNextMission: false, reasonCode: "free_allowance_exhausted", tier: "free" };
+  const limited = normaliseMissionResponse({ capabilities });
+  assert.equal(limited.capabilities, capabilities);
+  assert.equal(normaliseMissionResponse({ reasonCode: "rollout_unavailable", capabilities: { reasonCode: "rollout_unavailable" } }).kind, "unavailable");
+});
+
 test("presentation uses trusted fields and honest confidence", () => {
   const mission = { repeated_played_move_san: "Bg5", confidence: { level: "low" } };
   assert.equal(missionStatement(mission), "Replace Bg5 with your prepared response");

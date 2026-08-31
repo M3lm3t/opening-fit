@@ -64,6 +64,14 @@ def missions_enabled(env: Optional[Mapping[str, str]] = None) -> bool:
     return parse_boolean(source.get("OPENINGFIT_MISSIONS_ENABLED"), default=False)
 
 
+def missions_rollout_percentage(env: Optional[Mapping[str, str]] = None) -> int:
+    source = env if env is not None else os.environ
+    try:
+        return max(0, min(100, int(str(source.get("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT") or "0"))))
+    except ValueError:
+        return 0
+
+
 def normalize_origin(value: Any) -> str:
     raw = str(value or "").strip().rstrip("/")
     if not raw or "*" in raw:

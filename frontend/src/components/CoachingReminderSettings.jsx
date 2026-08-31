@@ -8,6 +8,7 @@ const normalise = (row = {}) => ({
   gameCheckReminders: row.game_check_reminders !== false,
   weeklyPlanReminders: row.weekly_plan_reminders !== false,
   consistencyReminders: row.consistency_reminders !== false,
+  missionReminders: row.mission_reminders === true,
   timezone: row.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
   quietHoursStart: Number(row.quiet_hours_start ?? 21),
   quietHoursEnd: Number(row.quiet_hours_end ?? 8),
@@ -34,6 +35,7 @@ export default function CoachingReminderSettings({ consistency, weeklyGoal, newG
       game_check_reminders: next.gameCheckReminders,
       weekly_plan_reminders: next.weeklyPlanReminders,
       consistency_reminders: next.consistencyReminders,
+      mission_reminders: next.missionReminders,
       timezone: next.timezone,
       quiet_hours_start: next.quietHoursStart,
       quiet_hours_end: next.quietHoursEnd,
@@ -64,6 +66,7 @@ export default function CoachingReminderSettings({ consistency, weeklyGoal, newG
         <label><input type="checkbox" checked={preferences.gameCheckReminders} onChange={(event) => void save({ gameCheckReminders: event.target.checked })} /> New games ready</label>
         <label><input type="checkbox" checked={preferences.weeklyPlanReminders} onChange={(event) => void save({ weeklyPlanReminders: event.target.checked })} /> Weekly plan</label>
         <label><input type="checkbox" checked={preferences.consistencyReminders} onChange={(event) => void save({ consistencyReminders: event.target.checked })} /> At-risk consistency</label>
+        <label><input type="checkbox" checked={preferences.missionReminders} onChange={(event) => void save({ missionReminders: event.target.checked })} /> Opening Missions (delivery is not enabled during beta setup)</label>
         <p>Quiet hours: 21:00–08:00 · {preferences.timezone}</p>
       </fieldset> : null}
       {reminder ? <a href={reminder.route}>{reminder.body}</a> : null}

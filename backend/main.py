@@ -75,6 +75,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
 from supabase import create_client, Client
 from feature_entitlements import FEATURE_ACCESS, can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
+from mission_rollout import MISSION_CLIENT_EVENTS, entitlement_tier, mission_capabilities, rollout_eligibility, rollout_percentage
 from runtime_config import (
     assert_valid_startup_configuration,
     build_allowed_origins,
@@ -364,7 +365,9 @@ PRODUCT_ANALYTICS_EVENTS = {
     "onboarding_started", "onboarding_completed", "onboarding_skipped", "training_preference_updated",
     "homepage_viewed", "platform_selected", "username_started", "username_submitted", "account_lookup_succeeded", "account_lookup_failed", "analysis_started", "analysis_failed", "analysis_completed", "report_viewed", "coach_verdict_viewed", "recommendation_expanded", "evidence_viewed", "supporting_game_opened", "fit_explanation_opened", "repertoire_viewed", "opening_added", "opening_replaced", "opening_locked", "recommendation_dismissed", "repertoire_created", "repertoire_change_accepted", "repertoire_change_rejected", "repertoire_training_opened", "training_started", "weekly_plan_started", "training_task_started", "training_task_completed", "weekly_plan_completed", "training_task_failed", "training_answer_revealed", "training_session_completed", "training_impact_viewed", "training_history_opened", "returning_dashboard_viewed", "new_games_detected", "reanalysis_started", "report_comparison_viewed", "report_history_opened", "resolved_issue_viewed", "account_created", "sign_in_completed", "plus_invitation_viewed", "premium_page_viewed", "pricing_viewed", "billing_interval_changed", "checkout_started", "checkout_failed", "checkout_cancelled", "checkout_completed", "entitlement_confirmed", "entitlement_delayed", "subscription_manage_clicked", "upgrade_clicked", "portal_open_failed", "recommendation_feedback_submitted", "general_feedback_submitted", "import_problem_reported",
 }
+PRODUCT_ANALYTICS_EVENTS.update(MISSION_CLIENT_EVENTS)
 SAFE_ANALYTICS_KEYS = {"platform", "route", "authenticated", "deviceCategory", "resultCategory", "errorCategory", "source", "access", "stage", "attempts", "feedback", "decision", "confidence", "games", "fetchedGames", "dateRangeEligibleGames", "timeControlEligibleGames", "analysisCandidateGames", "analysedGames", "excludedGames", "openingCategory", "hasSessionContext", "newGames", "reportCount", "billingInterval"}
+SAFE_ANALYTICS_KEYS.update({"surface", "tier", "cohort", "reasonCode"})
 
 
 def sanitize_analytics_data(data: Optional[Dict[str, Any]]) -> Dict[str, Any]:
@@ -942,7 +945,12 @@ def api_readiness():
         mission_schema = missions_schema_readiness()
         payload["missions_schema"] = "ready" if mission_schema["ready"] else "not_ready"
         payload["missions_training_schema"] = "ready" if mission_schema.get("training_ready") else "not_ready"
-        payload["missions_component"] = "ready" if mission_schema["ready"] and mission_schema.get("training_ready") else "degraded"
+        payload["missions_activity_projector"] = "ready" if mission_schema.get("activity_projector_ready") else "not_ready"
+        payload["missions_analytics"] = "ready" if mission_schema.get("analytics_ready") else "not_ready"
+        payload["missions_notifications"] = "scheduling_ready_delivery_deferred" if mission_schema.get("notification_scheduling_ready") else "unavailable"
+        payload["missions_rollout_percentage"] = rollout_percentage()
+        core_ready = mission_schema["ready"] and mission_schema.get("training_ready") and mission_schema.get("activity_projector_ready") and mission_schema.get("analytics_ready")
+        payload["missions_component"] = "ready" if core_ready else "degraded"
     else:
         payload["missions_schema"] = "not_checked"
         payload["missions_training_schema"] = "not_checked"
@@ -11104,9 +11112,13 @@ def execute_analysis_job(job_id: str) -> None:
         if owner_user_id and missions_enabled():
             try:
                 readiness = missions_schema_readiness()
-                if readiness["ready"]:
+                rollout = _mission_rollout(owner_user_id, readiness)
+                if rollout["eligible"]:
+                    repository = mission_repository()
+                    entitlement = repository.get_entitlement(owner_user_id) if hasattr(repository, "get_entitlement") else None
                     process_completed_analysis(user_id=owner_user_id, platform=platform, username=username,
-                                               report=result, repository=mission_repository())
+                                               report=result, repository=repository,
+                                               paid_access=entitlement_has_paid_access(entitlement))
             except Exception as exc:
                 reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
                 logger.warning("mission_processing_failed reference=%s error_type=%s", reference, exc.__class__.__name__)
@@ -12463,6 +12475,34 @@ def _mission_training_availability() -> tuple[bool, str]:
     return (True, "ready") if readiness.get("training_ready") else (False, "training_schema_unavailable")
 
 
+def _mission_is_operator(user_id: str) -> bool:
+    return user_id in _admin_allow_list("OPENINGFIT_ADMIN_USER_IDS")
+
+
+def _mission_rollout(user_id: str, readiness: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+    state = dict(readiness or missions_schema_readiness())
+    return rollout_eligibility(user_id, enabled=missions_enabled(), schema_ready=bool(state.get("ready")),
+                               operator=_mission_is_operator(user_id))
+
+
+def _mission_access_context(repository, user_id: str, mission: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
+    # In-memory Phase 1-5 repositories intentionally retain their old contract.
+    if not hasattr(repository, "get_entitlement"):
+        return {"capabilities": mission_capabilities(entitlement={"access_type": "lifetime", "status": "active"}, active_mission=bool(mission)),
+                "rollout": {"eligible": True, "cohort": "test", "reasonCode": None, "percentage": 100}}
+    rollout = _mission_rollout(user_id)
+    entitlement = repository.get_entitlement(user_id)
+    allowance = repository.get_allowance(user_id)
+    try:
+        assigned_at = datetime.fromisoformat(str(allowance.get("last_assigned_at") or "").replace("Z", "+00:00"))
+    except ValueError:
+        assigned_at = None
+    capabilities = mission_capabilities(entitlement=entitlement, active_mission=bool(mission),
+        assignment_count=int(allowance.get("assignment_count") or 0), last_assigned_at=assigned_at,
+        rollout_reason=None if rollout["eligible"] else rollout["reasonCode"], reminders_supported=False)
+    return {"capabilities": capabilities, "rollout": rollout, "entitlement": entitlement}
+
+
 _mission_select_requests: Dict[str, List[float]] = defaultdict(list)
 _mission_select_lock = threading.Lock()
 _mission_training_requests: Dict[str, List[float]] = defaultdict(list)
@@ -12500,8 +12540,13 @@ def get_current_mission(request: Request):
         mission = repository.get_current(user_id)
         if not mission:
             mission = next((row for row in repository.list_history(user_id, 10) if row.get("status") == "repaired"), None)
+        access = _mission_access_context(repository, user_id, mission)
+        if not access["rollout"]["eligible"]:
+            return {"mission": None, "reasonCode": access["rollout"]["reasonCode"], "featureAvailable": False,
+                    "schemaState": "ready", "capabilities": access["capabilities"], "rolloutCohort": access["rollout"]["cohort"]}
         return {"mission": _mission_present(mission), "reasonCode": None if mission else "no_active_mission",
-                "featureAvailable": True, "schemaState": "ready"}
+                "featureAvailable": True, "schemaState": "ready", "capabilities": access["capabilities"],
+                "rolloutCohort": access["rollout"]["cohort"]}
     except MissionPersistenceError as exc:
         return {"mission": None, "reasonCode": exc.code, "featureAvailable": True, "schemaState": "not_ready"}
     except Exception:
@@ -12516,10 +12561,15 @@ def list_missions(request: Request, limit: int = 20, cursor: Optional[str] = Non
         return {"missions": [], "nextCursor": None, "reasonCode": reason, "featureAvailable": False}
     try:
         bounded = max(1, min(50, limit))
-        rows = mission_repository().list_history(user_id, bounded, cursor)
+        repository = mission_repository()
+        access = _mission_access_context(repository, user_id)
+        if not access["rollout"]["eligible"]:
+            return {"missions": [], "nextCursor": None, "reasonCode": access["rollout"]["reasonCode"], "featureAvailable": False, "capabilities": access["capabilities"]}
+        bounded = min(bounded, access["capabilities"]["historyLimit"])
+        rows = repository.list_history(user_id, bounded, cursor)
         return {"missions": [_mission_present(row) for row in rows],
                 "nextCursor": rows[-1].get("created_at") if len(rows) == bounded else None,
-                "reasonCode": None, "featureAvailable": True}
+                "reasonCode": None, "featureAvailable": True, "capabilities": access["capabilities"]}
     except MissionPersistenceError as exc:
         return {"missions": [], "nextCursor": None, "reasonCode": exc.code, "featureAvailable": True}
     except Exception:
@@ -12539,14 +12589,27 @@ def select_next_mission(payload: MissionSelectNextRequest, request: Request):
         repository = mission_repository()
         service = MissionPersistenceService(repository)
         current = service.get_current_mission(user_id)
+        access = _mission_access_context(repository, user_id, current)
+        if not access["rollout"]["eligible"]:
+            return {"mission": None, "reasonCode": access["rollout"]["reasonCode"], "featureAvailable": False, "capabilities": access["capabilities"]}
         if current:
-            return {"mission": _mission_present(current), "reasonCode": "active_mission_exists", "featureAvailable": True}
+            return {"mission": _mission_present(current), "reasonCode": "active_mission_exists", "featureAvailable": True, "capabilities": access["capabilities"]}
+        if not access["capabilities"]["canSelectNextMission"]:
+            return {"mission": None, "reasonCode": access["capabilities"]["reasonCode"], "featureAvailable": True, "capabilities": access["capabilities"]}
         candidates = repository.list_candidates(user_id, limit=20)
         candidates = [row for row in candidates if float((row.get("confidence") or {}).get("score") or 0) >= 70]
         if not candidates:
             return {"mission": None, "reasonCode": "no_trusted_candidate", "featureAvailable": True}
-        saved = service.assign_primary_mission(user_id=user_id, mission_id=candidates[0]["id"], idempotency_key=payload.idempotencyKey)
-        return {"mission": _mission_present(saved), "reasonCode": None, "featureAvailable": True}
+        if hasattr(repository, "assign_with_allowance"):
+            assigned = repository.assign_with_allowance(user_id=user_id, mission_id=candidates[0]["id"],
+                paid=entitlement_has_paid_access(access.get("entitlement")), idempotency_key=payload.idempotencyKey)
+            if not assigned.get("assigned"):
+                return {"mission": None, "reasonCode": assigned.get("reasonCode"), "featureAvailable": True,
+                        "capabilities": {**access["capabilities"], "nextMissionAvailableAt": assigned.get("nextMissionAvailableAt")}}
+            saved = assigned.get("mission") or {}
+        else:
+            saved = service.assign_primary_mission(user_id=user_id, mission_id=candidates[0]["id"], idempotency_key=payload.idempotencyKey)
+        return {"mission": _mission_present(saved), "reasonCode": None, "featureAvailable": True, "capabilities": access["capabilities"]}
     except MissionPersistenceError as exc:
         status = 403 if exc.code in {"mission_owner_mismatch", "ownership_failure"} else 409 if "conflict" in exc.code else 503
         raise HTTPException(status_code=status, detail={"code": exc.code})
@@ -12662,7 +12725,15 @@ def complete_mission_training(mission_id: UUID, session_id: UUID, payload: Missi
         result = MissionTrainingService(repository).complete(user_id=user_id, mission_id=str(mission_id), session_id=str(session_id), idempotency_key=payload.idempotencyKey)
         result["session"] = _training_session_present(repository, result["session"])
         result["missionStatus"] = repository.get_mission(str(mission_id)).get("status")
-        result["meaningfulActivity"] = "durable_marker_recorded" if result["completed"] else "not_recorded"
+        result["meaningfulActivity"] = "not_recorded"
+        if result["completed"]:
+            result["meaningfulActivity"] = "projection_pending" if hasattr(repository, "project_session_activity") else "durable_marker_recorded"
+            if hasattr(repository, "project_session_activity"):
+                try:
+                    projection = repository.project_session_activity(user_id, str(session_id))
+                    result["meaningfulActivity"] = "projected" if projection.get("status") == "projected" else "projection_pending"
+                except Exception:
+                    result["meaningfulActivity"] = "projection_pending"
         return result
     except MissionPersistenceError as exc:
         return _training_error(exc)
@@ -12700,6 +12771,24 @@ def require_admin_user(request: Request):
         log_payment_diagnostic("referral admin access denied", has_user_id=bool(user_id), has_email=bool(email))
         raise HTTPException(status_code=403, detail="Admin access required.")
     return auth_user
+
+
+@app.get("/api/operator/missions/readiness")
+def mission_operator_readiness(request: Request, windowHours: int = 24):
+    require_admin_user(request)
+    base = {"globalFlag": missions_enabled(), "rolloutPercentage": rollout_percentage(),
+            "algorithmVersion": "openingfit_mission_v1", "notificationDelivery": "deferred"}
+    readiness = missions_schema_readiness()
+    base.update({"schemaReady": bool(readiness.get("ready")), "trainingSchemaReady": bool(readiness.get("training_ready")),
+                 "activityProjectorReady": bool(readiness.get("activity_projector_ready")),
+                 "analyticsReady": bool(readiness.get("analytics_ready")),
+                 "notificationSchedulingReady": bool(readiness.get("notification_scheduling_ready"))})
+    if not readiness.get("ready"):
+        return {**base, "status": "schema_unavailable", "counts": {}, "projectionBacklog": None}
+    try:
+        return {**base, "status": "ready", **mission_repository().operator_diagnostics(windowHours)}
+    except Exception:
+        return {**base, "status": "diagnostics_unavailable", "counts": {}, "projectionBacklog": None}
 
 
 def checkout_error_response(status_code: int, message: str, log_message: str, **details):

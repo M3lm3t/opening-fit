@@ -5,6 +5,7 @@ import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import { completeTrainingSession, dismissMission, getCurrentMission, getCurrentTrainingSession, listMissionHistory, missionActionKey, selectNextMission, startTrainingSession, submitTrainingAttempt } from "../services/missionApi.js";
 import { confidenceCopy, missionAction, missionStatement, missionStatusLabel, normaliseMissionResponse, provenanceLabel, roleLabel } from "../lib/missionPresentation.js";
 import { useAccessibleDialog } from "../lib/dialogAccessibility.js";
+import { trackProductEvent } from "../lib/productAnalytics.js";
 import "./MissionExperience.css";
 
 function useMission(onAvailabilityChange) {
@@ -17,6 +18,7 @@ function useMission(onAvailabilityChange) {
   }, [user?.id]);
   useEffect(() => { let active = true; if (user?.id) getCurrentMission({ dedupeKey: user.id }).then((payload) => { if (active) setState((known) => normaliseMissionResponse(payload, known)); }).catch((error) => { if (active && error?.name !== "AbortError") setState((known) => normaliseMissionResponse({ reasonCode: error.code }, known)); }); return () => { active = false; }; }, [user?.id]);
   useEffect(() => { onAvailabilityChange?.(Boolean(state.mission)); }, [onAvailabilityChange, state.mission]);
+  useEffect(() => { if (state.mission?.id) void trackProductEvent("mission_card_viewed", { surface: "home", tier: state.capabilities?.tier, cohort: state.rolloutCohort }, { onceKey: `home:${state.mission.id}` }); }, [state.capabilities?.tier, state.mission?.id, state.rolloutCohort]);
   return { state, refresh, setState, user };
 }
 
@@ -51,7 +53,7 @@ export function CurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilit
   if (!state.mission) {
     if (state.kind === "no_candidate") return <section className="missionCard missionCard--quiet"><h2>Current Mission</h2><p>No repeated opening leak is clear enough yet. Keep playing and OpeningFit will check again.</p></section>;
     if (state.kind === "analysis_required") return <section className="missionCard missionCard--quiet"><h2>Find your Mission</h2><p>Analyse your recent games to find a repeated opening leak.</p><button className="primaryBtn" onClick={onAnalyse}>Analyse games</button></section>;
-    if (state.kind === "no_active_mission") return <section className="missionCard missionCard--quiet"><h2>Choose your next Mission</h2><p>OpeningFit can check your persisted trusted candidates without reanalysing your full history.</p><button className="primaryBtn" disabled={pending} onClick={async () => { setPending(true); try { const result = await selectNextMission(missionActionKey("select-next")); if (result.reasonCode) setState(normaliseMissionResponse(result)); else await refresh(); } catch (e) { setError(e.message); } finally { setPending(false); } }}>Find my next Mission</button>{error ? <p role="alert" className="missionError">{error}</p> : null}</section>;
+    if (state.kind === "no_active_mission") { const limited = state.capabilities?.reasonCode === "free_allowance_exhausted"; return <section className="missionCard missionCard--quiet"><h2>Choose your next Mission</h2><p>{limited ? `Your current mission and its verification remain available.${state.capabilities?.nextMissionAvailableAt ? ` Your next free Mission is available ${new Date(state.capabilities.nextMissionAvailableAt).toLocaleDateString()}.` : ""}` : "OpeningFit can check your persisted trusted candidates without reanalysing your full history."}</p>{limited ? <><p>OpeningFit Plus unlocks continuous new missions and full mission history.</p><button className="secondaryBtn" onClick={() => void trackProductEvent("mission_upgrade_clicked", { surface: "mission_empty", tier: state.capabilities?.tier })}>View OpeningFit Plus</button></> : <button className="primaryBtn" disabled={pending} onClick={async () => { setPending(true); try { const result = await selectNextMission(missionActionKey("select-next")); if (result.reasonCode) setState(normaliseMissionResponse(result)); else await refresh(); } catch (e) { setError(e.message); } finally { setPending(false); } }}>Find my next Mission</button>}{error ? <p role="alert" className="missionError">{error}</p> : null}</section>; }
     return null;
   }
   const mission = state.mission;
@@ -65,7 +67,7 @@ export function CurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilit
     <div className="missionCardHeader"><div><p className="missionEyebrow">{missionStatusLabel(mission.status)}</p><h2 id="current-mission-title">{mission.opening_name || mission.opening_id} · {roleLabel(mission.role)}</h2></div></div>
     <h3>{missionStatement(mission)}</h3><ProgressCopy mission={mission} />
     {error ? <p role="alert" className="missionError">{error}</p> : null}
-    <div className="missionActions"><button type="button" className="primaryBtn" disabled={pending} onClick={act}>{missionAction(mission.status)}</button><button type="button" className="secondaryBtn" onClick={onReport}>Why this?</button>{!["repaired", "dismissed", "superseded"].includes(mission.status) ? <button type="button" className="ghostBtn" onClick={() => setDismissOpen(true)}>Dismiss</button> : null}</div>
+    <div className="missionActions"><button type="button" className="primaryBtn" disabled={pending} onClick={() => { void trackProductEvent("mission_start_clicked", { surface: "home", tier: state.capabilities?.tier }); void act(); }}>{missionAction(mission.status)}</button><button type="button" className="secondaryBtn" onClick={() => { void trackProductEvent("mission_why_opened", { surface: "home", tier: state.capabilities?.tier }, { onceKey: mission.id }); onReport?.(); }}>Why this?</button>{!["repaired", "dismissed", "superseded"].includes(mission.status) ? <button type="button" className="ghostBtn" onClick={() => { void trackProductEvent("mission_dismiss_opened", { surface: "home", tier: state.capabilities?.tier }, { onceKey: mission.id }); setDismissOpen(true); }}>Dismiss</button> : null}</div>
     {dismissOpen ? <div className="missionDialogBackdrop" role="presentation"><div ref={dialogRef} className="missionDialog" role="dialog" aria-modal="true" aria-labelledby="dismiss-mission-title"><h2 id="dismiss-mission-title">Dismiss this Mission?</h2><p>Choose the reason that best fits. This does not delete your report.</p>{[["wrong_opening", "Not part of my repertoire"], ["not_relevant", "I already know this"], ["prefer_another", "I don’t want to train this position"], ["other", "Other"]].map(([code, label]) => <button key={code} type="button" disabled={pending} onClick={() => confirmDismiss(code)}>{label}</button>)}<button type="button" onClick={closeDismiss}>Cancel</button></div></div> : null}
   </section>;
 }

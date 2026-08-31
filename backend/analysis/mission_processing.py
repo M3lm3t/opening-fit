@@ -19,6 +19,22 @@ ASSIGNABLE_CONFIDENCE = 70.0
 VERIFYING_STATUSES = frozenset({"awaiting_evidence", "improving"})
 
 
+def _event(repository: Any, user_id: str, mission: Mapping[str, Any], name: str, key: str,
+           **extra: Any) -> None:
+    if not hasattr(repository, "record_event"):
+        return
+    confidence = mission.get("confidence") or {}
+    properties = {"status": mission.get("status"), "algorithmVersion": mission.get("algorithm_version"),
+                  "missionType": mission.get("mission_type"), "role": mission.get("role"),
+                  "confidenceBand": confidence.get("level"),
+                  "evidenceCount": min(50, int(mission.get("baseline_evidence_count") or 0)), **extra}
+    try:
+        repository.record_event(user_id=user_id, mission_id=mission.get("id"), event_name=name,
+                                deduplication_key=key, properties=properties)
+    except Exception:
+        pass  # Measurement must never alter authoritative Mission truth.
+
+
 def _dt(value: Any) -> datetime | None:
     if isinstance(value, datetime):
         return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
@@ -105,12 +121,15 @@ def _evaluate_lifecycle(user_id: str, repository: Any) -> None:
             counts = {"correct": summary.correct, "repeatedMistake": summary.repeated_mistake,
                       "otherLegal": summary.other_legal, "qualifying": summary.qualifying}
             key = f"encounter-policy:{mission['id']}:{target}:{summary.correct}:{summary.repeated_mistake}:{summary.qualifying}"
-            service.transition_mission(user_id=user_id, mission_id=mission["id"], target_status=target,
-                                       cause_type="future_game_evidence", idempotency_key=key, evidence_summary=counts)
+            saved = service.transition_mission(user_id=user_id, mission_id=mission["id"], target_status=target,
+                                                cause_type="future_game_evidence", idempotency_key=key, evidence_summary=counts)
+            event_name = {"improving": "mission_improving", "needs_review": "mission_needs_review", "repaired": "mission_repaired"}.get(target)
+            if event_name:
+                _event(repository, user_id, saved, event_name, f"lifecycle:{mission['id']}:{mission.get('generation')}:{target}")
 
 
 def process_completed_analysis(*, user_id: str, platform: str, username: str,
-                               report: Mapping[str, Any], repository: Any) -> dict[str, int]:
+                               report: Mapping[str, Any], repository: Any, paid_access: bool | None = None) -> dict[str, int]:
     """Process old missions first, then persist/assign candidates from this report."""
     games = _games(report)
     service = MissionPersistenceService(repository)
@@ -128,6 +147,8 @@ def process_completed_analysis(*, user_id: str, platform: str, username: str,
                                          account_scope=scope, game_id=game_id, played_at=played_at,
                                          exact_position_key=mission["exact_position_key"], observed_move_uci=found[0],
                                          observed_move_san=found[1], source_report_id=str(report.get("reportId") or "") or None)
+                _event(repository, user_id, mission, "mission_encounter_detected",
+                       f"encounter:{mission['id']}:{platform}:{scope}:{game_id}", platform=f"{platform} import")
                 encounters += 1
     _evaluate_lifecycle(user_id, repository)
 
@@ -136,15 +157,22 @@ def process_completed_analysis(*, user_id: str, platform: str, username: str,
     cutoff = max((_dt(g.get("playedAt") or g.get("played_at")) for g in games), default=None,
                  key=lambda item: item or datetime.min.replace(tzinfo=timezone.utc))
     for candidate in result["candidates"]:
-        persisted.append(service.persist_candidate(user_id=user_id, candidate=candidate,
-                                                   references={"source_report_id": report.get("reportId"), "baseline_cutoff_at": cutoff}))
+        saved = service.persist_candidate(user_id=user_id, candidate=candidate,
+                                          references={"source_report_id": report.get("reportId"), "baseline_cutoff_at": cutoff})
+        persisted.append(saved)
+        _event(repository, user_id, saved, "mission_candidate_generated",
+               f"candidate:{saved['candidate_key']}:{saved['generation']}", platform=f"{platform} import")
     assigned = 0
     if not service.get_current_mission(user_id):
         candidates = [row for row in repository.list_candidates(user_id, limit=20)
                       if float((row.get("confidence") or {}).get("score") or 0) >= ASSIGNABLE_CONFIDENCE]
         if candidates:
             chosen = candidates[0]
-            service.assign_primary_mission(user_id=user_id, mission_id=chosen["id"],
-                                           idempotency_key=f"auto-assign:{chosen['candidate_key']}:{chosen['generation']}")
-            assigned = 1
+            key = f"auto-assign:{chosen['candidate_key']}:{chosen['generation']}"
+            if paid_access is not None and hasattr(repository, "assign_with_allowance"):
+                outcome = repository.assign_with_allowance(user_id=user_id, mission_id=chosen["id"], paid=paid_access, idempotency_key=key)
+                assigned = int(bool(outcome.get("assigned")))
+            else:
+                service.assign_primary_mission(user_id=user_id, mission_id=chosen["id"], idempotency_key=key)
+                assigned = 1
     return {"encounters": encounters, "candidates": len(persisted), "assigned": assigned}
