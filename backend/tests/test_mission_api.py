@@ -59,3 +59,15 @@ def test_history_is_owned_bounded_and_dismissal_validates_reason(monkeypatch):
     dismissed = main.dismiss_mission(saved["id"], main.MissionDismissRequest(reason="prefer_another", idempotencyKey="d"), request())
     replay = main.dismiss_mission(saved["id"], main.MissionDismissRequest(reason="prefer_another", idempotencyKey="d"), request())
     assert dismissed["mission"]["status"] == replay["mission"]["status"] == "dismissed"
+
+
+def test_current_surfaces_latest_repaired_result_when_no_active_mission(monkeypatch):
+    repository = InMemoryMissionRepository()
+    enabled(monkeypatch, repository)
+    service = MissionPersistenceService(repository)
+    saved = service.persist_candidate(user_id="user-1", candidate=candidate())
+    for status in ("assigned", "learning", "awaiting_evidence", "repaired"):
+        service.transition_mission(user_id="user-1", mission_id=saved["id"], target_status=status,
+                                   cause_type="test", idempotency_key=f"to-{status}")
+    response = main.get_current_mission(request())
+    assert response["mission"]["status"] == "repaired"

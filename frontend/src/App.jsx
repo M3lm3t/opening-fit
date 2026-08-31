@@ -14,6 +14,7 @@ import RepertoireStudyPlan from "./components/RepertoireStudyPlan";
 import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import GameReplayBoard from "./components/GameReplayBoard";
 import PersonalOpeningTrainer from "./components/PersonalOpeningTrainer.jsx";
+import { MissionEvidencePanel, MissionTrainingPanel } from "./components/MissionExperience.jsx";
 import TrainingStreakCard from "./components/TrainingStreakCard.jsx";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
@@ -17285,6 +17286,7 @@ export default function App() {
                       <button type="button" className="primaryBtn" onClick={exitSampleReport}>Analyse your games</button>
                     </section>
                   ) : null}
+                  {!isSampleReport(reportData) ? <MissionEvidencePanel /> : null}
                   <FinalReportFlow
                     data={reportData}
                     fitData={fitData}
@@ -17314,6 +17316,7 @@ export default function App() {
 
               {activeAppSection === "train" ? (
                 <>
+                  <MissionTrainingPanel onHome={() => handleAppNavigate("home")} onAnalyse={() => handleAppNavigate("analyse")} onReport={() => handleAppNavigate("report")} />
                   <ThisWeekTrainingExperience
                     report={reportData}
                     onPractice={startOpeningPractice}

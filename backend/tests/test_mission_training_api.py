@@ -75,6 +75,17 @@ def test_illegal_move_is_bounded_domain_error_and_not_persisted(monkeypatch):
     assert repository.attempts == {}
 
 
+def test_incorrect_exercise_remains_current_for_retry(monkeypatch):
+    _repository, mission_id = setup(monkeypatch)
+    started = main.start_mission_training(main.UUID(mission_id), main.MissionTrainingStartRequest(idempotencyKey="start"), request())
+    session = started["session"]
+    exercise = session["currentExercise"]["exerciseId"]
+    result = main.submit_mission_training_attempt(main.UUID(mission_id), main.UUID(session["id"]),
+        main.MissionTrainingAttemptRequest(exerciseId=exercise, attemptedMoveUci="b1c3", idempotencyKey="wrong"), request())
+    assert result["result"] == "incorrect"
+    assert result["session"]["currentExercise"]["exerciseId"] == exercise
+
+
 def test_enabled_missing_training_schema_is_degraded_not_globally_blocking(monkeypatch):
     base = {"status": "ready", "subscriptions": "disabled", "stripe": "configured", "webhook": "configured",
             "monthly_price": "configured", "annual_price": "configured", "missions": "enabled"}

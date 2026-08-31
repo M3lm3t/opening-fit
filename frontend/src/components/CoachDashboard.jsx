@@ -25,6 +25,7 @@ import GameCheckPanel from "./GameCheckPanel.jsx";
 import TrainingStreakCard from "./TrainingStreakCard.jsx";
 import WeeklyRecap from "./WeeklyRecap.jsx";
 import CoachingReminderSettings from "./CoachingReminderSettings.jsx";
+import { CurrentMissionCard } from "./MissionExperience.jsx";
 import "./CoachDashboard.css";
 
 function asArray(value) {
@@ -552,6 +553,7 @@ export default function CoachDashboard({
   const [canonicalPriority, setCanonicalPriority] = useState(null);
   const [weeklyGoal, setWeeklyGoal] = useState(null);
   const [newGames, setNewGames] = useState(null);
+  const [hasDurableMission, setHasDurableMission] = useState(false);
   const activity = useMemo(
     () => [...optimisticActivity, ...asArray(activityHistory), ...asArray(openingFitUserState)],
     [activityHistory, openingFitUserState, optimisticActivity]
@@ -665,7 +667,8 @@ export default function CoachDashboard({
   return (
     <section className="coachDashboard" id="coach-dashboard" aria-label="OpeningFit Today">
       <header className="todayGreeting"><p className="coachEyebrow">Welcome back</p><h1>{profile?.display_name ? `Hello, ${profile.display_name}` : "Your opening work for today"}</h1><p>{openings.length >= 3 ? "Your three repertoire roles are represented in the current report." : openings.length ? `${openings.length} of 3 repertoire roles currently have recognised opening evidence.` : "Your current report does not yet support a complete repertoire summary."}</p></header>
-      <TodayPrimaryAction action={todayAction} goal={ratingGoal} weeklyGoal={weeklyGoal} newGames={newGames} onAction={startTodayAction} onComplete={completeTask} trainingSession={personalTrainingSession} onTraining={onTraining} />
+      <CurrentMissionCard onAvailabilityChange={setHasDurableMission} onTrain={onTraining} onReport={onReport} onAnalyse={onAnalyse} />
+      {!hasDurableMission ? <TodayPrimaryAction action={todayAction} goal={ratingGoal} weeklyGoal={weeklyGoal} newGames={newGames} onAction={startTodayAction} onComplete={completeTask} trainingSession={personalTrainingSession} onTraining={onTraining} /> : null}
       <TrainingStreakCard />
       <WeeklyRecap data={retentionData} fitData={fitData} reportHistory={reportHistory} active={Boolean(data)} onTraining={onTraining} onReport={onReport} />
       <CoachingReminderSettings weeklyGoal={weeklyGoal} newGames={newGames || 0} />

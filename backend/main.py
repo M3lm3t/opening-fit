@@ -12496,7 +12496,10 @@ def get_current_mission(request: Request):
         return {"mission": None, "reasonCode": reason, "featureAvailable": False,
                 "schemaState": "not_checked" if reason == "missions_disabled" else "not_ready"}
     try:
-        mission = mission_repository().get_current(user_id)
+        repository = mission_repository()
+        mission = repository.get_current(user_id)
+        if not mission:
+            mission = next((row for row in repository.list_history(user_id, 10) if row.get("status") == "repaired"), None)
         return {"mission": _mission_present(mission), "reasonCode": None if mission else "no_active_mission",
                 "featureAvailable": True, "schemaState": "ready"}
     except MissionPersistenceError as exc:
@@ -12573,9 +12576,10 @@ def _training_session_present(repository, session: Optional[Mapping[str, Any]]) 
         return None
     attempts = repository.list_training_attempts(str(session["user_id"]), str(session["id"]), limit=100)
     answered = {str(row.get("exercise_key")) for row in attempts}
+    solved = {str(row.get("exercise_key")) for row in attempts if row.get("result") in {"correct", "assisted_correct"}}
     manifest = list(session.get("exercise_manifest") or [])
     exercises = [client_exercise(row, answered=row.get("exerciseKey") in answered) for row in manifest]
-    current = next((row for row in exercises if row["exerciseId"] not in answered), None)
+    current = next((row for row in exercises if row["exerciseId"] not in solved), None)
     return {"id": session["id"], "missionId": session["mission_id"], "status": session["status"],
             "exerciseSetVersion": session["exercise_set_version"], "exerciseCount": len(manifest),
             "startedAt": session.get("started_at"), "lastActivityAt": session.get("last_activity_at"),
