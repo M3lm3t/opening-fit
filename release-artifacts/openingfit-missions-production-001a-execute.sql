@@ -1,4 +1,4 @@
--- PRODUCTION WARNING: target frtjfvhiimgruenqcuon only; split stage 001A.
+-- PRODUCTION WARNING: target frtjfvhiimgruenqcuon; stage 001A.
 -- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.
 -- Do not rerun after an uncertain failure; inspect this stage read-only first.
 BEGIN;
@@ -124,6 +124,16 @@ create table public.openingfit_mission_status_events (
 );
 create index openingfit_mission_status_events_history_idx on public.openingfit_mission_status_events(user_id, mission_id, created_at);
 
+alter table public.openingfit_missions enable row level security;
+alter table public.openingfit_mission_training_attempts enable row level security;
+alter table public.openingfit_mission_encounters enable row level security;
+alter table public.openingfit_mission_status_events enable row level security;
+
+revoke all on public.openingfit_missions from public, anon, authenticated;
+revoke all on public.openingfit_mission_training_attempts from public, anon, authenticated;
+revoke all on public.openingfit_mission_encounters from public, anon, authenticated;
+revoke all on public.openingfit_mission_status_events from public, anon, authenticated;
+revoke all on public.openingfit_missions, public.openingfit_mission_training_attempts, public.openingfit_mission_encounters, public.openingfit_mission_status_events from service_role;
 -- SOURCE MIGRATION 001 STAGE END
-DO $assert$ begin if not (not exists(select 1 from (values ('openingfit_missions','openingfit_missions_one_primary_active_idx',$idx$CREATE UNIQUE INDEX openingfit_missions_one_primary_active_idx ON public.openingfit_missions USING btree (user_id) WHERE (is_primary AND (status = ANY (ARRAY['assigned'::text, 'learning'::text, 'awaiting_evidence'::text, 'improving'::text, 'needs_review'::text])))$idx$), ('openingfit_missions','openingfit_missions_current_lookup_idx',$idx$CREATE INDEX openingfit_missions_current_lookup_idx ON public.openingfit_missions USING btree (user_id, status, updated_at DESC) WHERE is_primary$idx$), ('openingfit_missions','openingfit_missions_history_idx',$idx$CREATE INDEX openingfit_missions_history_idx ON public.openingfit_missions USING btree (user_id, created_at DESC)$idx$), ('openingfit_missions','openingfit_missions_position_idx',$idx$CREATE INDEX openingfit_missions_position_idx ON public.openingfit_missions USING btree (user_id, exact_position_key, status)$idx$), ('openingfit_missions','openingfit_missions_source_report_idx',$idx$CREATE INDEX openingfit_missions_source_report_idx ON public.openingfit_missions USING btree (user_id, source_report_id) WHERE (source_report_id IS NOT NULL)$idx$), ('openingfit_mission_training_attempts','openingfit_mission_attempts_history_idx',$idx$CREATE INDEX openingfit_mission_attempts_history_idx ON public.openingfit_mission_training_attempts USING btree (user_id, mission_id, created_at DESC)$idx$), ('openingfit_mission_encounters','openingfit_mission_encounters_verification_idx',$idx$CREATE INDEX openingfit_mission_encounters_verification_idx ON public.openingfit_mission_encounters USING btree (user_id, mission_id, qualifies_for_verification, played_at)$idx$), ('openingfit_mission_status_events','openingfit_mission_status_events_history_idx',$idx$CREATE INDEX openingfit_mission_status_events_history_idx ON public.openingfit_mission_status_events USING btree (user_id, mission_id, created_at)$idx$)) e(tablename,indexname,indexdef) left join pg_indexes a on a.schemaname='public' and a.indexname=e.indexname where a.tablename is distinct from e.tablename or a.indexdef is distinct from e.indexdef)) then raise exception '001A postcondition failed'; end if; end $assert$;
+DO $assert$ begin if not ((select count(*) from pg_class r join pg_namespace n on n.oid=r.relnamespace where n.nspname='public' and r.relkind='r' and r.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']))=4 and (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) and c.relrowsecurity)=4 and not exists(select 1 from information_schema.role_table_grants where table_schema='public' and table_name=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) and grantee=any(array['PUBLIC','anon','authenticated','service_role']))) then raise exception '001A failed'; end if; end $assert$;
 COMMIT;

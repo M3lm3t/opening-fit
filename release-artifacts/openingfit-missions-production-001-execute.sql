@@ -140,6 +140,7 @@ revoke all on public.openingfit_missions from public, anon, authenticated;
 revoke all on public.openingfit_mission_training_attempts from public, anon, authenticated;
 revoke all on public.openingfit_mission_encounters from public, anon, authenticated;
 revoke all on public.openingfit_mission_status_events from public, anon, authenticated;
+revoke all on public.openingfit_missions, public.openingfit_mission_training_attempts, public.openingfit_mission_encounters, public.openingfit_mission_status_events from service_role;
 grant select on public.openingfit_missions, public.openingfit_mission_training_attempts, public.openingfit_mission_encounters, public.openingfit_mission_status_events to authenticated;
 grant select, insert, update on public.openingfit_missions to service_role;
 grant select, insert on public.openingfit_mission_training_attempts, public.openingfit_mission_encounters, public.openingfit_mission_status_events to service_role;
@@ -204,7 +205,7 @@ begin
   select * into current_mission from public.openingfit_missions where id = p_mission_id and user_id = p_user_id for update;
   if current_mission.id is null then raise exception 'Mission not found'; end if;
   prior_status := current_mission.status;
-  if not case prior_status
+  if not (case prior_status
     when 'candidate' then p_to_status in ('assigned','dismissed','superseded')
     when 'assigned' then p_to_status in ('learning','dismissed','superseded')
     when 'learning' then p_to_status in ('awaiting_evidence','dismissed','superseded')
@@ -212,7 +213,7 @@ begin
     when 'improving' then p_to_status in ('repaired','needs_review','dismissed','superseded')
     when 'needs_review' then p_to_status in ('learning','dismissed','superseded')
     when 'repaired' then p_to_status = 'superseded'
-    else false end then raise exception 'Illegal mission transition'; end if;
+    else false end) then raise exception 'Illegal mission transition'; end if;
   perform set_config('openingfit.mission_transition', 'allowed', true);
   update public.openingfit_missions set status = p_to_status,
     is_primary = p_to_status in ('assigned','learning','awaiting_evidence','improving','needs_review'),
@@ -227,7 +228,8 @@ begin
   insert into public.openingfit_mission_status_events(user_id,mission_id,from_status,to_status,cause_type,cause_id,idempotency_key,evidence_summary)
   values(p_user_id,p_mission_id,prior_status,p_to_status,btrim(p_cause_type),p_cause_id,p_idempotency_key,coalesce(p_evidence_summary,'{}'::jsonb));
   return current_mission;
-end $$;
+end;
+$$;
 
 create or replace function public.dismiss_openingfit_mission(
   p_mission_id uuid, p_reason text, p_idempotency_key text
@@ -239,7 +241,8 @@ begin
   saved := public.transition_openingfit_mission(owner_id,p_mission_id,'dismissed','user_dismissed',p_reason,p_idempotency_key,jsonb_build_object('reason',p_reason));
   update public.openingfit_missions set dismissed_reason=p_reason where id=saved.id and user_id=owner_id returning * into saved;
   return saved;
-end $$;
+end;
+$$;
 
 revoke all on function public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb) from public, anon, authenticated;
 grant execute on function public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb) to service_role;

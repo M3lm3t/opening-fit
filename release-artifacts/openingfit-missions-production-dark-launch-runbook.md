@@ -17,9 +17,13 @@ Run `openingfit-missions-production-baseline-inspection.sql` one numbered SELECT
 
 The complete 001 wrapper was submitted twice through SQL Editor and both requests ended near line 208, before a function completed; the read-only baseline showed no persisted Mission objects. Do not use that full wrapper again in SQL Editor.
 
-Production 001A is structurally complete but inherited forbidden Supabase default privileges. Do not rerun 001A and do not run 001B. Execute the separately approved 001A containment artifact, then every read-only containment verification SELECT. Continue only from `containment_complete`; stop on `containment_absent` or `containment_partial`. The 001A classifier must not report `stage_complete` while ordinary-client privileges remain.
+The containment artifact remains an idempotent recovery tool for an older or legacy 001A state that inherited forbidden privileges. Use it only with separate approval, and continue only from `containment_complete`; stop on `containment_absent` or `containment_partial`.
+
+The revised 001A artifact is for future clean deployments only and now commits with RLS plus all ordinary and service-role table privileges revoked. A fresh revised 001A that verifies `stage_complete` does not require the recovery containment transaction. Current production has already completed 001A, containment and 001B: never rerun any of them; use the read-only post-001B checkpoint inspection before requesting 001C approval.
 
 Only after containment is verified and 001B receives separate approval, run the revised 001B artifact, whose wrapper first removes inherited service-role privileges before the source grants its narrower contract. Verify exact grants, policies, RLS and the identity trigger before considering 001C.
+
+Never submit 001C through SQL Editor. After separate approval, follow `openingfit-missions-production-001c-psql-runbook.md` and execute the exact artifact from disk using Direct or Shared Pooler Session mode on port 5432 with `psql -f` and `ON_ERROR_STOP=1`. Transaction-pooler port 6543 is prohibited for this DDL stage.
 
 Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Never paste wrappers together and never continue after failed verification.
 

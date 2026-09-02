@@ -3,7 +3,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $out = Join-Path $root 'release-artifacts'
 $project = 'frtjfvhiimgruenqcuon'
 $expected = @{
-  '001'='59D2FD81213240A4B98B4AE5A467B6830825B69448BA29AB87B0E03490A2E352'
+  '001'='9A63F98DD176FF685B642305A41CD5144BFFCDADA65839999645A24783791C7E'
   '002'='8EE99CA86E2DB640FD378ABA2F21CC24BE7E209F0DED2691B20AFA4A2A7519BA'
   '003'='64BF2C323496F7857C9B0CD6ACA8D7397D0BC1768E058A3A67769CED58169A5F'
   '004'='29137DC5989F57BCB641663E059DCB9F5BC208228999657921F1900D13EA8AEB'
@@ -33,7 +33,7 @@ foreach($n in $sources.Keys) {
 # after complete statements: base objects; access/protection; lifecycle RPCs.
 $source001=Join-Path $root 'supabase/migrations/202608310001_openingfit_missions_foundation.sql'
 $lines=[IO.File]::ReadAllLines($source001)
-if($lines.Count -ne 251){throw 'Migration 001 line contract changed'}
+if($lines.Count -ne 254){throw 'Migration 001 line contract changed'}
 $stageAIndexValues=((@'
 (values
 ('openingfit_missions','openingfit_missions_one_primary_active_idx',$idx$CREATE UNIQUE INDEX openingfit_missions_one_primary_active_idx ON public.openingfit_missions USING btree (user_id) WHERE (is_primary AND (status = ANY (ARRAY['assigned'::text, 'learning'::text, 'awaiting_evidence'::text, 'improving'::text, 'needs_review'::text])))$idx$),
@@ -62,16 +62,24 @@ $noMissionFunctions="not exists(select 1 from pg_proc p join pg_namespace n on n
 $noMissionTriggers="not exists(select 1 from pg_trigger t where t.tgrelid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and not t.tgisinternal)"
 $containmentPreserved="$stageATables and $stageAIndexFingerprint and $stageAConstraints and $rlsAll and $zeroRows and $noPolicies and $noMissionFunctions and $noMissionTriggers"
 $containmentComplete="$containmentPreserved and $ordinaryNoPrivileges"
+$stageAContained="$containmentComplete and not exists(select 1 from $missionTables t(name) cross join $tablePrivileges p(name) where has_table_privilege('service_role',to_regclass('public.'||t.name),p.name))"
+$stageAExecutionContained="$stageATables and $rlsAll and not exists(select 1 from information_schema.role_table_grants where table_schema='public' and table_name=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) and grantee=any(array['PUBLIC','anon','authenticated','service_role']))"
 $forbiddenEveryTable="(select count(*) from $missionTables t(name) where exists(select 1 from $ordinaryRoles r(oid) cross join $tablePrivileges p(name) where has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name)))=4"
 $stageBPrivileges="not exists(select 1 from $missionTables t(name) cross join (values(0::oid,'public'),('anon'::regrole::oid,'anon'),('authenticated'::regrole::oid,'authenticated'),('service_role'::regrole::oid,'service_role')) r(oid,name) cross join $tablePrivileges p(name) where has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name) is distinct from (case when r.name='authenticated' then p.name='SELECT' when r.name='service_role' then p.name in ('SELECT','INSERT') or (t.name='openingfit_missions' and p.name='UPDATE') else false end))"
 $stages = @(
-  @{Name='001a'; From=0; To=119; Requires="perform 1;"; Assert="if not ($stageAIndexes) then raise exception '001A postcondition failed'; end if;"},
-  @{Name='001b'; From=120; To=184; Requires="if not ($stageATables and $ordinaryNoPrivileges and $rlsAll and $zeroRows) then raise exception '001A containment is required'; end if;"; Before="revoke all on public.openingfit_missions,public.openingfit_mission_training_attempts,public.openingfit_mission_encounters,public.openingfit_mission_status_events from service_role;`n"; Assert="if (select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and relrowsecurity)<>4 or (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')<>4 or not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) or not ($stageBPrivileges) then raise exception '001B postcondition failed'; end if;"},
-  @{Name='001c'; From=185; To=250; Requires="if not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B is required'; end if;"; Assert="if not exists(select 1 from pg_proc where oid=to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') and prosecdef and proconfig @> array['search_path=public']) or not exists(select 1 from pg_proc where oid=to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') and prosecdef and proconfig @> array['search_path=public']) or has_function_privilege('public',to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)'),'execute') or has_function_privilege('anon',to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)'),'execute') then raise exception '001C postcondition failed'; end if;"}
+  @{Name='001a'; Ranges=@(@(0,124),@(134,138)); Requires="perform 1;"; Assert="if not ($stageAExecutionContained) then raise exception '001A failed'; end if;"},
+  @{Name='001b'; Ranges=@(@(125,133),@(139,185)); Requires="if not ($stageAContained) then raise exception 'clean contained 001A is required'; end if;"; Assert="if (select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and relrowsecurity)<>4 or (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')<>4 or not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) or not ($stageBPrivileges) then raise exception '001B postcondition failed'; end if;"},
+  @{Name='001c'; Ranges=@(@(186,253)); Requires="if not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B is required'; end if;"; Assert="if not exists(select 1 from pg_proc where oid=to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') and prosecdef and proconfig @> array['search_path=public']) or not exists(select 1 from pg_proc where oid=to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') and prosecdef and proconfig @> array['search_path=public']) or has_function_privilege('public',to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)'),'execute') or has_function_privilege('anon',to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)'),'execute') then raise exception '001C postcondition failed'; end if;"}
 )
 foreach($stage in $stages){
- $body=($lines[$stage.From..$stage.To] -join "`n")+"`n"
- $warning="-- PRODUCTION WARNING: target $project only; split stage $($stage.Name.ToUpper()).`n-- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.`n-- Do not rerun after an uncertain failure; inspect this stage read-only first.`nBEGIN;`nDO `$precondition`$ begin $($stage.Requires) end `$precondition`$;`n$($stage.Before)-- SOURCE MIGRATION 001 STAGE BEGIN`n"
+ $bodyParts=switch($stage.Name){
+  '001a' {@($lines[0..124]) + @($lines[134..138])}
+  '001b' {@($lines[125..133]) + @($lines[139..185])}
+  '001c' {@($lines[186..253])}
+ }
+ $body=$bodyParts -join "`n"
+ $body+="`n"
+ $warning="-- PRODUCTION WARNING: target $project; stage $($stage.Name.ToUpper()).`n-- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.`n-- Do not rerun after an uncertain failure; inspect this stage read-only first.`nBEGIN;`nDO `$precondition`$ begin $($stage.Requires) end `$precondition`$;`n$($stage.Before)-- SOURCE MIGRATION 001 STAGE BEGIN`n"
  $ending="-- SOURCE MIGRATION 001 STAGE END`nDO `$assert`$ begin $($stage.Assert) end `$assert`$;`nCOMMIT;"
  Write-Utf8 (Join-Path $out "openingfit-missions-production-$($stage.Name)-execute.sql") ($warning+$body+$ending)
 }
@@ -171,13 +179,29 @@ select $classification classification;
 "@
 }
 $allRelations="'openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events'"
-$stageAClassification="with checks as (select ($stageAAbsent) absent,($stageAComplete) structural,($ordinaryNoPrivileges) contained) select case when absent then 'stage_absent' when structural and contained then 'stage_complete' when structural then 'stage_complete_but_uncontained' else 'stage_partial' end classification from checks"
+$stageAClassification="with checks as (select ($stageAAbsent) absent,($stageAComplete) structural,($rlsAll and $ordinaryNoPrivileges and $noPolicies and $noMissionFunctions and $noMissionTriggers) contained) select case when absent then 'stage_absent' when structural and contained then 'stage_complete' when structural then 'stage_complete_but_uncontained' else 'stage_partial' end classification from checks"
 $stageAVerification=StageVerification '001a' $allRelations "'openingfit_protect_mission_identity'" $stageAComplete 'four tables, 46 exact constraints and eight exact explicit indexes; stage_complete also requires no ordinary-client privileges' $stageAAbsent
 $stageAVerification=$stageAVerification -replace "select case when .* classification;","$stageAClassification;"
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-verification.sql') $stageAVerification
 $stageBComplete="(select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')=4 and exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) and $stageBPrivileges"
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-001b-verification.sql') (StageVerification '001b' $allRelations "'openingfit_protect_mission_identity'" $stageBComplete 'prior tables plus RLS, four owner-select policies, exact grants and identity trigger')
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-001c-verification.sql') (StageVerification '001c' $allRelations "'openingfit_protect_mission_identity','transition_openingfit_mission','dismiss_openingfit_mission'" "to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') is not null and to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') is not null" 'complete protected lifecycle functions and exact execution grants; then run final 001 verification')
+
+$checkpointInspection=@"
+-- READ ONLY. Inspect the already-applied production post-001B checkpoint; do not rerun 001A, containment or 001B.
+-- 1. Exact structural inventory.
+select (select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relkind='r' and c.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events'])) table_count,(select count(*) from pg_constraint c where c.conrelid=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']::regclass[])) constraint_count,(select count(*) from pg_indexes where schemaname='public' and tablename=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events'])) index_count;
+-- 2. RLS, policies, triggers and exact effective table privileges.
+select c.relname,c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) order by 1;
+select tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) order by 1,2;
+select t.name table_name,r.name role_name,p.name privilege,has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name) effective from $missionTables t(name) cross join (values(0::oid,'PUBLIC'),('anon'::regrole::oid,'anon'),('authenticated'::regrole::oid,'authenticated'),('service_role'::regrole::oid,'service_role')) r(oid,name) cross join $tablePrivileges p(name) order by 1,2,3;
+select event_object_table,trigger_name,action_timing,event_manipulation from information_schema.triggers where event_object_schema='public' and event_object_table=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) order by 1,2;
+-- 3. Functions expected at the checkpoint. Lifecycle functions must still be absent.
+select to_regprocedure('public.openingfit_protect_mission_identity()') identity_protection,to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') transition_function,to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') dismissal_function;
+-- 4. Exact classification. Expected: post_001b_complete.
+select case when $stageAComplete and $rlsAll and (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')=4 and exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) and $stageBPrivileges and to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') is null and to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') is null then 'post_001b_complete' else 'checkpoint_mismatch' end classification;
+"@
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001-checkpoint-inspection.sql') $checkpointInspection
 
 $containmentVerification=@"
 -- READ ONLY. Mission 001A ordinary-client privilege containment verification. Run each SELECT independently.
@@ -222,6 +246,80 @@ select tablename,policyname,roles,cmd,qual,with_check from pg_policies where sch
 '@
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-final-security-audit.sql') $audit
 
+$psqlRunbook=@'
+# Mission stage 001C psql execution runbook
+
+Target project: `frtjfvhiimgruenqcuon`. Do not use Supabase SQL Editor or a transaction-pooler endpoint. This procedure requires separate 001C approval and preserves the artifact's own `BEGIN`, assertions and `COMMIT`.
+
+## Connection selection and credentials
+
+Use the Direct connection from Dashboard -> Connect when IPv6 is available. Otherwise use the Shared Pooler **Session mode** connection on port 5432. Never use port 6543. Copy the session host and server CA certificate path from the Dashboard; do not copy a URI or password into the shell.
+
+```powershell
+$psql = 'D:\opening-fit\.release-build\postgresql17\runtime\bin\psql.exe'
+$artifact = (Resolve-Path 'D:\opening-fit\release-artifacts\openingfit-missions-production-001c-execute.sql').Path
+$verification = (Resolve-Path 'D:\opening-fit\release-artifacts\openingfit-missions-production-001c-verification.sql').Path
+$checkpoint = (Resolve-Path 'D:\opening-fit\release-artifacts\openingfit-missions-production-001-checkpoint-inspection.sql').Path
+$env:PGDATABASE = 'postgres'
+$env:PGPORT = '5432'
+$env:PGSSLMODE = 'verify-full'
+$env:PGSSLROOTCERT = '<ABSOLUTE PATH TO DASHBOARD SERVER CA CERTIFICATE>'
+```
+
+For Direct mode only:
+
+```powershell
+$env:PGHOST = 'db.frtjfvhiimgruenqcuon.supabase.co'
+$env:PGUSER = 'postgres'
+if ($env:PGHOST -cne 'db.frtjfvhiimgruenqcuon.supabase.co' -or $env:PGPORT -ne '5432') { throw 'Wrong direct target' }
+```
+
+For Shared Pooler Session mode only, copy the non-secret host from Dashboard -> Connect -> Session pooler:
+
+```powershell
+$env:PGHOST = '<SESSION POOLER HOST FROM DASHBOARD>'
+$env:PGUSER = 'postgres.frtjfvhiimgruenqcuon'
+if ($env:PGUSER -cne 'postgres.frtjfvhiimgruenqcuon' -or $env:PGPORT -ne '5432' -or $env:PGHOST -notlike '*.pooler.supabase.com') { throw 'Wrong session-pooler target' }
+```
+
+Do not set `PGPASSWORD`. Each command uses `-W` so psql prompts privately. Never paste the password into a command, URI, file, transcript or chat.
+
+## Read-only preflight
+
+```powershell
+if ((Get-FileHash -Algorithm SHA256 -LiteralPath $artifact).Hash -cne '05D545F448656E027CC182EF9CB5CA4D3AF73AE9507ECF89AA3FF6FB6839A45B') { throw '001C artifact hash mismatch' }
+& $psql -X -W -v ON_ERROR_STOP=1 -c "select current_database(),current_user,session_user,inet_server_addr(),inet_server_port(),version(),pg_is_in_recovery();"
+if ($LASTEXITCODE -ne 0) { throw 'Read-only identity check failed' }
+& $psql -X -W -v ON_ERROR_STOP=1 -c "select to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') transition_function,to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') dismiss_function;"
+if ($LASTEXITCODE -ne 0) { throw 'Read-only 001C absence check failed' }
+& $psql -X -W -v ON_ERROR_STOP=1 -f $checkpoint
+if ($LASTEXITCODE -ne 0) { throw 'Read-only post-001B checkpoint inspection failed' }
+```
+
+Manually confirm database `postgres`, the expected `postgres` or `postgres.frtjfvhiimgruenqcuon` identity, a primary server (`pg_is_in_recovery = false`), the approved Dashboard host, both functions NULL, and final checkpoint classification `post_001b_complete`. Stop on any mismatch. Do not rerun 001A, containment or 001B.
+
+## Approved execution
+
+```powershell
+$runLog = Join-Path ([IO.Path]::GetTempPath()) ('openingfit-001c-' + (Get-Date -Format 'yyyyMMdd-HHmmss') + '.log')
+& $psql -X -W -v ON_ERROR_STOP=1 -f $artifact 2>&1 | Tee-Object -LiteralPath $runLog
+if ($LASTEXITCODE -ne 0) { throw "001C failed or is uncertain; do not rerun. Inspect with the read-only procedure. Output: $runLog" }
+```
+
+The temporary log contains SQL status/error output only. Confirm it contains `BEGIN`, both `CREATE FUNCTION` results, privilege/comment results, the final assertion result, and `COMMIT`; then run the verification file one SELECT at a time. Delete the temporary log through the normal approved local cleanup process after review.
+
+## Failure or uncertain result
+
+Never rerun after any nonzero exit, disconnect, timeout or missing `COMMIT`. Re-run only the read-only identity and `to_regprocedure` checks above, then run the read-only 001C verification from disk with `& $psql -X -W -v ON_ERROR_STOP=1 -f $verification`. If both functions are NULL, rollback is consistent. If both exist, complete verification must prove definitions, grants and comments before treating 001C as committed. If only one exists or any check disagrees, classify the state as partial/uncertain and stop for diagnosis. Do not edit migration history or drop objects.
+
+When finished, remove only the process-scoped non-secret connection variables:
+
+```powershell
+Remove-Item Env:PGHOST,Env:PGPORT,Env:PGDATABASE,Env:PGUSER,Env:PGSSLMODE,Env:PGSSLROOTCERT -ErrorAction SilentlyContinue
+```
+'@
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001c-psql-runbook.md') $psqlRunbook
+
 $runbook=@'
 # OpeningFit Missions production dark-launch runbook
 
@@ -242,9 +340,13 @@ Run `openingfit-missions-production-baseline-inspection.sql` one numbered SELECT
 
 The complete 001 wrapper was submitted twice through SQL Editor and both requests ended near line 208, before a function completed; the read-only baseline showed no persisted Mission objects. Do not use that full wrapper again in SQL Editor.
 
-Production 001A is structurally complete but inherited forbidden Supabase default privileges. Do not rerun 001A and do not run 001B. Execute the separately approved 001A containment artifact, then every read-only containment verification SELECT. Continue only from `containment_complete`; stop on `containment_absent` or `containment_partial`. The 001A classifier must not report `stage_complete` while ordinary-client privileges remain.
+The containment artifact remains an idempotent recovery tool for an older or legacy 001A state that inherited forbidden privileges. Use it only with separate approval, and continue only from `containment_complete`; stop on `containment_absent` or `containment_partial`.
+
+The revised 001A artifact is for future clean deployments only and now commits with RLS plus all ordinary and service-role table privileges revoked. A fresh revised 001A that verifies `stage_complete` does not require the recovery containment transaction. Current production has already completed 001A, containment and 001B: never rerun any of them; use the read-only post-001B checkpoint inspection before requesting 001C approval.
 
 Only after containment is verified and 001B receives separate approval, run the revised 001B artifact, whose wrapper first removes inherited service-role privileges before the source grants its narrower contract. Verify exact grants, policies, RLS and the identity trigger before considering 001C.
+
+Never submit 001C through SQL Editor. After separate approval, follow `openingfit-missions-production-001c-psql-runbook.md` and execute the exact artifact from disk using Direct or Shared Pooler Session mode on port 5432 with `psql -f` and `ON_ERROR_STOP=1`. Transaction-pooler port 6543 is prohibited for this DDL stage.
 
 Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Never paste wrappers together and never continue after failed verification.
 
