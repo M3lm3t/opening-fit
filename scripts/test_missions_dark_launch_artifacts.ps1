@@ -17,5 +17,42 @@ foreach($n in $expected.Keys){
  if($wrapper -match 'supabase_migrations\.schema_migrations|OPENINGFIT_MISSIONS_ENABLED\s*=\s*true'){throw "unsafe wrapper $n"}
  if($wrapper -notmatch 'frtjfvhiimgruenqcuon'){throw "target warning $n"}
 }
+function Get-SqlStatements([string]$sql){
+ $items=[Collections.Generic.List[string]]::new(); $b=[Text.StringBuilder]::new(); $i=0; $mode='normal'; $tag=''
+ while($i -lt $sql.Length){
+  $c=$sql[$i]; $next=if($i+1 -lt $sql.Length){$sql[$i+1]}else{[char]0}
+  if($mode -eq 'line'){if($c -eq "`n"){$mode='normal'};$i++;continue}
+  if($mode -eq 'block'){if($c -eq '*' -and $next -eq '/'){$mode='normal';$i+=2}else{$i++};continue}
+  if($mode -eq 'single'){[void]$b.Append($c);if($c -eq "'" -and $next -eq "'"){[void]$b.Append($next);$i+=2;continue};if($c -eq "'"){$mode='normal'};$i++;continue}
+  if($mode -eq 'double'){[void]$b.Append($c);if($c -eq '"' -and $next -eq '"'){[void]$b.Append($next);$i+=2;continue};if($c -eq '"'){$mode='normal'};$i++;continue}
+  if($mode -eq 'dollar'){if($sql.Substring($i).StartsWith($tag)){[void]$b.Append($tag);$i+=$tag.Length;$mode='normal'}else{[void]$b.Append($c);$i++};continue}
+  if($c -eq '-' -and $next -eq '-'){$mode='line';$i+=2;continue}
+  if($c -eq '/' -and $next -eq '*'){$mode='block';$i+=2;continue}
+  if($c -eq "'"){$mode='single';[void]$b.Append($c);$i++;continue}
+  if($c -eq '"'){$mode='double';[void]$b.Append($c);$i++;continue}
+  if($c -eq '$'){$m=[regex]::Match($sql.Substring($i),'^\$[A-Za-z_][A-Za-z0-9_]*\$|^\$\$');if($m.Success){$tag=$m.Value;$mode='dollar';[void]$b.Append($tag);$i+=$tag.Length;continue}}
+  if($c -eq ';'){$value=$b.ToString().Trim();if($value){$items.Add($value+';')};[void]$b.Clear();$i++;continue}
+  [void]$b.Append($c);$i++
+ }
+ if($mode -ne 'normal'){throw "Unbalanced SQL lexical state: $mode"}
+ if($b.ToString().Trim()){throw 'Executable SQL does not end at a statement boundary'}
+ return $items
+}
+$sourcePath=Join-Path $root 'supabase/migrations/202608310001_openingfit_missions_foundation.sql'
+$sourceText=[IO.File]::ReadAllText($sourcePath); $sourceStatements=@(Get-SqlStatements $sourceText); $splitStatements=@()
+foreach($stageName in @('001a','001b','001c')){
+ $path=Join-Path $dir "openingfit-missions-production-$stageName-execute.sql"; $text=[IO.File]::ReadAllText($path)
+ if([Text.Encoding]::UTF8.GetByteCount($text) -ge 10000){throw "$stageName exceeds 10,000 bytes"}
+ if($text -notmatch '(?im)^BEGIN;' -or $text -notmatch '(?im)^COMMIT;\s*$'){throw "$stageName transaction boundary"}
+ if(([regex]::Matches($text,'\$precondition\$').Count -ne 2) -or ([regex]::Matches($text,'\$assert\$').Count -ne 2)){throw "$stageName dollar quote imbalance"}
+ $begin='-- SOURCE MIGRATION 001 STAGE BEGIN';$end='-- SOURCE MIGRATION 001 STAGE END';$a=$text.IndexOf($begin)+$begin.Length;$z=$text.IndexOf($end)
+ if($a -lt $begin.Length -or $z -le $a){throw "$stageName source markers"}
+ $splitStatements += @(Get-SqlStatements $text.Substring($a,$z-$a))
+ if($text -match 'supabase_migrations\.schema_migrations|OPENINGFIT_MISSIONS_ENABLED\s*=\s*true|OPENINGFIT_MISSIONS_ROLLOUT_PERCENT'){throw "$stageName unsafe content"}
+}
+if($sourceStatements.Count -ne $splitStatements.Count){throw '001 statement count mismatch'}
+for($i=0;$i -lt $sourceStatements.Count;$i++){if($sourceStatements[$i] -cne $splitStatements[$i]){throw "001 statement coverage/order mismatch at $i"}}
+$duplicates=$splitStatements|Group-Object|Where-Object Count -gt 1;if($duplicates){throw '001 source statement duplicated'}
+foreach($name in @('openingfit-missions-production-001a-verification.sql','openingfit-missions-production-001b-verification.sql','openingfit-missions-production-001c-verification.sql')){$text=[IO.File]::ReadAllText((Join-Path $dir $name));if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"};if($text -notmatch "stage_absent" -or $text -notmatch "stage_partial" -or $text -notmatch "stage_complete"){throw "$name classification missing"}}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'

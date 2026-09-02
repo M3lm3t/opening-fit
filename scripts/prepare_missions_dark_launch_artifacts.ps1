@@ -29,6 +29,23 @@ foreach($n in $sources.Keys) {
   Write-Utf8 (Join-Path $out "openingfit-missions-production-$n-execute.sql") ($header+$sql+$tail)
 }
 
+# SQL Editor-safe split of 001. Boundaries are checksum-locked and occur only
+# after complete statements: base objects; access/protection; lifecycle RPCs.
+$source001=Join-Path $root 'supabase/migrations/202608310001_openingfit_missions_foundation.sql'
+$lines=[IO.File]::ReadAllLines($source001)
+if($lines.Count -ne 251){throw 'Migration 001 line contract changed'}
+$stages = @(
+  @{Name='001a'; From=0; To=119; Requires="select 1"; Assert="if to_regclass('public.openingfit_missions') is null or to_regclass('public.openingfit_mission_training_attempts') is null or to_regclass('public.openingfit_mission_encounters') is null or to_regclass('public.openingfit_mission_status_events') is null or (select count(*) from pg_indexes where schemaname='public' and indexname like 'openingfit_mission%')<>8 then raise exception '001A postcondition failed'; end if;"},
+  @{Name='001b'; From=120; To=184; Requires="if to_regclass('public.openingfit_missions') is null then raise exception '001A is required'; end if;"; Assert="if (select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and relrowsecurity)<>4 or (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')<>4 or not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B postcondition failed'; end if;"},
+  @{Name='001c'; From=185; To=250; Requires="if not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B is required'; end if;"; Assert="if not exists(select 1 from pg_proc where oid=to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') and prosecdef and proconfig @> array['search_path=public']) or not exists(select 1 from pg_proc where oid=to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') and prosecdef and proconfig @> array['search_path=public']) or has_function_privilege('public',to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)'),'execute') or has_function_privilege('anon',to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)'),'execute') then raise exception '001C postcondition failed'; end if;"}
+)
+foreach($stage in $stages){
+ $body=($lines[$stage.From..$stage.To] -join "`n")+"`n"
+ $warning="-- PRODUCTION WARNING: target $project only; split stage $($stage.Name.ToUpper()).`n-- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.`n-- Do not rerun after an uncertain failure; inspect this stage read-only first.`nBEGIN;`nDO `$precondition`$ begin $($stage.Requires) end `$precondition`$;`n-- SOURCE MIGRATION 001 STAGE BEGIN`n"
+ $ending="-- SOURCE MIGRATION 001 STAGE END`nDO `$assert`$ begin $($stage.Assert) end `$assert`$;`nCOMMIT;"
+ Write-Utf8 (Join-Path $out "openingfit-missions-production-$($stage.Name)-execute.sql") ($warning+$body+$ending)
+}
+
 $baseline=@'
 -- READ ONLY. Production Mission baseline. Run each numbered SELECT independently.
 -- 1. Dependencies and every expected relation.
@@ -92,6 +109,30 @@ $v4=Verification '004' "'openingfit_mission_events','openingfit_mission_activity
 $v4 += "`n-- 7. Reminder opt-in default.`nselect column_name,data_type,is_nullable,column_default from information_schema.columns where table_schema='public' and table_name='notification_preferences' and column_name='mission_reminders';"
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-004-verification.sql') $v4
 
+function StageVerification($name,$relations,$procedures,$completeTest,$expected){
+@"
+-- READ ONLY. Split stage $($name.ToUpper()) verification. Run each numbered SELECT independently.
+-- 1. Stage relations, columns and constraints.
+select name,to_regclass('public.'||name) object from unnest(array[$relations]) name;
+select table_name,column_name,data_type,udt_name,is_nullable,column_default from information_schema.columns where table_schema='public' and table_name=any(array[$relations]) order by 1,ordinal_position;
+select c.conrelid::regclass,c.conname,c.contype,pg_get_constraintdef(c.oid) from pg_constraint c where c.conrelid=any(array[$relations]::regclass[]) order by 1,2;
+-- 2. Indexes, RLS, policies, grants and triggers relevant to this and prior stages.
+select tablename,indexname,indexdef from pg_indexes where schemaname='public' and tablename=any(array[$relations]) order by 1,2;
+select c.relname,c.relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array[$relations]) order by 1;
+select tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename=any(array[$relations]) order by 1,2;
+select table_name,grantee,privilege_type from information_schema.role_table_grants where table_schema='public' and table_name=any(array[$relations]) order by 1,2,3;
+select event_object_table,trigger_name,action_timing,event_manipulation,action_statement from information_schema.triggers where event_object_schema='public' and event_object_table=any(array[$relations]) order by 1,2;
+-- 3. Functions and execution privileges.
+select p.proname,pg_get_function_identity_arguments(p.oid),p.prosecdef,p.proconfig,has_function_privilege('public',p.oid,'execute') public_execute,has_function_privilege('anon',p.oid,'execute') anon_execute,has_function_privilege('authenticated',p.oid,'execute') authenticated_execute,has_function_privilege('service_role',p.oid,'execute') service_execute from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array[$procedures]) order by 1,2;
+-- 4. Stage classification aid. Expected: $expected.
+select case when not ($completeTest) then case when to_regclass('public.openingfit_missions') is null then 'stage_absent' else 'stage_partial' end else 'stage_complete' end classification;
+"@
+}
+$allRelations="'openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events'"
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-verification.sql') (StageVerification '001a' $allRelations "'openingfit_protect_mission_identity'" "(select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]))=4 and (select count(*) from pg_indexes where schemaname='public' and indexname like 'openingfit_mission%')=8" 'four tables and eight indexes; no authenticated grants yet')
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001b-verification.sql') (StageVerification '001b' $allRelations "'openingfit_protect_mission_identity'" "(select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')=4 and exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal)" 'prior tables plus RLS, four owner-select policies, narrow grants and identity trigger')
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001c-verification.sql') (StageVerification '001c' $allRelations "'openingfit_protect_mission_identity','transition_openingfit_mission','dismiss_openingfit_mission'" "to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') is not null and to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') is not null" 'complete protected lifecycle functions and exact execution grants; then run final 001 verification')
+
 $audit=@'
 -- READ ONLY. Final Mission security audit. Run each numbered SELECT independently.
 -- 1. Missing relations, RLS, policies and grants.
@@ -132,7 +173,11 @@ Run `openingfit-missions-production-baseline-inspection.sql` one numbered SELECT
 
 ## Execution
 
-Run only the `001-execute` wrapper, then every numbered `001-verification` SELECT. Stop on mismatch. Repeat separately for 002, 003, and 004. Never paste all wrappers together and never continue after failed verification.
+The complete 001 wrapper was submitted twice through SQL Editor and both requests ended near line 208, before a function completed; the read-only baseline showed no persisted Mission objects. Do not use that full wrapper again in SQL Editor.
+
+Confirm the baseline is `no_mission_objects_present`. Run 001A, then its verification; stop on mismatch. Run 001B and verify; then 001C and verify. Run the final combined 001 verification and stop before migration 002. A verified intermediate stage may remain committed. Never rerun a stage classified `stage_complete`; never proceed from `stage_partial`. Missions remains disabled throughout.
+
+Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Never paste wrappers together and never continue after failed verification.
 
 ## Final verification
 

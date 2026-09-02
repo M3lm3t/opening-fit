@@ -15,7 +15,11 @@ Run `openingfit-missions-production-baseline-inspection.sql` one numbered SELECT
 
 ## Execution
 
-Run only the `001-execute` wrapper, then every numbered `001-verification` SELECT. Stop on mismatch. Repeat separately for 002, 003, and 004. Never paste all wrappers together and never continue after failed verification.
+The complete 001 wrapper was submitted twice through SQL Editor and both requests ended near line 208, before a function completed; the read-only baseline showed no persisted Mission objects. Do not use that full wrapper again in SQL Editor.
+
+Confirm the baseline is `no_mission_objects_present`. Run 001A, then its verification; stop on mismatch. Run 001B and verify; then 001C and verify. Run the final combined 001 verification and stop before migration 002. A verified intermediate stage may remain committed. Never rerun a stage classified `stage_complete`; never proceed from `stage_partial`. Missions remains disabled throughout.
+
+Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Never paste wrappers together and never continue after failed verification.
 
 ## Final verification
 
