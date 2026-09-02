@@ -47,20 +47,44 @@ $stageAIndexValues=((@'
 '@) -replace '\r?\n',' ')
 $stageATables="(select count(*) from pg_class r join pg_namespace n on n.oid=r.relnamespace where n.nspname='public' and r.relkind='r' and r.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']))=4"
 $stageAIndexes="not exists(select 1 from $stageAIndexValues e(tablename,indexname,indexdef) left join pg_indexes a on a.schemaname='public' and a.indexname=e.indexname where a.tablename is distinct from e.tablename or a.indexdef is distinct from e.indexdef)"
+$stageAIndexFingerprint="(select count(*)=8 and md5(string_agg(tablename||'|'||indexname||'|'||indexdef,chr(10) order by indexname))='7f724464ada49aa0ddca4f128d419715' from pg_indexes where schemaname='public' and indexname=any(array['openingfit_missions_one_primary_active_idx','openingfit_missions_current_lookup_idx','openingfit_missions_history_idx','openingfit_missions_position_idx','openingfit_missions_source_report_idx','openingfit_mission_attempts_history_idx','openingfit_mission_encounters_verification_idx','openingfit_mission_status_events_history_idx']))"
 $stageAConstraints="(select count(*)=46 and md5(string_agg(n.nspname||'.'||r.relname||'|'||c.conname||'|'||c.contype::text||'|'||pg_get_constraintdef(c.oid,false),chr(10) order by n.nspname,r.relname,c.conname))='cb93fc8e4263fd7b74d89d8fc1527d02' from pg_constraint c join pg_class r on r.oid=c.conrelid join pg_namespace n on n.oid=r.relnamespace where n.nspname='public' and r.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']))"
 $stageAComplete="$stageATables and $stageAIndexes and $stageAConstraints"
 $stageAAbsent="not exists(select 1 from pg_class r join pg_namespace n on n.oid=r.relnamespace where n.nspname='public' and r.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events','openingfit_missions_one_primary_active_idx','openingfit_missions_current_lookup_idx','openingfit_missions_history_idx','openingfit_missions_position_idx','openingfit_missions_source_report_idx','openingfit_mission_attempts_history_idx','openingfit_mission_encounters_verification_idx','openingfit_mission_status_events_history_idx']))"
+$missionTables="(values('openingfit_missions'),('openingfit_mission_training_attempts'),('openingfit_mission_encounters'),('openingfit_mission_status_events'))"
+$tablePrivileges="(values('SELECT'),('INSERT'),('UPDATE'),('DELETE'),('TRUNCATE'),('REFERENCES'),('TRIGGER'))"
+$ordinaryRoles="(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid))"
+$ordinaryNoPrivileges="not exists(select 1 from $missionTables t(name) cross join $ordinaryRoles r(oid) cross join $tablePrivileges p(name) where has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name))"
+$rlsAll="(select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']) and c.relrowsecurity)=4"
+$zeroRows="(select count(*) from public.openingfit_missions)+(select count(*) from public.openingfit_mission_training_attempts)+(select count(*) from public.openingfit_mission_encounters)+(select count(*) from public.openingfit_mission_status_events)=0"
+$noPolicies="not exists(select 1 from pg_policies where schemaname='public' and tablename=any(array['openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events']))"
+$noMissionFunctions="not exists(select 1 from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like '%openingfit_mission%')"
+$noMissionTriggers="not exists(select 1 from pg_trigger t where t.tgrelid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and not t.tgisinternal)"
+$containmentPreserved="$stageATables and $stageAIndexFingerprint and $stageAConstraints and $rlsAll and $zeroRows and $noPolicies and $noMissionFunctions and $noMissionTriggers"
+$containmentComplete="$containmentPreserved and $ordinaryNoPrivileges"
+$forbiddenEveryTable="(select count(*) from $missionTables t(name) where exists(select 1 from $ordinaryRoles r(oid) cross join $tablePrivileges p(name) where has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name)))=4"
+$stageBPrivileges="not exists(select 1 from $missionTables t(name) cross join (values(0::oid,'public'),('anon'::regrole::oid,'anon'),('authenticated'::regrole::oid,'authenticated'),('service_role'::regrole::oid,'service_role')) r(oid,name) cross join $tablePrivileges p(name) where has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name) is distinct from (case when r.name='authenticated' then p.name='SELECT' when r.name='service_role' then p.name in ('SELECT','INSERT') or (t.name='openingfit_missions' and p.name='UPDATE') else false end))"
 $stages = @(
   @{Name='001a'; From=0; To=119; Requires="perform 1;"; Assert="if not ($stageAIndexes) then raise exception '001A postcondition failed'; end if;"},
-  @{Name='001b'; From=120; To=184; Requires="if to_regclass('public.openingfit_missions') is null then raise exception '001A is required'; end if;"; Assert="if (select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and relrowsecurity)<>4 or (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')<>4 or not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B postcondition failed'; end if;"},
+  @{Name='001b'; From=120; To=184; Requires="if not ($stageATables and $ordinaryNoPrivileges and $rlsAll and $zeroRows) then raise exception '001A containment is required'; end if;"; Before="revoke all on public.openingfit_missions,public.openingfit_mission_training_attempts,public.openingfit_mission_encounters,public.openingfit_mission_status_events from service_role;`n"; Assert="if (select count(*) from pg_class where oid=any(array[to_regclass('public.openingfit_missions'),to_regclass('public.openingfit_mission_training_attempts'),to_regclass('public.openingfit_mission_encounters'),to_regclass('public.openingfit_mission_status_events')]) and relrowsecurity)<>4 or (select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')<>4 or not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) or not ($stageBPrivileges) then raise exception '001B postcondition failed'; end if;"},
   @{Name='001c'; From=185; To=250; Requires="if not exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) then raise exception '001B is required'; end if;"; Assert="if not exists(select 1 from pg_proc where oid=to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') and prosecdef and proconfig @> array['search_path=public']) or not exists(select 1 from pg_proc where oid=to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') and prosecdef and proconfig @> array['search_path=public']) or has_function_privilege('public',to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)'),'execute') or has_function_privilege('anon',to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)'),'execute') then raise exception '001C postcondition failed'; end if;"}
 )
 foreach($stage in $stages){
  $body=($lines[$stage.From..$stage.To] -join "`n")+"`n"
- $warning="-- PRODUCTION WARNING: target $project only; split stage $($stage.Name.ToUpper()).`n-- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.`n-- Do not rerun after an uncertain failure; inspect this stage read-only first.`nBEGIN;`nDO `$precondition`$ begin $($stage.Requires) end `$precondition`$;`n-- SOURCE MIGRATION 001 STAGE BEGIN`n"
+ $warning="-- PRODUCTION WARNING: target $project only; split stage $($stage.Name.ToUpper()).`n-- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.`n-- Do not rerun after an uncertain failure; inspect this stage read-only first.`nBEGIN;`nDO `$precondition`$ begin $($stage.Requires) end `$precondition`$;`n$($stage.Before)-- SOURCE MIGRATION 001 STAGE BEGIN`n"
  $ending="-- SOURCE MIGRATION 001 STAGE END`nDO `$assert`$ begin $($stage.Assert) end `$assert`$;`nCOMMIT;"
  Write-Utf8 (Join-Path $out "openingfit-missions-production-$($stage.Name)-execute.sql") ($warning+$body+$ending)
 }
+$containmentExecute=@"
+-- PRODUCTION WARNING: target $project only; Mission 001A ordinary-client privilege containment.
+-- Do not rerun after an uncertain result; run the read-only containment verification first.
+BEGIN;
+DO `$precondition`$ begin if not ($stageATables) then raise exception '001A containment requires all four exact tables'; end if; end `$precondition`$;
+revoke all on table public.openingfit_missions,public.openingfit_mission_training_attempts,public.openingfit_mission_encounters,public.openingfit_mission_status_events from public,anon,authenticated;
+DO `$assert`$ begin if not ($ordinaryNoPrivileges and $rlsAll and $zeroRows) then raise exception '001A containment postcondition failed'; end if; end `$assert`$;
+COMMIT;
+"@
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-containment-execute.sql') $containmentExecute
 
 $baseline=@'
 -- READ ONLY. Production Mission baseline. Run each numbered SELECT independently.
@@ -147,9 +171,34 @@ select $classification classification;
 "@
 }
 $allRelations="'openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events'"
-Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-verification.sql') (StageVerification '001a' $allRelations "'openingfit_protect_mission_identity'" $stageAComplete 'four tables, 46 exact constraints and eight exact explicit indexes; no authenticated grants yet' $stageAAbsent)
-Write-Utf8 (Join-Path $out 'openingfit-missions-production-001b-verification.sql') (StageVerification '001b' $allRelations "'openingfit_protect_mission_identity'" "(select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')=4 and exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal)" 'prior tables plus RLS, four owner-select policies, narrow grants and identity trigger')
+$stageAClassification="with checks as (select ($stageAAbsent) absent,($stageAComplete) structural,($ordinaryNoPrivileges) contained) select case when absent then 'stage_absent' when structural and contained then 'stage_complete' when structural then 'stage_complete_but_uncontained' else 'stage_partial' end classification from checks"
+$stageAVerification=StageVerification '001a' $allRelations "'openingfit_protect_mission_identity'" $stageAComplete 'four tables, 46 exact constraints and eight exact explicit indexes; stage_complete also requires no ordinary-client privileges' $stageAAbsent
+$stageAVerification=$stageAVerification -replace "select case when .* classification;","$stageAClassification;"
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-verification.sql') $stageAVerification
+$stageBComplete="(select count(*) from pg_policies where schemaname='public' and policyname like 'openingfit_mission%select_own')=4 and exists(select 1 from pg_trigger where tgrelid=to_regclass('public.openingfit_missions') and tgname='openingfit_protect_mission_identity' and not tgisinternal) and $stageBPrivileges"
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001b-verification.sql') (StageVerification '001b' $allRelations "'openingfit_protect_mission_identity'" $stageBComplete 'prior tables plus RLS, four owner-select policies, exact grants and identity trigger')
 Write-Utf8 (Join-Path $out 'openingfit-missions-production-001c-verification.sql') (StageVerification '001c' $allRelations "'openingfit_protect_mission_identity','transition_openingfit_mission','dismiss_openingfit_mission'" "to_regprocedure('public.transition_openingfit_mission(uuid,uuid,text,text,text,text,jsonb)') is not null and to_regprocedure('public.dismiss_openingfit_mission(uuid,text,text)') is not null" 'complete protected lifecycle functions and exact execution grants; then run final 001 verification')
+
+$containmentVerification=@"
+-- READ ONLY. Mission 001A ordinary-client privilege containment verification. Run each SELECT independently.
+-- 1. Exact tables and aggregate row counts only.
+select t.name,to_regclass('public.'||t.name) object from $missionTables t(name) order by 1;
+select 'openingfit_missions' table_name,count(*) row_count from public.openingfit_missions union all select 'openingfit_mission_training_attempts',count(*) from public.openingfit_mission_training_attempts union all select 'openingfit_mission_encounters',count(*) from public.openingfit_mission_encounters union all select 'openingfit_mission_status_events',count(*) from public.openingfit_mission_status_events order by 1;
+-- 2. RLS and policies.
+select c.relname,c.relrowsecurity,c.relforcerowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array[$allRelations]) order by 1;
+select tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename=any(array[$allRelations]) order by 1,2;
+-- 3. Effective privileges. Every has_privilege value must be false.
+select r.name role_name,t.name table_name,p.name privilege,has_table_privilege(r.oid,to_regclass('public.'||t.name),p.name) has_privilege from $missionTables t(name) cross join (values(0::oid,'PUBLIC'),('anon'::regrole::oid,'anon'),('authenticated'::regrole::oid,'authenticated')) r(oid,name) cross join $tablePrivileges p(name) order by 1,2,3;
+-- 4. No Mission functions or non-internal triggers.
+select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) arguments from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname like '%openingfit_mission%' order by 2,3;
+select c.relname,t.tgname from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname=any(array[$allRelations]) and not t.tgisinternal order by 1,2;
+-- 5. Exact constraints and indexes remain available for definition review.
+select c.conrelid::regclass,c.conname,c.contype,pg_get_constraintdef(c.oid) definition from pg_constraint c where c.conrelid=any(array[$allRelations]::regclass[]) order by 1,2;
+select tablename,indexname,indexdef from pg_indexes where schemaname='public' and tablename=any(array[$allRelations]) order by 1,2;
+-- 6. containment_absent requires the preserved pre-containment state with forbidden privileges on every table.
+with checks as (select ($containmentPreserved) preserved,($forbiddenEveryTable) absent,($ordinaryNoPrivileges) complete) select case when preserved and absent then 'containment_absent' when preserved and complete then 'containment_complete' else 'containment_partial' end classification from checks;
+"@
+Write-Utf8 (Join-Path $out 'openingfit-missions-production-001a-containment-verification.sql') $containmentVerification
 
 $audit=@'
 -- READ ONLY. Final Mission security audit. Run each numbered SELECT independently.
@@ -193,7 +242,9 @@ Run `openingfit-missions-production-baseline-inspection.sql` one numbered SELECT
 
 The complete 001 wrapper was submitted twice through SQL Editor and both requests ended near line 208, before a function completed; the read-only baseline showed no persisted Mission objects. Do not use that full wrapper again in SQL Editor.
 
-Confirm the baseline is `no_mission_objects_present`. Run 001A, then its verification; stop on mismatch. Run 001B and verify; then 001C and verify. Run the final combined 001 verification and stop before migration 002. A verified intermediate stage may remain committed. Never rerun a stage classified `stage_complete`; never proceed from `stage_partial`. Missions remains disabled throughout.
+Production 001A is structurally complete but inherited forbidden Supabase default privileges. Do not rerun 001A and do not run 001B. Execute the separately approved 001A containment artifact, then every read-only containment verification SELECT. Continue only from `containment_complete`; stop on `containment_absent` or `containment_partial`. The 001A classifier must not report `stage_complete` while ordinary-client privileges remain.
+
+Only after containment is verified and 001B receives separate approval, run the revised 001B artifact, whose wrapper first removes inherited service-role privileges before the source grants its narrower contract. Verify exact grants, policies, RLS and the identity trigger before considering 001C.
 
 Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Never paste wrappers together and never continue after failed verification.
 
@@ -203,7 +254,7 @@ Run the final security audit. Recheck public health/readiness, Missions disabled
 
 ## Containment
 
-Do not rerun blindly. Keep Missions disabled, rollout zero, and notifications disabled. Preserve exact error text; run baseline/partial-state inspection. Do not drop objects, edit migration history, deploy, or expose secrets. A connection failure near COMMIT is an uncertain state requiring metadata inspection.
+Do not rerun blindly. Keep Missions disabled, rollout zero, and notifications disabled. Preserve exact error text; run containment verification after any uncertain result. Do not drop objects, edit migration history, deploy, or expose secrets. The containment transaction may revoke privileges only on the four exact 001A tables.
 
 ## Approval—not yet granted
 

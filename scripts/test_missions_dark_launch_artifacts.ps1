@@ -69,7 +69,7 @@ foreach($stageName in @('001a','001b','001c')){
 if($sourceStatements.Count -ne $splitStatements.Count){throw '001 statement count mismatch'}
 for($i=0;$i -lt $sourceStatements.Count;$i++){if($sourceStatements[$i] -cne $splitStatements[$i]){throw "001 statement coverage/order mismatch at $i"}}
 $duplicates=$splitStatements|Group-Object|Where-Object Count -gt 1;if($duplicates){throw '001 source statement duplicated'}
-foreach($name in @('openingfit-missions-production-001a-verification.sql','openingfit-missions-production-001b-verification.sql','openingfit-missions-production-001c-verification.sql')){$text=[IO.File]::ReadAllText((Join-Path $dir $name));if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"};if($text -notmatch "stage_absent" -or $text -notmatch "stage_partial" -or $text -notmatch "stage_complete"){throw "$name classification missing"}}
+foreach($name in @('openingfit-missions-production-001a-verification.sql','openingfit-missions-production-001b-verification.sql','openingfit-missions-production-001c-verification.sql','openingfit-missions-production-001a-containment-verification.sql')){$text=[IO.File]::ReadAllText((Join-Path $dir $name));if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"}}
 $stageAExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-execute.sql'))
 $stageAVerify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-verification.sql'))
 foreach($text in @($stageAExecute,$stageAVerify)){
@@ -79,6 +79,14 @@ foreach($text in @($stageAExecute,$stageAVerify)){
  }
  if($text -notmatch 'CREATE UNIQUE INDEX openingfit_missions_one_primary_active_idx' -or $text -notmatch 'WHERE \(is_primary AND' -or $text -notmatch 'WHERE \(source_report_id IS NOT NULL\)'){throw '001A exact index properties missing'}
 }
-if($stageAVerify -notmatch "case when \(not exists\(.+?\)\) then 'stage_absent' when \(.+?\) then 'stage_complete' else 'stage_partial' end classification"){throw '001A three-state classification contract missing'}
+foreach($label in @('stage_absent','stage_partial','stage_complete','stage_complete_but_uncontained')){if(-not $stageAVerify.Contains($label)){throw "001A classification missing $label"}}
+$containmentExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-containment-execute.sql'))
+$containmentVerify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-containment-verification.sql'))
+foreach($text in @($containmentExecute,$containmentVerify)){if([Text.Encoding]::UTF8.GetByteCount($text) -ge 10000){throw '001A containment artifact exceeds 10,000 bytes'};foreach($name in @('openingfit_missions','openingfit_mission_training_attempts','openingfit_mission_encounters','openingfit_mission_status_events')){if(-not $text.Contains($name)){throw "containment missing exact table $name"}}}
+if($containmentExecute -notmatch '(?im)^BEGIN;' -or $containmentExecute -notmatch '(?im)^COMMIT;\s*$' -or $containmentExecute -notmatch '(?i)revoke all on table .* from public,anon,authenticated;' -or $containmentExecute -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant)\b'){throw 'containment execution mutation scope invalid'}
+foreach($privilege in @('SELECT','INSERT','UPDATE','DELETE','TRUNCATE','REFERENCES','TRIGGER')){if(-not $containmentExecute.Contains("('$privilege')") -or -not $containmentVerify.Contains("('$privilege')")){throw "containment missing has_table_privilege coverage for $privilege"}}
+foreach($label in @('containment_absent','containment_partial','containment_complete')){if(-not $containmentVerify.Contains($label)){throw "containment classification missing $label"}}
+$stageBExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001b-execute.sql'))
+if($stageBExecute.IndexOf('from service_role;') -gt $stageBExecute.IndexOf('-- SOURCE MIGRATION 001 STAGE BEGIN') -or $stageBExecute -notmatch '001A containment is required'){throw '001B service-role containment gate missing'}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'
