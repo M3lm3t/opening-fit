@@ -70,5 +70,15 @@ if($sourceStatements.Count -ne $splitStatements.Count){throw '001 statement coun
 for($i=0;$i -lt $sourceStatements.Count;$i++){if($sourceStatements[$i] -cne $splitStatements[$i]){throw "001 statement coverage/order mismatch at $i"}}
 $duplicates=$splitStatements|Group-Object|Where-Object Count -gt 1;if($duplicates){throw '001 source statement duplicated'}
 foreach($name in @('openingfit-missions-production-001a-verification.sql','openingfit-missions-production-001b-verification.sql','openingfit-missions-production-001c-verification.sql')){$text=[IO.File]::ReadAllText((Join-Path $dir $name));if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"};if($text -notmatch "stage_absent" -or $text -notmatch "stage_partial" -or $text -notmatch "stage_complete"){throw "$name classification missing"}}
+$stageAExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-execute.sql'))
+$stageAVerify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-001a-verification.sql'))
+foreach($text in @($stageAExecute,$stageAVerify)){
+ if($text -match "(?is)indexname\s+like\s+'openingfit_mission%'"){throw '001A uses unsafe aggregate index-prefix contract'}
+ foreach($indexName in @('openingfit_missions_one_primary_active_idx','openingfit_missions_current_lookup_idx','openingfit_missions_history_idx','openingfit_missions_position_idx','openingfit_missions_source_report_idx','openingfit_mission_attempts_history_idx','openingfit_mission_encounters_verification_idx','openingfit_mission_status_events_history_idx')){
+  if(-not $text.Contains($indexName)){throw "001A exact index contract missing $indexName"}
+ }
+ if($text -notmatch 'CREATE UNIQUE INDEX openingfit_missions_one_primary_active_idx' -or $text -notmatch 'WHERE \(is_primary AND' -or $text -notmatch 'WHERE \(source_report_id IS NOT NULL\)'){throw '001A exact index properties missing'}
+}
+if($stageAVerify -notmatch "case when \(not exists\(.+?\)\) then 'stage_absent' when \(.+?\) then 'stage_complete' else 'stage_partial' end classification"){throw '001A three-state classification contract missing'}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'
