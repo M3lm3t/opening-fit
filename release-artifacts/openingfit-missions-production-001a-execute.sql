@@ -2,7 +2,7 @@
 -- Required prior-stage verification must pass. Missions disabled; rollout 0%; notifications disabled.
 -- Do not rerun after an uncertain failure; inspect this stage read-only first.
 BEGIN;
-DO $precondition$ begin select 1 end $precondition$;
+DO $precondition$ begin perform 1; end $precondition$;
 -- SOURCE MIGRATION 001 STAGE BEGIN
 -- OpeningFit Missions Phase 2: additive persistence and protected lifecycle.
 -- Existing coaching_priorities retain their legacy semantics and data unchanged.

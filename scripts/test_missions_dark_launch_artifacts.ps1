@@ -1,4 +1,17 @@
 $ErrorActionPreference='Stop'
+function Assert-DoBlockSyntax([string]$text,[string]$tag,[string]$label){
+ $escaped=[regex]::Escape($tag)
+ $pattern='(?is)DO \$'+$escaped+'\$ begin\s+(.*?)\s+end \$'+$escaped+'\$;'
+ $match=[regex]::Match($text,$pattern)
+ if(-not $match.Success){throw "$label incomplete $tag DO block"}
+ $body=$match.Groups[1].Value.Trim()
+ if(-not $body.EndsWith(';')){throw "$label unterminated $tag PL/pgSQL statement"}
+ if($body -match '(?is)^select\s' -and $body -notmatch '(?is)\binto\b'){throw "$label destination-less SELECT in $tag"}
+}
+$malformed='DO $precondition$ begin select 1 end $precondition$;'
+$rejected=$false
+try { Assert-DoBlockSyntax $malformed 'precondition' 'regression fixture' } catch { $rejected=$true }
+if(-not $rejected){throw 'validator accepted malformed precondition regression fixture'}
 $root=Split-Path -Parent $PSScriptRoot
 $dir=Join-Path $root 'release-artifacts'
 $readOnly=@('openingfit-missions-production-baseline-inspection.sql','openingfit-missions-production-001-verification.sql','openingfit-missions-production-002-verification.sql','openingfit-missions-production-003-verification.sql','openingfit-missions-production-004-verification.sql','openingfit-missions-production-final-security-audit.sql')
@@ -45,6 +58,9 @@ foreach($stageName in @('001a','001b','001c')){
  if([Text.Encoding]::UTF8.GetByteCount($text) -ge 10000){throw "$stageName exceeds 10,000 bytes"}
  if($text -notmatch '(?im)^BEGIN;' -or $text -notmatch '(?im)^COMMIT;\s*$'){throw "$stageName transaction boundary"}
  if(([regex]::Matches($text,'\$precondition\$').Count -ne 2) -or ([regex]::Matches($text,'\$assert\$').Count -ne 2)){throw "$stageName dollar quote imbalance"}
+ foreach($tag in @('precondition','assert')){
+  Assert-DoBlockSyntax $text $tag $stageName
+ }
  $begin='-- SOURCE MIGRATION 001 STAGE BEGIN';$end='-- SOURCE MIGRATION 001 STAGE END';$a=$text.IndexOf($begin)+$begin.Length;$z=$text.IndexOf($end)
  if($a -lt $begin.Length -or $z -le $a){throw "$stageName source markers"}
  $splitStatements += @(Get-SqlStatements $text.Substring($a,$z-$a))
