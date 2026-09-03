@@ -1,18 +1,9 @@
 -- READ ONLY. Migration 002 verification. Run each numbered SELECT independently.
--- 1. Relations and exact columns.
-select name,to_regclass('public.'||name) object from unnest(array['openingfit_missions']) name;
-select table_name,column_name,data_type,udt_name,is_nullable,column_default from information_schema.columns where table_schema='public' and table_name=any(array['openingfit_missions']) order by 1,ordinal_position;
--- 2. Constraints, foreign keys and idempotency.
-select c.conrelid::regclass table_name,c.conname,c.contype,pg_get_constraintdef(c.oid) definition from pg_constraint c where c.conrelid=any(array['openingfit_missions']::regclass[]) order by 1,2;
--- 3. Indexes, including partial uniqueness.
-select tablename,indexname,indexdef from pg_indexes where schemaname='public' and tablename=any(array['openingfit_missions']) order by 1,2;
--- 4. RLS, policies and direct grants.
-select c.relname,c.relrowsecurity from pg_class c join pg_namespace ns on ns.oid=c.relnamespace where ns.nspname='public' and c.relname=any(array['openingfit_missions']) order by 1;
-select tablename,policyname,roles,cmd,qual,with_check from pg_policies where schemaname='public' and tablename=any(array['openingfit_missions']) order by 1,2;
-select table_name,grantee,privilege_type from information_schema.role_table_grants where table_schema='public' and table_name=any(array['openingfit_missions']) order by 1,2,3;
--- 5. Procedure security, safe search path, exact definitions and grants.
-select p.proname,pg_get_function_identity_arguments(p.oid) arguments,p.prosecdef,p.proconfig,has_function_privilege('public',p.oid,'execute') public_execute,has_function_privilege('anon',p.oid,'execute') anon_execute,has_function_privilege('authenticated',p.oid,'execute') authenticated_execute,has_function_privilege('service_role',p.oid,'execute') service_execute,pg_get_functiondef(p.oid) definition from pg_proc p join pg_namespace ns on ns.oid=p.pronamespace where ns.nspname='public' and p.proname=any(array['openingfit_missions_schema_readiness']) order by 1,2;
--- 6. Triggers and safe aggregate estimates.
-select event_object_table,trigger_name,action_timing,event_manipulation,action_statement from information_schema.triggers where event_object_schema='public' and event_object_table=any(array['openingfit_missions']) order by 1,2;
-select c.relname,c.reltuples::bigint estimated_rows from pg_class c join pg_namespace ns on ns.oid=c.relnamespace where ns.nspname='public' and c.relname=any(array['openingfit_missions']) order by 1;
--- Expected results: exact zero-argument readiness; SECURITY DEFINER; search_path=public; service_role execute only
+-- 1. Exact signature, return type, language, volatility, owner and security configuration; exactly one same-name function is allowed.
+select n.nspname,p.proname,pg_get_function_identity_arguments(p.oid) arguments,pg_get_function_result(p.oid) result_type,l.lanname language,p.provolatile,p.proowner::regrole owner,p.prosecdef,p.proconfig from pg_proc p join pg_namespace n on n.oid=p.pronamespace join pg_language l on l.oid=p.prolang where n.nspname='public' and p.proname='openingfit_missions_schema_readiness' order by 3;
+-- 2. Effective execute privileges for every API/backend role.
+select r.role_name,has_function_privilege(r.role_oid,to_regprocedure('public.openingfit_missions_schema_readiness()'),'execute') execute from (values(0::oid,'PUBLIC'),('anon'::regrole::oid,'anon'),('authenticated'::regrole::oid,'authenticated'),('service_role'::regrole::oid,'service_role')) r(role_oid,role_name) order by 2;
+-- 3. Exact secret-free aggregate readiness output. Expected: {"ready": true, "schemaVersion": 1}.
+select public.openingfit_missions_schema_readiness() readiness;
+-- 4. Exact fail-closed classification. Expected: stage_complete.
+select case when (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname='openingfit_missions_schema_readiness')=1 and exists(select 1 from pg_proc p join pg_language l on l.oid=p.prolang where p.oid=to_regprocedure('public.openingfit_missions_schema_readiness()') and p.prorettype='jsonb'::regtype and l.lanname='sql' and p.provolatile='s' and p.prosecdef and p.proconfig @> array['search_path=public']) and not has_function_privilege(0,to_regprocedure('public.openingfit_missions_schema_readiness()'),'execute') and not has_function_privilege('anon',to_regprocedure('public.openingfit_missions_schema_readiness()'),'execute') and not has_function_privilege('authenticated',to_regprocedure('public.openingfit_missions_schema_readiness()'),'execute') and has_function_privilege('service_role',to_regprocedure('public.openingfit_missions_schema_readiness()'),'execute') and public.openingfit_missions_schema_readiness() is not distinct from jsonb_build_object('ready',true,'schemaVersion',1) then 'stage_complete' else 'stage_partial' end classification;
