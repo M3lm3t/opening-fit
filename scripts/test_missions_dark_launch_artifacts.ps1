@@ -9,6 +9,7 @@ function Assert-DoBlockSyntax([string]$text,[string]$tag,[string]$label){
  if($body -match '(?is)^select\s' -and $body -notmatch '(?is)\binto\b'){throw "$label destination-less SELECT in $tag"}
 }
 function Assert-FunctionBlockSyntax([string]$text,[string]$label){
+ if($text -match '(?is)\bif\s+not\s+case\b'){throw "$label contains invalid unparenthesized IF NOT CASE"}
  $matches=[regex]::Matches($text,'(?is)create\s+(?:or\s+replace\s+)?function\b(?:(?!\$\$).)*?language\s+plpgsql(?:(?!\$\$).)*?\bas\s+\$\$(.*?)\$\$\s*;')
  foreach($match in $matches){
   if($match.Groups[1].Value.TrimEnd() -notmatch '(?is)\bend\s*;\s*$'){throw "$label has a function body without END; before the closing dollar quote"}
@@ -30,7 +31,7 @@ foreach($name in $readOnly){
  if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"}
  if($text -notmatch '(?im)^\s*select\b'){throw "$name has no SELECT"}
 }
-$expected=@{'001'='9A63F98DD176FF685B642305A41CD5144BFFCDADA65839999645A24783791C7E';'002'='8EE99CA86E2DB640FD378ABA2F21CC24BE7E209F0DED2691B20AFA4A2A7519BA';'003'='64BF2C323496F7857C9B0CD6ACA8D7397D0BC1768E058A3A67769CED58169A5F';'004'='29137DC5989F57BCB641663E059DCB9F5BC208228999657921F1900D13EA8AEB'}
+$expected=@{'001'='9A63F98DD176FF685B642305A41CD5144BFFCDADA65839999645A24783791C7E';'002'='8EE99CA86E2DB640FD378ABA2F21CC24BE7E209F0DED2691B20AFA4A2A7519BA';'003'='73981592838A56F16C9B8E25A6A69FFCF0E6180F6EF8FF1C0DD1080EC3168DFE';'004'='29137DC5989F57BCB641663E059DCB9F5BC208228999657921F1900D13EA8AEB'}
 foreach($n in $expected.Keys){
  $wrapper=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$n-execute.sql"));
  $source=Get-ChildItem (Join-Path $root "supabase/migrations/202608310${n}_*.sql");
@@ -39,7 +40,7 @@ foreach($n in $expected.Keys){
  if(-not $wrapper.Contains([IO.File]::ReadAllText($source.FullName))){throw "source logic missing $n"}
  if($wrapper -match 'supabase_migrations\.schema_migrations|OPENINGFIT_MISSIONS_ENABLED\s*=\s*true'){throw "unsafe wrapper $n"}
  if($wrapper -notmatch 'frtjfvhiimgruenqcuon'){throw "target warning $n"}
- if($n -eq '001'){Assert-FunctionBlockSyntax $wrapper "wrapper $n"}
+ if($n -in @('001','003')){Assert-FunctionBlockSyntax $wrapper "wrapper $n"}
 }
 function Get-SqlStatements([string]$sql){
  $items=[Collections.Generic.List[string]]::new(); $b=[Text.StringBuilder]::new(); $i=0; $mode='normal'; $tag=''
@@ -117,5 +118,10 @@ $stage2Verify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-produc
 foreach($required in @('DO $precondition$','completed migration 001 is required','openingfit_missions_schema_readiness()','prorettype=''jsonb''::regtype','provolatile=''s''','prosecdef','search_path=public','has_function_privilege(0','has_function_privilege(''anon''','has_function_privilege(''authenticated''','has_function_privilege(''service_role''','jsonb_build_object(''ready'',true,''schemaVersion'',1)')){if(-not $stage2Execute.Contains($required)){throw "002 execution contract missing $required"}}
 foreach($required in @('pg_get_function_identity_arguments','pg_get_function_result','p.proowner::regrole','stage_complete','stage_partial','schemaVersion','has_function_privilege')){if(-not $stage2Verify.Contains($required)){throw "002 verification contract missing $required"}}
 if($stage2Verify -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw '002 verification is not read-only'}
+$stage3Execute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-003-execute.sql'))
+$stage3Verify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-003-verification.sql'))
+foreach($required in @('DO $precondition$','completed migrations 001 and 002 are required','openingfit_attempt_session_owner_fk','openingfit_mission_one_active_training_session_idx','prosecdef','search_path=public','schemaVersion','trainingReady')){if(-not $stage3Execute.Contains($required)){throw "003 execution contract missing $required"}}
+foreach($required in @('stage_complete','stage_partial','openingfit_mission_training_sessions','openingfit_attempt_session_owner_fk','has_function_privilege','trainingReady')){if(-not $stage3Verify.Contains($required)){throw "003 verification contract missing $required"}}
+if($stage3Verify -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw '003 verification is not read-only'}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'

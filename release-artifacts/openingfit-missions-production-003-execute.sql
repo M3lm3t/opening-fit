@@ -2,6 +2,7 @@
 -- Required: prior baseline and preceding verification passed; Missions disabled; rollout 0%; notifications disabled.
 -- On failure before COMMIT the transaction should roll back. After uncertain connection failure, do not rerun; run read-only inspection first.
 BEGIN;
+DO $precondition$ begin if to_regprocedure('public.openingfit_missions_schema_readiness()') is null or public.openingfit_missions_schema_readiness() is distinct from jsonb_build_object('ready',true,'schemaVersion',1) then raise exception 'completed migrations 001 and 002 are required'; end if; end $precondition$;
 -- Phase 4: server-authoritative, resumable Mission training. Apply after 001 and 002.
 create table public.openingfit_mission_training_sessions (
   id uuid primary key default gen_random_uuid(),
@@ -40,6 +41,7 @@ create policy openingfit_mission_training_sessions_select_own on public.openingf
 for select to authenticated using(auth.uid()=user_id);
 revoke all on public.openingfit_mission_training_sessions from public,anon,authenticated;
 grant select on public.openingfit_mission_training_sessions to authenticated;
+revoke all on public.openingfit_mission_training_sessions from service_role;
 grant select,insert,update on public.openingfit_mission_training_sessions to service_role;
 revoke insert,update,delete on public.openingfit_mission_training_sessions from authenticated;
 revoke insert,update,delete on public.openingfit_mission_training_attempts from authenticated;
@@ -61,7 +63,8 @@ begin
  end if;
  new.updated_at:=now();
  return new;
-end $$;
+end;
+$$;
 create trigger openingfit_protect_training_session before update on public.openingfit_mission_training_sessions
 for each row execute function public.openingfit_protect_training_session();
 
@@ -90,7 +93,8 @@ begin
    perform public.transition_openingfit_mission(p_user_id,p_mission_id,'learning','training_session_started',s.id::text,'session-start:'||p_session_key,'{}'::jsonb);
  end if;
  return to_jsonb(s)||jsonb_build_object('resumed',was_resumed);
-end $$;
+end;
+$$;
 
 create or replace function public.record_openingfit_mission_training_attempt(
  p_user_id uuid,p_mission_id uuid,p_session_id uuid,p_exercise_key text,p_attempt_key text,p_attempted_move_uci text,
@@ -113,7 +117,8 @@ begin
  values(p_user_id,p_mission_id,p_session_id,p_exercise_key,p_session_id::text,p_attempt_key,p_attempted_move_uci,p_result,false,p_review_number,p_due_at,p_interval_days,coalesce(p_validation_evidence,'{}')) returning * into a;
  update public.openingfit_mission_training_sessions set last_activity_at=now(),updated_at=now() where id=s.id;
  return a;
-end $$;
+end;
+$$;
 
 create or replace function public.complete_openingfit_mission_training_session(
  p_user_id uuid,p_mission_id uuid,p_session_id uuid,p_idempotency_key text
@@ -141,7 +146,8 @@ begin
   meaningful_activity_recorded_at=now(),completion_idempotency_key=p_idempotency_key,completion_summary=summary where id=s.id returning * into s;
  perform public.transition_openingfit_mission(p_user_id,p_mission_id,'awaiting_evidence','training_session_completed',s.id::text,'session-complete:'||p_idempotency_key,summary);
  return s;
-end $$;
+end;
+$$;
 
 revoke all on function public.start_openingfit_mission_training_session(uuid,uuid,text,text,jsonb,integer,integer) from public,anon,authenticated;
 revoke all on function public.record_openingfit_mission_training_attempt(uuid,uuid,uuid,text,text,text,text,integer,integer,timestamptz,jsonb) from public,anon,authenticated;
@@ -170,5 +176,5 @@ grant execute on function public.openingfit_missions_schema_readiness() to servi
 
 -- Rollback (manual, not executed): revoke/drop the three functions, drop attempt session FK/column, then drop the session table.
 
-DO $assert$ begin if to_regclass('public.openingfit_mission_training_sessions') is null or not (select relrowsecurity from pg_class where oid=to_regclass('public.openingfit_mission_training_sessions')) or to_regprocedure('public.complete_openingfit_mission_training_session(uuid,uuid,uuid,text)') is null or not exists(select 1 from pg_constraint where conrelid=to_regclass('public.openingfit_mission_training_attempts') and conname='openingfit_attempt_session_owner_fk') then raise exception '003 postcondition failed'; end if; end $assert$;
+DO $assert$ begin if to_regclass('public.openingfit_mission_training_sessions') is null or not (select relrowsecurity from pg_class where oid=to_regclass('public.openingfit_mission_training_sessions')) or (select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname=any(array['start_openingfit_mission_training_session','record_openingfit_mission_training_attempt','complete_openingfit_mission_training_session']))<>3 or not exists(select 1 from pg_constraint where conrelid=to_regclass('public.openingfit_mission_training_attempts') and conname='openingfit_attempt_session_owner_fk') or not exists(select 1 from pg_index where indexrelid=to_regclass('public.openingfit_mission_one_active_training_session_idx') and indisunique and indpred is not null) or exists(select 1 from pg_proc where oid=any(array[to_regprocedure('public.start_openingfit_mission_training_session(uuid,uuid,text,text,jsonb,integer,integer)'),to_regprocedure('public.record_openingfit_mission_training_attempt(uuid,uuid,uuid,text,text,text,text,integer,integer,timestamptz,jsonb)'),to_regprocedure('public.complete_openingfit_mission_training_session(uuid,uuid,uuid,text)')]) and (not prosecdef or not proconfig @> array['search_path=public'])) or has_function_privilege(0,to_regprocedure('public.start_openingfit_mission_training_session(uuid,uuid,text,text,jsonb,integer,integer)'),'execute') or has_function_privilege('anon',to_regprocedure('public.complete_openingfit_mission_training_session(uuid,uuid,uuid,text)'),'execute') or has_function_privilege('authenticated',to_regprocedure('public.record_openingfit_mission_training_attempt(uuid,uuid,uuid,text,text,text,text,integer,integer,timestamptz,jsonb)'),'execute') or not has_function_privilege('service_role',to_regprocedure('public.complete_openingfit_mission_training_session(uuid,uuid,uuid,text)'),'execute') or public.openingfit_missions_schema_readiness()->>'schemaVersion'<>'3' or public.openingfit_missions_schema_readiness()->>'trainingReady'<>'true' then raise exception '003 postcondition failed'; end if; end $assert$;
 COMMIT;
