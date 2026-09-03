@@ -123,5 +123,21 @@ $stage3Verify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-produc
 foreach($required in @('DO $precondition$','completed migrations 001 and 002 are required','openingfit_attempt_session_owner_fk','openingfit_mission_one_active_training_session_idx','prosecdef','search_path=public','schemaVersion','trainingReady')){if(-not $stage3Execute.Contains($required)){throw "003 execution contract missing $required"}}
 foreach($required in @('stage_complete','stage_partial','openingfit_mission_training_sessions','openingfit_attempt_session_owner_fk','has_function_privilege','trainingReady')){if(-not $stage3Verify.Contains($required)){throw "003 verification contract missing $required"}}
 if($stage3Verify -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw '003 verification is not read-only'}
+$source003=[IO.File]::ReadAllText((Join-Path $root 'supabase/migrations/202608310003_openingfit_mission_training.sql'))
+$source003Statements=@(Get-SqlStatements $source003);$split003Statements=@()
+foreach($name in @('003a','003b','003c')){
+ $execute=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-execute.sql"));$verify=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-verification.sql"))
+ if([Text.Encoding]::UTF8.GetByteCount($execute) -ge 8000){throw "$name exceeds 8,000-byte target"}
+ if($execute -notmatch '(?m)^BEGIN;' -or $execute -notmatch '(?m)^COMMIT;\s*$'){throw "$name transaction boundary"}
+ foreach($tag in @('precondition','assert')){Assert-DoBlockSyntax $execute $tag $name}
+ Assert-FunctionBlockSyntax $execute $name
+ if($verify -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b' -or $verify -notmatch 'stage_complete' -or $verify -notmatch 'stage_partial'){throw "$name verification contract"}
+ $begin='-- SOURCE MIGRATION 003 STAGE BEGIN';$end='-- SOURCE MIGRATION 003 STAGE END';$a=$execute.IndexOf($begin)+$begin.Length;$z=$execute.IndexOf($end)
+ if($a -lt $begin.Length -or $z -le $a){throw "$name source markers"}
+ $split003Statements += @(Get-SqlStatements $execute.Substring($a,$z-$a))
+}
+if($source003Statements.Count -ne $split003Statements.Count){throw '003 split statement count mismatch'}
+for($i=0;$i -lt $source003Statements.Count;$i++){if($source003Statements[$i] -cne $split003Statements[$i]){throw "003 split coverage/order mismatch at $i"}}
+if(($split003Statements|Group-Object|Where-Object Count -gt 1)){throw '003 split source statement duplicated'}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'

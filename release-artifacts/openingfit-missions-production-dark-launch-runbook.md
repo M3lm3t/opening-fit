@@ -25,7 +25,7 @@ Only after containment is verified and 001B receives separate approval, run the 
 
 Never submit 001C through SQL Editor. After separate approval, follow `openingfit-missions-production-001c-psql-runbook.md` and execute the exact artifact from disk using Direct or Shared Pooler Session mode on port 5432 with `psql -f` and `ON_ERROR_STOP=1`. Transaction-pooler port 6543 is prohibited for this DDL stage.
 
-Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. Migration 003 is larger than the SQL Editor-safe threshold and contains multiple dollar-quoted functions: execute its checksum-approved artifact from disk with TLS-verified `psql -X -W -v ON_ERROR_STOP=1 -f`, never SQL Editor. Never paste wrappers together and never continue after failed verification.
+Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. For migration 003, never paste the complete wrapper: use the checksum-approved 003A, 003B and 003C SQL Editor artifacts in order, running each matching read-only verification immediately and continuing only from `stage_complete`. Each stage requires separate approval. Never paste stages together and never continue after failed or uncertain verification.
 
 ## Final verification
 
