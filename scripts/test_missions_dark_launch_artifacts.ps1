@@ -127,7 +127,7 @@ $source003=[IO.File]::ReadAllText((Join-Path $root 'supabase/migrations/20260831
 $source003Statements=@(Get-SqlStatements $source003);$split003Statements=@()
 foreach($name in @('003a','003b','003c')){
  $execute=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-execute.sql"));$verify=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-verification.sql"))
- if([Text.Encoding]::UTF8.GetByteCount($execute) -ge 8000){throw "$name exceeds 8,000-byte target"}
+ if([Text.Encoding]::UTF8.GetByteCount($execute) -ge 10000){throw "$name exceeds 10,000-byte SQL Editor limit"}
  if($execute -notmatch '(?m)^BEGIN;' -or $execute -notmatch '(?m)^COMMIT;\s*$'){throw "$name transaction boundary"}
  foreach($tag in @('precondition','assert')){Assert-DoBlockSyntax $execute $tag $name}
  Assert-FunctionBlockSyntax $execute $name
@@ -139,5 +139,11 @@ foreach($name in @('003a','003b','003c')){
 if($source003Statements.Count -ne $split003Statements.Count){throw '003 split statement count mismatch'}
 for($i=0;$i -lt $source003Statements.Count;$i++){if($source003Statements[$i] -cne $split003Statements[$i]){throw "003 split coverage/order mismatch at $i"}}
 if(($split003Statements|Group-Object|Where-Object Count -gt 1)){throw '003 split source statement duplicated'}
+$stage003BExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-003b-execute.sql'))
+$stage003BVerify=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-003b-verification.sql'))
+$stage003CExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-production-003c-execute.sql'))
+foreach($required in @("stage_absent","stage_partial","stage_complete","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","p.proname=any(array['start_openingfit_mission_training_session','record_openingfit_mission_training_attempt'])","prosecdef","search_path=public","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))","complete_openingfit_mission_training_session(uuid,uuid,uuid,text)","jsonb_build_object('ready',true,'schemaVersion',1)")){if(-not $stage003BVerify.Contains($required)){throw "003B fail-closed verification missing $required"}}
+foreach($required in @("003B postcondition failed","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))")){if(-not $stage003BExecute.Contains($required)){throw "003B postcondition missing $required"}}
+foreach($required in @("contained 003B is required","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))")){if(-not $stage003CExecute.Contains($required)){throw "003C prerequisite missing $required"}}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'
