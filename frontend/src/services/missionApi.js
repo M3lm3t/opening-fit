@@ -1,5 +1,6 @@
 import { supabase } from "../lib/supabaseClient.js";
 import { buildApiUrl } from "../lib/apiBase.js";
+import { missionsClientEnabled } from "../lib/missionFeatureGate.js";
 
 const currentReads = new Map();
 
@@ -30,6 +31,7 @@ async function authHeaders() {
 }
 
 async function request(path, { method = "GET", body, signal } = {}) {
+  if (!missionsClientEnabled()) throw new MissionApiError("missions_disabled", "Missions are disabled.");
   let response;
   try {
     response = await fetch(buildApiUrl(path), { method, headers: await authHeaders(), signal,

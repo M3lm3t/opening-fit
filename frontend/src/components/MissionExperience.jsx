@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
+import { useMissionFeatureState } from "../context/MissionFeatureProvider.jsx";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import { completeTrainingSession, dismissMission, getCurrentMission, getCurrentTrainingSession, listMissionHistory, missionActionKey, selectNextMission, startTrainingSession, submitTrainingAttempt } from "../services/missionApi.js";
 import { confidenceCopy, missionAction, missionStatement, missionStatusLabel, normaliseMissionResponse, provenanceLabel, roleLabel } from "../lib/missionPresentation.js";
@@ -42,7 +43,7 @@ function ProgressCopy({ mission }) {
   return <p>You reached this position in {mission.baseline_evidence_count || 0} analysed games and repeated the same move.</p>;
 }
 
-export function CurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilityChange }) {
+function EnabledCurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilityChange }) {
   const { state, refresh, setState, user } = useMission(onAvailabilityChange);
   const [pending, setPending] = useState(false); const [dismissOpen, setDismissOpen] = useState(false); const [error, setError] = useState("");
   const dismissKey = useRef(null);
@@ -72,14 +73,14 @@ export function CurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilit
   </section>;
 }
 
-export function MissionEvidencePanel() {
+function EnabledMissionEvidencePanel() {
   const { state, user } = useMission(); const [history, setHistory] = useState([]); const [cursor, setCursor] = useState(null); const [open, setOpen] = useState(false);
   if (!user?.id || state.kind === "disabled" || !state.mission) return null;
   const loadHistory = async () => { const result = await listMissionHistory({ limit: 10, cursor }); setHistory((rows) => [...rows, ...(result.missions || [])]); setCursor(result.nextCursor || null); setOpen(true); };
   return <section className="missionEvidencePanel" id="mission-evidence"><p className="missionEyebrow">Why this Mission</p><h2>{missionStatement(state.mission)}</h2><p>{confidenceCopy(state.mission)}</p><Evidence mission={state.mission} /><button type="button" className="secondaryBtn" onClick={loadHistory}>{open ? "Load more past Missions" : "Past Missions"}</button>{open ? <ul className="missionHistory">{history.map((item) => <li key={item.id}><strong>{item.opening_name || item.opening_id}</strong><span>{roleLabel(item.role)} · {missionStatusLabel(item.status)}</span><small>{item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at ? new Date(item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at).toLocaleDateString() : ""}</small></li>)}</ul> : null}{open && cursor ? <button type="button" onClick={loadHistory}>Load more</button> : null}</section>;
 }
 
-export function MissionTrainingPanel({ onHome, onAnalyse, onReport }) {
+function EnabledMissionTrainingPanel({ onHome, onAnalyse, onReport }) {
   const { state, refresh, user } = useMission(); const [session, setSession] = useState(null); const [phase, setPhase] = useState("idle"); const [selected, setSelected] = useState(null); const [feedback, setFeedback] = useState(null); const [lastMove, setLastMove] = useState([]); const [error, setError] = useState(""); const startKey = useRef(null); const completeKey = useRef(null); const attemptKey = useRef(null);
   const mission = state.mission;
   useEffect(() => { if (!user?.id || !mission?.id || !["learning", "needs_review"].includes(mission.status)) return; const controller = new AbortController(); getCurrentTrainingSession(mission.id, { signal: controller.signal }).then((result) => { if (result.session) { setSession(result.session); setPhase("active"); } }).catch(() => {}); return () => controller.abort(); }, [mission?.id, mission?.status, user?.id]);
@@ -94,4 +95,16 @@ export function MissionTrainingPanel({ onHome, onAnalyse, onReport }) {
   if (!session) return <section className="missionTraining"><p className="missionEyebrow">{mission.status === "needs_review" ? "Review needed" : "Your current Mission"}</p><h2>{missionStatement(mission)}</h2><p>This uses the exact position OpeningFit found in your games.</p>{error ? <p role="alert" className="missionError">{error}</p> : null}<button type="button" className="primaryBtn" disabled={phase === "creating"} onClick={start}>{phase === "creating" ? "Preparing…" : mission.status === "needs_review" ? "Review Mission" : "Start Mission"}</button></section>;
   if (phase === "completed" || session.status === "completed") return <section className="missionTraining missionTraining--complete" aria-live="polite"><p className="missionEyebrow">Training complete</p><h2>{missionStatement(mission)}</h2><p>OpeningFit will now watch your newly analysed games for this position.</p><button className="primaryBtn" onClick={onHome}>Back to Home</button></section>;
   return <section className="missionTraining" aria-labelledby="mission-training-title"><header><div><p className="missionEyebrow">Mission training</p><h2 id="mission-training-title">{mission.opening_name} · {roleLabel(mission.role)}</h2><p>{session.exerciseCount === 1 ? "Your key position — the exact position OpeningFit found in your games." : `${session.progress?.solvedCount || 0} solved of ${session.exerciseCount}`}</p></div></header>{exercise ? <div className="missionTrainingLayout"><div className="missionBoard"><ChessPositionBoard position={exercise.fen} orientation={exercise.boardOrientation} interactive={phase !== "submitting"} draggableColor={exercise.sideToMove === "black" ? "b" : "w"} selectedSquare={selected} lastMoveSquares={lastMove} onSquareClick={squareClick} onPieceDrop={attempt} /></div><div className="missionTrainingPrompt" aria-live="polite"><h3>{exercise.prompt || "Find your prepared move."}</h3><p>{phase === "submitting" ? "Checking your move…" : "Play your move on the board. OpeningFit validates it on the server."}</p>{feedback ? <div className={`missionFeedback missionFeedback--${feedback.result}`} role="status"><strong>{feedback.feedback}</strong>{feedback.acceptedMoves?.length ? <p>Prepared response: {feedback.acceptedMoves.map((move) => move.san).join(" or ")}</p> : null}</div> : null}{error ? <p className="missionError" role="alert">{error}</p> : null}{feedback?.progress?.eligible ? <button className="primaryBtn" disabled={phase === "completing"} onClick={complete}>{phase === "completing" ? "Completing…" : "Complete session"}</button> : feedback ? <button className="secondaryBtn" onClick={() => { setFeedback(null); setLastMove([]); setPhase("active"); }}>Try again</button> : null}</div></div> : <div className="missionTrainingPrompt"><h3>All positions attempted</h3>{session.progress?.eligible ? <button className="primaryBtn" onClick={complete}>Complete session</button> : <><p>One or more positions still need the prepared response.</p><button className="secondaryBtn" onClick={() => setPhase("active")}>Continue</button></>}</div>}</section>;
+}
+
+export function CurrentMissionCard(props) {
+  return useMissionFeatureState() === "enabled" ? <EnabledCurrentMissionCard {...props} /> : null;
+}
+
+export function MissionEvidencePanel(props) {
+  return useMissionFeatureState() === "enabled" ? <EnabledMissionEvidencePanel {...props} /> : null;
+}
+
+export function MissionTrainingPanel(props) {
+  return useMissionFeatureState() === "enabled" ? <EnabledMissionTrainingPanel {...props} /> : null;
 }

@@ -7,6 +7,7 @@ import "./styles/uiFoundation.css";
 import "./styles/iconControlAlignment.css";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { AuthDataProvider } from "./context/AuthDataProvider";
+import { MissionFeatureProvider } from "./context/MissionFeatureProvider.jsx";
 import ReferralCaptureNotice from "./components/ReferralCaptureNotice";
 import { initializeNativeAppShell } from "./lib/nativeAppShell.js";
 import { isWebApp } from "./lib/platform.js";
@@ -25,12 +26,14 @@ async function startOpeningFit() {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <ErrorBoundary>
+        <MissionFeatureProvider>
         <AuthDataProvider>
           <ReferralCaptureNotice />
           <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>
             {isReferralAdminRoute ? <AdminReferralsPage /> : <App />}
           </React.Suspense>
         </AuthDataProvider>
+        </MissionFeatureProvider>
         <Analytics />
       </ErrorBoundary>
     </React.StrictMode>
