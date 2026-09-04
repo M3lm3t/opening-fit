@@ -31,7 +31,7 @@ foreach($name in $readOnly){
  if($text -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b'){throw "$name is not read-only"}
  if($text -notmatch '(?im)^\s*select\b'){throw "$name has no SELECT"}
 }
-$expected=@{'001'='9A63F98DD176FF685B642305A41CD5144BFFCDADA65839999645A24783791C7E';'002'='8EE99CA86E2DB640FD378ABA2F21CC24BE7E209F0DED2691B20AFA4A2A7519BA';'003'='73981592838A56F16C9B8E25A6A69FFCF0E6180F6EF8FF1C0DD1080EC3168DFE';'004'='29137DC5989F57BCB641663E059DCB9F5BC208228999657921F1900D13EA8AEB'}
+$expected=@{'001'='9A63F98DD176FF685B642305A41CD5144BFFCDADA65839999645A24783791C7E';'002'='8EE99CA86E2DB640FD378ABA2F21CC24BE7E209F0DED2691B20AFA4A2A7519BA';'003'='73981592838A56F16C9B8E25A6A69FFCF0E6180F6EF8FF1C0DD1080EC3168DFE';'004'='6357D09A658F31F7C376001499253A634D778F18FBC4014EA45DB7A1AFA1D020'}
 foreach($n in $expected.Keys){
  $wrapper=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$n-execute.sql"));
  $source=Get-ChildItem (Join-Path $root "supabase/migrations/202608310${n}_*.sql");
@@ -145,5 +145,18 @@ $stage003CExecute=[IO.File]::ReadAllText((Join-Path $dir 'openingfit-missions-pr
 foreach($required in @("stage_absent","stage_partial","stage_complete","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","p.proname=any(array['start_openingfit_mission_training_session','record_openingfit_mission_training_attempt'])","prosecdef","search_path=public","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))","complete_openingfit_mission_training_session(uuid,uuid,uuid,text)","jsonb_build_object('ready',true,'schemaVersion',1)")){if(-not $stage003BVerify.Contains($required)){throw "003B fail-closed verification missing $required"}}
 foreach($required in @("003B postcondition failed","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))")){if(-not $stage003BExecute.Contains($required)){throw "003B postcondition missing $required"}}
 foreach($required in @("contained 003B is required","prorettype=to_regtype('jsonb')","prorettype=to_regtype('public.openingfit_mission_training_attempts')","(values(0::oid),('anon'::regrole::oid),('authenticated'::regrole::oid),('service_role'::regrole::oid))")){if(-not $stage003CExecute.Contains($required)){throw "003C prerequisite missing $required"}}
+$source004=[IO.File]::ReadAllText((Join-Path $root 'supabase/migrations/202608310004_openingfit_missions_rollout.sql'))
+$source004Statements=@(Get-SqlStatements $source004);$split004Statements=@()
+foreach($name in @('004a','004b','004c','004d','004e')){
+ $execute=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-execute.sql"));$verify=[IO.File]::ReadAllText((Join-Path $dir "openingfit-missions-production-$name-verification.sql"))
+ if([Text.Encoding]::UTF8.GetByteCount($execute) -ge 8000){throw "$name exceeds 8,000-byte target"}
+ if($execute -notmatch '(?m)^BEGIN;' -or $execute -notmatch '(?m)^COMMIT;\s*$'){throw "$name transaction boundary"}
+ foreach($tag in @('precondition','assert')){Assert-DoBlockSyntax $execute $tag $name};Assert-FunctionBlockSyntax $execute $name
+ if($verify -match '(?im)^\s*(create|alter|drop|insert|update|delete|truncate|grant|revoke|do)\b' -or $verify -notmatch 'stage_absent' -or $verify -notmatch 'stage_partial' -or $verify -notmatch 'stage_complete'){throw "$name verification contract"}
+ $begin='-- SOURCE MIGRATION 004 STAGE BEGIN';$end='-- SOURCE MIGRATION 004 STAGE END';$a=$execute.IndexOf($begin)+$begin.Length;$z=$execute.IndexOf($end)
+ if($a -lt $begin.Length -or $z -le $a){throw "$name source markers"};$split004Statements += @(Get-SqlStatements $execute.Substring($a,$z-$a))
+}
+if($source004Statements.Count -ne $split004Statements.Count){throw '004 split statement count mismatch'}
+for($i=0;$i -lt $source004Statements.Count;$i++){if($source004Statements[$i] -cne $split004Statements[$i]){throw "004 split coverage/order mismatch at $i"}}
 Get-ChildItem $dir/openingfit-missions-production-* | ForEach-Object { if([IO.File]::ReadAllText($_.FullName) -match '(?i)(service_role_key\s*=|eyJ[A-Za-z0-9_-]{20,}|postgres(?:ql)?://[^\s]+:[^\s]+@)'){throw "secret-like content: $($_.Name)"} }
 Write-Output 'Mission dark-launch artifacts validated.'

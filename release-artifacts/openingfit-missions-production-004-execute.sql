@@ -43,10 +43,10 @@ create table public.openingfit_mission_notification_candidates (
 do $$ declare t text; begin
  foreach t in array array['openingfit_mission_events','openingfit_mission_activity_outbox','openingfit_mission_allowances','openingfit_mission_notification_candidates'] loop
   execute format('alter table public.%I enable row level security',t);
-  execute format('revoke all on public.%I from public,anon,authenticated',t);
+  execute format('revoke all on public.%I from public,anon,authenticated,service_role',t);
   execute format('grant select,insert,update on public.%I to service_role',t);
  end loop;
-end $$;
+end; $$;
 
 create policy openingfit_mission_events_select_own on public.openingfit_mission_events for select to authenticated using(auth.uid()=user_id);
 create policy openingfit_mission_allowances_select_own on public.openingfit_mission_allowances for select to authenticated using(auth.uid()=user_id);
@@ -69,17 +69,17 @@ begin
  on conflict(user_id,deduplication_key) do nothing returning * into saved;
  if saved.id is null then select * into saved from public.openingfit_mission_events where user_id=p_user_id and deduplication_key=p_deduplication_key; end if;
  return saved;
-end $$;
+end; $$;
 
 -- Replaces Phase 4 completion only to append an outbox record in the same transaction.
 create or replace function public.complete_openingfit_mission_training_session(p_user_id uuid,p_mission_id uuid,p_session_id uuid,p_idempotency_key text)
-returns jsonb language plpgsql security definer set search_path=public as $$
+returns public.openingfit_mission_training_sessions language plpgsql security definer set search_path=public as $$
 declare s public.openingfit_mission_training_sessions; total integer; attempted integer; solved integer; unassisted integer; core_ok boolean; summary jsonb;
 begin
  if auth.role()<>'service_role' and current_user<>'postgres' then raise exception 'Service authority required'; end if;
  select * into s from public.openingfit_mission_training_sessions where id=p_session_id and user_id=p_user_id and mission_id=p_mission_id for update;
  if s.id is null then raise exception 'Session not found'; end if;
- if s.status='completed' then return to_jsonb(s); end if;
+ if s.status='completed' then return s; end if;
  if nullif(btrim(p_idempotency_key),'') is null or length(p_idempotency_key)>200 then raise exception 'Invalid idempotency key'; end if;
  total:=jsonb_array_length(s.exercise_manifest);
  select count(*) filter(where has_attempt),count(*) filter(where has_correct),count(*) filter(where has_unassisted),bool_and(not is_core or has_unassisted) into attempted,solved,unassisted,core_ok from (
@@ -95,8 +95,8 @@ begin
  insert into public.openingfit_mission_activity_outbox(user_id,mission_id,session_id,source_completed_at) values(p_user_id,p_mission_id,s.id,s.completed_at) on conflict(user_id,session_id) do nothing;
  perform public.record_openingfit_mission_event(p_user_id,p_mission_id,'mission_training_completed','training-completed:'||s.id,jsonb_build_object('status','completed'));
  perform public.transition_openingfit_mission(p_user_id,p_mission_id,'awaiting_evidence','training_session_completed',s.id::text,'session-complete:'||p_idempotency_key,summary);
- return to_jsonb(s);
-end $$;
+ return s;
+end; $$;
 
 create or replace function public.project_openingfit_mission_activity(p_outbox_id uuid)
 returns jsonb language plpgsql security definer set search_path=public as $$
@@ -118,7 +118,7 @@ begin
   update public.openingfit_mission_activity_outbox set status='failed',attempt_count=least(attempt_count+1,100),next_attempt_at=now()+make_interval(mins=>least(60,greatest(1,attempt_count+1))),last_error_code=sqlstate,updated_at=now() where id=item.id;
   return jsonb_build_object('status','failed','retryable',true);
  end;
-end $$;
+end; $$;
 
 create or replace function public.assign_openingfit_mission_with_allowance(p_user_id uuid,p_mission_id uuid,p_paid_access boolean,p_idempotency_key text)
 returns jsonb language plpgsql security definer set search_path=public as $$
@@ -136,7 +136,7 @@ begin
  update public.openingfit_mission_allowances set assignment_count=assignment_count+1,last_assigned_at=now(),next_available_at=case when p_paid_access then null else now()+interval '30 days' end,updated_at=now() where user_id=p_user_id;
  perform public.record_openingfit_mission_event(p_user_id,p_mission_id,'mission_assigned','mission-assigned:'||p_mission_id||':'||(mission.generation)::text,jsonb_build_object('status','assigned'));
  return jsonb_build_object('assigned',true,'mission',assigned);
-end $$;
+end; $$;
 
 create or replace function public.project_openingfit_mission_session_activity(p_user_id uuid,p_session_id uuid)
 returns jsonb language plpgsql security definer set search_path=public as $$
@@ -146,7 +146,7 @@ begin
  select id into outbox_id from public.openingfit_mission_activity_outbox where user_id=p_user_id and session_id=p_session_id;
  if outbox_id is null then return jsonb_build_object('status','missing','retryable',true); end if;
  return public.project_openingfit_mission_activity(outbox_id);
-end $$;
+end; $$;
 
 create or replace function public.openingfit_missions_operator_diagnostics(p_window_hours integer default 24)
 returns jsonb language plpgsql stable security definer set search_path=public as $$
@@ -160,7 +160,7 @@ begin
   'oldestProjectionBacklogAt',(select min(created_at) from public.openingfit_mission_activity_outbox where status<>'projected'),
   'lastSuccessfulProcessingAt',(select max(projected_at) from public.openingfit_mission_activity_outbox where status='projected')) into result;
  return result;
-end $$;
+end; $$;
 
 create or replace function public.openingfit_missions_schema_readiness() returns jsonb language sql stable security definer set search_path=public as $$
  select jsonb_build_object('ready',to_regclass('public.openingfit_missions') is not null and to_regclass('public.openingfit_mission_training_sessions') is not null and to_regclass('public.openingfit_mission_activity_outbox') is not null and to_regclass('public.openingfit_mission_events') is not null,'schemaVersion',4,'trainingReady',to_regprocedure('public.complete_openingfit_mission_training_session(uuid,uuid,uuid,text)') is not null,'activityProjectorReady',to_regprocedure('public.project_openingfit_mission_activity(uuid)') is not null,'analyticsReady',to_regprocedure('public.record_openingfit_mission_event(uuid,uuid,text,text,jsonb)') is not null,'notificationSchedulingReady',to_regclass('public.openingfit_mission_notification_candidates') is not null)

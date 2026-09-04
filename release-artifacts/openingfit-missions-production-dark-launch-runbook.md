@@ -27,6 +27,8 @@ Never submit 001C through SQL Editor. After separate approval, follow `openingfi
 
 Only after separate approval, repeat the execute-then-verify pattern for 002, 003, and 004. For migration 003, never paste the complete wrapper: use the checksum-approved 003A, 003B and 003C SQL Editor artifacts in order, running each matching read-only verification immediately and continuing only from `stage_complete`. Each stage requires separate approval. Never paste stages together and never continue after failed or uncertain verification.
 
+For migration 004, never paste the complete wrapper. Use checksum-approved SQL Editor stages 004A through 004E in order. Run the matching read-only verification after each stage and require `stage_complete`; obtain separate approval for every stage. The first authorized production write is 004A.
+
 Current production checkpoint: 003A is complete; all 003B and 003C RPCs are absent and readiness remains schema version 1. The next write is the first successful execution of the revised 003B artifact. It is not a rerun. Do not execute 003C until the corrected 003B verification returns `stage_complete`.
 
 ## Final verification
