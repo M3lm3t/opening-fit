@@ -22,6 +22,7 @@ def setup(monkeypatch):
     monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "training_ready": True})
     monkeypatch.setattr(main, "mission_repository", lambda: repository)
+    monkeypatch.setattr(main, "_mission_endpoint_access", lambda *_args, **_kwargs: (True, "ready", {"eligible": True}))
     main._mission_training_requests.clear()
     return repository, persisted["id"]
 
@@ -53,10 +54,10 @@ def test_training_api_start_attempt_complete_and_hides_unattempted_answer(monkey
 
 def test_disabled_and_ownership_responses_are_stable(monkeypatch):
     repository, mission_id = setup(monkeypatch)
-    monkeypatch.setattr(main, "missions_enabled", lambda *_args: False)
+    monkeypatch.setattr(main, "_mission_endpoint_access", lambda *_args, **_kwargs: (False, "missions_disabled", {"eligible": False}))
     disabled = main.start_mission_training(main.UUID(mission_id), main.MissionTrainingStartRequest(idempotencyKey="start"), request())
     assert disabled["reasonCode"] == "missions_disabled"
-    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "_mission_endpoint_access", lambda *_args, **_kwargs: (True, "ready", {"eligible": True}))
     monkeypatch.setattr(main, "get_auth_user", lambda _request: SimpleNamespace(id="other-user"))
     with pytest.raises(HTTPException) as error:
         main.start_mission_training(main.UUID(mission_id), main.MissionTrainingStartRequest(idempotencyKey="start"), request())

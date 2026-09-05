@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import os
+import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
@@ -36,6 +37,28 @@ def rollout_percentage(env: Mapping[str, str] | None = None) -> int:
         return 0
 
 
+def internal_rollout_user_id(env: Mapping[str, str] | None = None) -> str | None:
+    """Return one canonical internal tester UUID, or fail closed."""
+    source = env if env is not None else os.environ
+    raw_value = str(source.get("OPENINGFIT_MISSIONS_INTERNAL_USER_ID") or "")
+    raw = raw_value.strip()
+    if not raw:
+        return None
+    try:
+        parsed = uuid.UUID(raw)
+    except (ValueError, AttributeError):
+        return None
+    return str(parsed) if raw_value == raw and str(parsed) == raw else None
+
+
+def rollout_mode(env: Mapping[str, str] | None = None) -> str:
+    source = env if env is not None else os.environ
+    raw = str(source.get("OPENINGFIT_MISSIONS_ROLLOUT_MODE") or "").strip().lower()
+    if not raw:
+        return "internal" if "OPENINGFIT_MISSIONS_INTERNAL_USER_ID" in source else "percentage"
+    return raw if raw in {"internal", "percentage"} else "invalid"
+
+
 def rollout_bucket(user_id: str, secret: str) -> int:
     """Stable across processes/devices without exposing the user identifier."""
     digest = hmac.new(secret.encode(), str(user_id).encode(), hashlib.sha256).digest()
@@ -43,15 +66,23 @@ def rollout_bucket(user_id: str, secret: str) -> int:
 
 
 def rollout_eligibility(user_id: str, *, enabled: bool, schema_ready: bool,
-                        operator: bool = False, env: Mapping[str, str] | None = None) -> dict[str, Any]:
+                        env: Mapping[str, str] | None = None) -> dict[str, Any]:
     source = env if env is not None else os.environ
     percentage = rollout_percentage(source)
     if not enabled:
         return {"eligible": False, "reasonCode": "missions_disabled", "cohort": "disabled", "percentage": percentage}
     if not schema_ready:
         return {"eligible": False, "reasonCode": "schema_unavailable", "cohort": "unavailable", "percentage": percentage}
-    if operator:
-        return {"eligible": True, "reasonCode": None, "cohort": "operator", "percentage": percentage}
+    mode = rollout_mode(source)
+    if mode == "invalid":
+        return {"eligible": False, "reasonCode": "rollout_not_configured", "cohort": "excluded", "percentage": percentage}
+    if mode == "internal":
+        internal_user = internal_rollout_user_id(source)
+        if not internal_user:
+            return {"eligible": False, "reasonCode": "internal_rollout_not_configured", "cohort": "excluded", "percentage": percentage}
+        if str(user_id).lower() == internal_user:
+            return {"eligible": True, "reasonCode": None, "cohort": "internal", "percentage": percentage}
+        return {"eligible": False, "reasonCode": "rollout_unavailable", "cohort": "excluded", "percentage": percentage}
     secret = str(source.get("OPENINGFIT_MISSIONS_ROLLOUT_SECRET") or source.get("SUPABASE_SERVICE_ROLE_KEY") or "")
     if not secret:
         return {"eligible": False, "reasonCode": "rollout_not_configured", "cohort": "excluded", "percentage": percentage}

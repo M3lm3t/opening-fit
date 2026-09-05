@@ -19,6 +19,7 @@ def enabled(monkeypatch, repository):
     monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "reason": "ready"})
     monkeypatch.setattr(main, "mission_repository", lambda: repository)
+    monkeypatch.setattr(main, "_mission_endpoint_access", lambda *_args, **_kwargs: (True, "ready", {"eligible": True}))
 
 
 def test_authentication_required_and_disabled_response_is_stable(monkeypatch):
@@ -71,3 +72,62 @@ def test_current_surfaces_latest_repaired_result_when_no_active_mission(monkeypa
                                    cause_type="test", idempotency_key=f"to-{status}")
     response = main.get_current_mission(request())
     assert response["mission"]["status"] == "repaired"
+
+
+def test_internal_eligibility_is_authenticated_boolean_only_and_fail_closed(monkeypatch):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", allowed)
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT", "0")
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "training_ready": True})
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: SimpleNamespace(id=allowed))
+    assert main.mission_client_eligibility(request()) == {"enabled": True}
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: SimpleNamespace(id="22222222-2222-4222-8222-222222222222"))
+    assert main.mission_client_eligibility(request()) == {"enabled": False}
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", "malformed")
+    assert main.mission_client_eligibility(request()) == {"enabled": False}
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: (_ for _ in ()).throw(HTTPException(401, "forged")))
+    with pytest.raises(HTTPException) as error:
+        main.mission_client_eligibility(request(False))
+    assert error.value.status_code == 401
+
+
+def test_non_allowlisted_direct_calls_touch_no_mission_repository(monkeypatch):
+    user_id = "22222222-2222-4222-8222-222222222222"
+    object_id = main.UUID("33333333-3333-4333-8333-333333333333")
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", "11111111-1111-4111-8111-111111111111")
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT", "0")
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: SimpleNamespace(id=user_id))
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: (_ for _ in ()).throw(AssertionError("catalog touched")))
+    monkeypatch.setattr(main, "mission_repository", lambda: (_ for _ in ()).throw(AssertionError("repository touched")))
+
+    calls = [
+        lambda: main.get_current_mission(request()),
+        lambda: main.list_missions(request()),
+        lambda: main.select_next_mission(main.MissionSelectNextRequest(idempotencyKey="select"), request()),
+        lambda: main.dismiss_mission(object_id, main.MissionDismissRequest(reason="other", idempotencyKey="dismiss"), request()),
+        lambda: main.start_mission_training(object_id, main.MissionTrainingStartRequest(idempotencyKey="start"), request()),
+        lambda: main.current_mission_training(object_id, request()),
+        lambda: main.submit_mission_training_attempt(object_id, object_id, main.MissionTrainingAttemptRequest(exerciseId="e", attemptedMoveUci="g2g3", idempotencyKey="attempt"), request()),
+        lambda: main.complete_mission_training(object_id, object_id, main.MissionTrainingCompleteRequest(idempotencyKey="complete"), request()),
+    ]
+    for call in calls:
+        result = call()
+        assert result["featureAvailable"] is False
+        assert result["reasonCode"] == "rollout_unavailable"
+
+
+def test_public_readiness_never_exposes_internal_identity(monkeypatch):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    base = {"status": "ready", "subscriptions": "enabled", "stripe": "configured", "webhook": "configured",
+            "monthly_price": "configured", "annual_price": "configured", "missions": "enabled"}
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", allowed)
+    monkeypatch.setattr(main, "readiness_payload", lambda: dict(base))
+    monkeypatch.setattr(main, "billing_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "training_ready": True,
+        "activity_projector_ready": True, "analytics_ready": True, "notification_scheduling_ready": True})
+    payload = main.api_readiness().body.decode()
+    assert allowed not in payload
+    assert "INTERNAL_USER" not in payload

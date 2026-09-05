@@ -52,23 +52,45 @@ def test_execute_analysis_job_publishes_completed_result(monkeypatch):
 
 
 def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
+    allowed = "11111111-1111-4111-8111-111111111111"
     job_id = str(main.uuid4())
     with main.analysis_jobs_lock:
         main.analysis_jobs[job_id] = {
-            "jobId": job_id, "requestKey": "user-1:lichess:player:1:rapid", "status": "queued",
+            "jobId": job_id, "requestKey": f"{allowed}:lichess:player:1:rapid", "status": "queued",
             "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
-            "ownerUserId": "user-1", "createdAt": main.now_iso(), "updatedAt": main.now_iso(),
+            "ownerUserId": allowed, "createdAt": main.now_iso(), "updatedAt": main.now_iso(),
             "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
         }
     report = {"gameCounts": {"fetchedGames": 1}, "opening_games": [{"pgn": "sensitive"}]}
     monkeypatch.setattr(main, "run_import_route", lambda *_args: report)
     monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", allowed)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
     monkeypatch.setattr(main, "mission_repository", lambda: object())
     monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("storage secret")))
     main.execute_analysis_job(job_id)
     assert main.analysis_jobs[job_id]["status"] == "completed"
     assert main.analysis_jobs[job_id]["result"] is not None
+
+
+def test_non_allowlisted_analysis_creates_no_mission_state(monkeypatch):
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": "excluded:lichess:player:1:rapid", "status": "queued",
+            "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
+            "ownerUserId": "22222222-2222-4222-8222-222222222222", "createdAt": main.now_iso(), "updatedAt": main.now_iso(),
+            "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
+        }
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"gamesImported": 1})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", "11111111-1111-4111-8111-111111111111")
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT", "0")
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "mission_repository", lambda: (_ for _ in ()).throw(AssertionError("Mission repository touched")))
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("Mission processing ran")))
+    main.execute_analysis_job(job_id)
+    assert main.analysis_jobs[job_id]["status"] == "completed"
 
 
 def test_analysis_job_publishes_only_real_stage_updates(monkeypatch):

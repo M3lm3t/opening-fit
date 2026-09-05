@@ -26,14 +26,14 @@ async function startOpeningFit() {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <MissionFeatureProvider>
         <AuthDataProvider>
+          <MissionFeatureProvider>
           <ReferralCaptureNotice />
           <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>
             {isReferralAdminRoute ? <AdminReferralsPage /> : <App />}
           </React.Suspense>
+          </MissionFeatureProvider>
         </AuthDataProvider>
-        </MissionFeatureProvider>
         <Analytics />
       </ErrorBoundary>
     </React.StrictMode>

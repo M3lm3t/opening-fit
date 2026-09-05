@@ -12475,14 +12475,32 @@ def _mission_training_availability() -> tuple[bool, str]:
     return (True, "ready") if readiness.get("training_ready") else (False, "training_schema_unavailable")
 
 
-def _mission_is_operator(user_id: str) -> bool:
-    return user_id in _admin_allow_list("OPENINGFIT_ADMIN_USER_IDS")
-
-
 def _mission_rollout(user_id: str, readiness: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
     state = dict(readiness or missions_schema_readiness())
-    return rollout_eligibility(user_id, enabled=missions_enabled(), schema_ready=bool(state.get("ready")),
-                               operator=_mission_is_operator(user_id))
+    return rollout_eligibility(user_id, enabled=missions_enabled(), schema_ready=bool(state.get("ready")))
+
+
+def _mission_endpoint_access(user_id: str, *, training: bool = False) -> tuple[bool, str, Dict[str, Any]]:
+    if not missions_enabled():
+        return False, "missions_disabled", {"eligible": False, "cohort": "disabled", "percentage": rollout_percentage()}
+    # Exclude non-allowlisted users before any Mission repository or catalog access.
+    preliminary = rollout_eligibility(user_id, enabled=True, schema_ready=True)
+    if not preliminary["eligible"]:
+        return False, str(preliminary["reasonCode"]), preliminary
+    readiness = missions_schema_readiness()
+    rollout = _mission_rollout(user_id, readiness)
+    if not rollout["eligible"]:
+        return False, str(rollout["reasonCode"]), rollout
+    if training and not readiness.get("training_ready"):
+        return False, "training_schema_unavailable", rollout
+    return True, "ready", rollout
+
+
+@app.get("/api/features/missions/eligibility")
+def mission_client_eligibility(request: Request):
+    user_id = _mission_user_id(request)
+    available, _reason, _rollout = _mission_endpoint_access(user_id)
+    return {"enabled": bool(available)}
 
 
 def _mission_access_context(repository, user_id: str, mission: Optional[Mapping[str, Any]] = None) -> Dict[str, Any]:
@@ -12531,7 +12549,7 @@ def _enforce_mission_training_rate_limit(user_id: str, context: str, limit: int)
 @app.get("/api/v1/missions/current")
 def get_current_mission(request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id)
     if not available:
         return {"mission": None, "reasonCode": reason, "featureAvailable": False,
                 "schemaState": "not_checked" if reason == "missions_disabled" else "not_ready"}
@@ -12541,9 +12559,6 @@ def get_current_mission(request: Request):
         if not mission:
             mission = next((row for row in repository.list_history(user_id, 10) if row.get("status") == "repaired"), None)
         access = _mission_access_context(repository, user_id, mission)
-        if not access["rollout"]["eligible"]:
-            return {"mission": None, "reasonCode": access["rollout"]["reasonCode"], "featureAvailable": False,
-                    "schemaState": "ready", "capabilities": access["capabilities"], "rolloutCohort": access["rollout"]["cohort"]}
         return {"mission": _mission_present(mission), "reasonCode": None if mission else "no_active_mission",
                 "featureAvailable": True, "schemaState": "ready", "capabilities": access["capabilities"],
                 "rolloutCohort": access["rollout"]["cohort"]}
@@ -12556,7 +12571,7 @@ def get_current_mission(request: Request):
 @app.get("/api/v1/missions")
 def list_missions(request: Request, limit: int = 20, cursor: Optional[str] = None):
     user_id = _mission_user_id(request)
-    available, reason = _mission_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id)
     if not available:
         return {"missions": [], "nextCursor": None, "reasonCode": reason, "featureAvailable": False}
     try:
@@ -12579,7 +12594,7 @@ def list_missions(request: Request, limit: int = 20, cursor: Optional[str] = Non
 @app.post("/api/v1/missions/select-next")
 def select_next_mission(payload: MissionSelectNextRequest, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id)
     if not available:
         return {"mission": None, "reasonCode": reason, "featureAvailable": False}
     _enforce_mission_select_rate_limit(user_id)
@@ -12620,7 +12635,7 @@ def select_next_mission(payload: MissionSelectNextRequest, request: Request):
 @app.post("/api/v1/missions/{mission_id}/dismiss")
 def dismiss_mission(mission_id: UUID, payload: MissionDismissRequest, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id)
     if not available:
         return {"mission": None, "reasonCode": reason, "featureAvailable": False}
     try:
@@ -12660,7 +12675,7 @@ def _training_error(exc: MissionPersistenceError):
 @app.post("/api/v1/missions/{mission_id}/training/sessions")
 def start_mission_training(mission_id: UUID, payload: MissionTrainingStartRequest, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_training_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id, training=True)
     if not available:
         return {"session": None, "reasonCode": reason, "featureAvailable": False}
     _enforce_mission_training_rate_limit(user_id, "start", 10)
@@ -12679,7 +12694,7 @@ def start_mission_training(mission_id: UUID, payload: MissionTrainingStartReques
 @app.get("/api/v1/missions/{mission_id}/training/sessions/current")
 def current_mission_training(mission_id: UUID, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_training_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id, training=True)
     if not available:
         return {"session": None, "reasonCode": reason, "featureAvailable": False}
     try:
@@ -12696,7 +12711,7 @@ def current_mission_training(mission_id: UUID, request: Request):
 @app.post("/api/v1/missions/{mission_id}/training/sessions/{session_id}/attempts")
 def submit_mission_training_attempt(mission_id: UUID, session_id: UUID, payload: MissionTrainingAttemptRequest, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_training_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id, training=True)
     if not available:
         return {"attempt": None, "reasonCode": reason, "featureAvailable": False}
     _enforce_mission_training_rate_limit(user_id, f"attempt:{session_id}", 60)
@@ -12716,7 +12731,7 @@ def submit_mission_training_attempt(mission_id: UUID, session_id: UUID, payload:
 @app.post("/api/v1/missions/{mission_id}/training/sessions/{session_id}/complete")
 def complete_mission_training(mission_id: UUID, session_id: UUID, payload: MissionTrainingCompleteRequest, request: Request):
     user_id = _mission_user_id(request)
-    available, reason = _mission_training_availability()
+    available, reason, rollout = _mission_endpoint_access(user_id, training=True)
     if not available:
         return {"completed": False, "reasonCode": reason, "featureAvailable": False}
     _enforce_mission_training_rate_limit(user_id, f"complete:{session_id}", 15)
