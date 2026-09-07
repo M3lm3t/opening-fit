@@ -15,6 +15,7 @@ import ImportLoadingOverlay from "./components/ImportLoadingOverlay";
 import GameReplayBoard from "./components/GameReplayBoard";
 import PersonalOpeningTrainer from "./components/PersonalOpeningTrainer.jsx";
 import { MissionEvidencePanel, MissionTrainingPanel } from "./components/MissionExperience.jsx";
+import { notifyMissionAnalysisCompleted } from "./lib/missionLifecycle.js";
 import TrainingStreakCard from "./components/TrainingStreakCard.jsx";
 import { findOpeningPracticePack } from "./data/openingPracticeLines";
 import { normaliseOpeningKey } from "./data/openings";
@@ -15523,6 +15524,7 @@ export default function App() {
       await waitForProgressCompletion(abortController.signal, 350, window);
       if (activeImportRunRef.current !== runId || abortController.signal.aborted) return;
       setData(cleanData);
+      notifyMissionAnalysisCompleted(window);
       setUsername(importedUsername);
       setImportStatus(
         importOutcome.tone === "warning"

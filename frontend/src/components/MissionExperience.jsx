@@ -7,6 +7,7 @@ import { completeTrainingSession, dismissMission, getCurrentMission, getCurrentT
 import { confidenceCopy, missionAction, missionStatement, missionStatusLabel, normaliseMissionResponse, provenanceLabel, roleLabel } from "../lib/missionPresentation.js";
 import { useAccessibleDialog } from "../lib/dialogAccessibility.js";
 import { trackProductEvent } from "../lib/productAnalytics.js";
+import { subscribeToMissionAnalysisCompleted } from "../lib/missionLifecycle.js";
 import "./MissionExperience.css";
 
 function useMission(onAvailabilityChange) {
@@ -18,6 +19,7 @@ function useMission(onAvailabilityChange) {
     catch (error) { if (error?.name !== "AbortError") setState((known) => normaliseMissionResponse({ reasonCode: error.code }, known)); }
   }, [user?.id]);
   useEffect(() => { let active = true; if (user?.id) getCurrentMission({ dedupeKey: user.id }).then((payload) => { if (active) setState((known) => normaliseMissionResponse(payload, known)); }).catch((error) => { if (active && error?.name !== "AbortError") setState((known) => normaliseMissionResponse({ reasonCode: error.code }, known)); }); return () => { active = false; }; }, [user?.id]);
+  useEffect(() => subscribeToMissionAnalysisCompleted(() => { void refresh(); }), [refresh]);
   useEffect(() => { onAvailabilityChange?.(Boolean(state.mission)); }, [onAvailabilityChange, state.mission]);
   useEffect(() => { if (state.mission?.id) void trackProductEvent("mission_card_viewed", { surface: "home", tier: state.capabilities?.tier, cohort: state.rolloutCohort }, { onceKey: `home:${state.mission.id}` }); }, [state.capabilities?.tier, state.mission?.id, state.rolloutCohort]);
   return { state, refresh, setState, user };
