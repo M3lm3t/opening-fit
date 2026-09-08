@@ -12397,6 +12397,37 @@ def get_supabase_admin_client():
     return create_client(supabase_url, service_key)
 
 
+def _auth_upstream_status(exc: BaseException) -> Optional[int]:
+    for candidate in (
+        getattr(exc, "status_code", None),
+        getattr(exc, "status", None),
+        getattr(getattr(exc, "response", None), "status_code", None),
+    ):
+        try:
+            if candidate is not None:
+                return int(candidate)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _auth_failure_category(exc: BaseException) -> tuple[str, int]:
+    upstream_status = _auth_upstream_status(exc)
+    if isinstance(exc, (httpx.TimeoutException, TimeoutError)):
+        return "upstream_timeout", 503
+    if isinstance(exc, (httpx.NetworkError, ConnectionError)):
+        return "upstream_network", 503
+    if isinstance(exc, HTTPException) and exc.status_code >= 500:
+        return "upstream_configuration", 503
+    if upstream_status in {400, 401, 403}:
+        return "invalid_token", 401
+    if upstream_status is not None and (upstream_status == 429 or upstream_status >= 500):
+        return "upstream_response", 503
+    # An unclassified validator exception does not prove that the credential is
+    # invalid. Fail closed without misreporting it as an authentication failure.
+    return "upstream_unknown", 503
+
+
 def get_auth_user(request: Request):
     auth_header = request.headers.get("authorization", "")
     if not auth_header.lower().startswith("bearer "):
@@ -12409,12 +12440,18 @@ def get_auth_user(request: Request):
     try:
         auth_response = get_supabase_admin_client().auth.get_user(token)
     except Exception as exc:
+        category, response_status = _auth_failure_category(exc)
+        request_id = uuid4().hex[:12]
         log_supabase_diagnostic(
             "auth token validation failed",
-            path=request.url.path,
-            error=exc,
+            request_id=request_id,
+            authorization_present=True,
+            failure_category=category,
+            upstream_status=_auth_upstream_status(exc),
+            exception_class=exc.__class__.__name__,
         )
-        raise HTTPException(status_code=401, detail=f"Invalid auth token: {exc}")
+        detail = {"code": "authentication_required" if response_status == 401 else "authentication_service_unavailable"}
+        raise HTTPException(status_code=response_status, detail=detail, headers={"X-OpeningFit-Request-ID": request_id})
 
     user = getattr(auth_response, "user", None)
     if not user:
@@ -12439,8 +12476,10 @@ def missions_schema_readiness() -> Dict[str, Any]:
 def _mission_user_id(request: Request) -> str:
     try:
         return str(getattr(get_auth_user(request), "id", "") or "")
-    except HTTPException:
-        raise HTTPException(status_code=401, detail={"code": "authentication_required"})
+    except HTTPException as exc:
+        if exc.status_code == 401:
+            raise HTTPException(status_code=401, detail={"code": "authentication_required"})
+        raise
 
 
 def _mission_present(row: Optional[Mapping[str, Any]]) -> Optional[Dict[str, Any]]:

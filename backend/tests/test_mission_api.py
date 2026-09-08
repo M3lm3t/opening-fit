@@ -2,6 +2,7 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException, Request
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
 import main
@@ -99,6 +100,74 @@ def test_internal_eligibility_is_authenticated_boolean_only_and_fail_closed(monk
     with pytest.raises(HTTPException) as error:
         main.mission_client_eligibility(request(False))
     assert error.value.status_code == 401
+
+
+def test_validated_identity_reaches_eligibility_http_contract(monkeypatch):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", allowed)
+    monkeypatch.setenv("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT", "0")
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "training_ready": True})
+    monkeypatch.setattr(main, "get_supabase_admin_client", lambda: SimpleNamespace(
+        auth=SimpleNamespace(get_user=lambda _token: SimpleNamespace(user=SimpleNamespace(id=allowed)))
+    ))
+    response = TestClient(main.app).get(
+        "/api/features/missions/eligibility",
+        headers={"Authorization": "Bearer current-token"},
+    )
+    assert response.status_code == 200
+    assert response.json() == {"enabled": True}
+
+
+def test_supabase_auth_validation_classifies_credentials_and_upstream_failures(monkeypatch):
+    class Auth:
+        error = None
+
+        def get_user(self, _token):
+            if self.error:
+                raise self.error
+            return SimpleNamespace(user=SimpleNamespace(id="11111111-1111-4111-8111-111111111111"))
+
+    auth = Auth()
+    monkeypatch.setattr(main, "get_supabase_admin_client", lambda: SimpleNamespace(auth=auth))
+    monkeypatch.setattr(main, "log_supabase_diagnostic", lambda *_args, **_kwargs: None)
+
+    assert main.get_auth_user(request()).id == "11111111-1111-4111-8111-111111111111"
+    for invalid in (
+        SimpleNamespace(status=401),
+        SimpleNamespace(status_code=403),
+    ):
+        error = RuntimeError("credential rejected")
+        for key, value in vars(invalid).items():
+            setattr(error, key, value)
+        auth.error = error
+        with pytest.raises(HTTPException) as caught:
+            main.get_auth_user(request())
+        assert caught.value.status_code == 401
+        assert caught.value.detail == {"code": "authentication_required"}
+
+    for unavailable in (main.httpx.ReadTimeout("bounded timeout"), RuntimeError("unclassified upstream failure")):
+        auth.error = unavailable
+        with pytest.raises(HTTPException) as caught:
+            main.mission_client_eligibility(request())
+        assert caught.value.status_code == 503
+        assert caught.value.detail == {"code": "authentication_service_unavailable"}
+
+
+def test_auth_diagnostic_contains_only_bounded_metadata(monkeypatch):
+    secret = "header.payload.signature"
+    captured = []
+    monkeypatch.setattr(main, "get_supabase_admin_client", lambda: SimpleNamespace(
+        auth=SimpleNamespace(get_user=lambda _token: (_ for _ in ()).throw(main.httpx.ConnectError("offline")))
+    ))
+    monkeypatch.setattr(main, "log_supabase_diagnostic", lambda message, **details: captured.append((message, details)))
+    with pytest.raises(HTTPException):
+        main.get_auth_user(Request({"type": "http", "method": "GET", "path": "/api/features/missions/eligibility",
+                                   "headers": [(b"authorization", f"Bearer {secret}".encode())]}))
+    rendered = repr(captured)
+    assert secret not in rendered
+    assert "user" not in rendered.lower()
+    assert set(captured[0][1]) == {"request_id", "authorization_present", "failure_category", "upstream_status", "exception_class"}
 
 
 def test_non_allowlisted_direct_calls_touch_no_mission_repository(monkeypatch):

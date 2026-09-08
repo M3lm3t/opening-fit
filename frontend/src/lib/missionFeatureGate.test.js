@@ -31,6 +31,18 @@ test("enabled bootstrap checks authenticated eligibility outside the Mission API
   assert.deepEqual(urls.filter((url) => url.includes("/api/v1/missions")), []);
 });
 
+test("a refreshed access token cannot reuse a stale eligibility result", async () => {
+  __resetMissionFeatureGateForTests(); const authorization = [];
+  const fetchImpl = async (url, options = {}) => {
+    if (String(url).endsWith("/api/readiness")) return { ok: true, json: async () => ({ status: "ready", missions: "enabled" }) };
+    authorization.push(options.headers?.Authorization);
+    return { ok: options.headers?.Authorization === "Bearer current-token", json: async () => ({ enabled: true }) };
+  };
+  assert.equal(await loadMissionFeatureState({ userId: "user-1", accessToken: "expired-token", fetchImpl }), "disabled");
+  assert.equal(await loadMissionFeatureState({ userId: "user-1", accessToken: "current-token", fetchImpl }), "enabled");
+  assert.deepEqual(authorization, ["Bearer expired-token", "Bearer current-token"]);
+});
+
 test("non-eligible, malformed and failed eligibility responses fail closed without Mission requests", async () => {
   for (const result of [{ ok: true, payload: { enabled: false } }, { ok: true, payload: { enabled: "true" } }, { ok: false, payload: null }, { error: true }]) {
     __resetMissionFeatureGateForTests(); const urls = [];

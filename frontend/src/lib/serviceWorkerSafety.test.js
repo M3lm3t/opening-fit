@@ -8,6 +8,16 @@ test("service worker keeps every API request network-only", () => {
   const apiBranch = source.slice(source.indexOf('if (requestUrl.pathname.startsWith("/api/"))'), source.indexOf("const isNavigation"));
   assert.match(apiBranch, /event\.respondWith\(fetch\(event\.request\)\)/);
   assert.doesNotMatch(apiBranch, /caches\.|clone\(/);
+  assert.doesNotMatch(apiBranch, /new Request|headers\.(?:set|delete)|Authorization/i);
+});
+
+test("Vercel proxies API requests directly without an application handler that can rewrite authorization", async () => {
+  const config = JSON.parse(await readFile(new URL("../../vercel.json", import.meta.url), "utf8"));
+  const apiRewrite = config.rewrites.find((rule) => rule.source === "/api/:path*");
+  assert.deepEqual(apiRewrite, {
+    source: "/api/:path*",
+    destination: "https://opening-fit.onrender.com/api/:path*",
+  });
 });
 
 test("cacheable responses are cloned synchronously before asynchronous cache work", () => {

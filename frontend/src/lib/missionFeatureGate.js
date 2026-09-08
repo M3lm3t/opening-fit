@@ -3,6 +3,7 @@ import { buildApiUrl } from "./apiBase.js";
 let bootstrapPromise = null;
 let eligibilityPromise = null;
 let eligibilityUserId = "";
+let eligibilityAccessToken = "";
 let currentState = "loading";
 
 export function parseMissionFeatureState(payload) {
@@ -36,8 +37,11 @@ export async function loadMissionFeatureState({ userId = "", accessToken = "", f
     currentState = "disabled";
     return currentState;
   }
-  if (!eligibilityPromise || eligibilityUserId !== userId) {
+  // A TOKEN_REFRESHED event keeps the same user ID. Never reuse an eligibility
+  // result that was obtained with the preceding access token.
+  if (!eligibilityPromise || eligibilityUserId !== userId || eligibilityAccessToken !== accessToken) {
     eligibilityUserId = userId;
+    eligibilityAccessToken = accessToken;
     eligibilityPromise = (async () => {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -61,4 +65,4 @@ export async function loadMissionFeatureState({ userId = "", accessToken = "", f
 
 export function missionsClientEnabled() { return currentState === "enabled"; }
 
-export function __resetMissionFeatureGateForTests() { bootstrapPromise = null; eligibilityPromise = null; eligibilityUserId = ""; currentState = "loading"; }
+export function __resetMissionFeatureGateForTests() { bootstrapPromise = null; eligibilityPromise = null; eligibilityUserId = ""; eligibilityAccessToken = ""; currentState = "loading"; }
