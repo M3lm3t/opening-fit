@@ -1,7 +1,11 @@
 from datetime import datetime, timezone
 
+import chess
+import chess.pgn
+
 from backend.analysis.mission_persistence import InMemoryMissionRepository
 from backend.analysis.mission_processing import _encounter, process_completed_analysis
+from backend.analysis.opening_training_opportunities import extract_opening_training_opportunities
 from backend.tests.test_mission_candidates import TRANSPOSE_A, TRANSPOSE_B, canonical_game, position_before_fourth_move
 
 
@@ -37,3 +41,77 @@ def test_truncated_game_does_not_create_false_classification():
     pgn = '[White "User"]\n[Black "Other"]\n\n1. Nf3 d5 2. d4 Nf6 3. c4 e6 *'
     mission = {"role": "white_repertoire", "exact_position_key": " ".join(position_before_fourth_move().split()[:4])}
     assert _encounter(canonical_game("truncated", pgn), mission) is None
+
+
+SCANDINAVIAN = '[White "Other"]\n[Black "User"]\n\n1. e4 d5 2. exd5 Qxd5 3. Nc3 Qd8 4. d4 *'
+
+
+def _scandinavian_position():
+    game = chess.pgn.read_game(__import__("io").StringIO(SCANDINAVIAN))
+    board = game.board()
+    for move in game.mainline_moves():
+        if board.turn == chess.BLACK and board.fullmove_number == 3:
+            return board.fen()
+        board.push(move)
+    raise AssertionError("fixture did not reach Scandinavian repair position")
+
+
+def _large_three_role_report(*, trusted_repair=True):
+    target = _scandinavian_position()
+    games = []
+    for index in range(60):
+        extra = {
+            "openingDisplayName": "Scandinavian Defence",
+            "openingFamily": "Scandinavian Defence",
+        }
+        if trusted_repair:
+            extra["moveAnalysis"] = [{
+                "moveNumber": 3, "positionFen": target,
+                "issueType": "repertoire_deviation",
+                "explanation": "The verified report continuation keeps the queen active.",
+                "recommendedMove": "Qa5", "recommendedMoveReliable": True,
+                "confidence": 0.9, "source": "canonical_report_decision",
+            }]
+        games.append(canonical_game(
+            f"scandinavian-{index}", SCANDINAVIAN, role="black_vs_e4",
+            opening_id="scandinavian-defence", colour="black", **extra,
+        ))
+    for index in range(49):
+        games.append(canonical_game(
+            f"white-{index}", '[White "User"]\n[Black "Other"]\n\n1. a3 a6 *',
+            opening_id="white-test-opening", openingDisplayName="White test opening",
+            openingFamily="White test opening",
+        ))
+        games.append(canonical_game(
+            f"black-d4-{index}", '[White "Other"]\n[Black "User"]\n\n1. d4 a6 *',
+            role="black_vs_d4", opening_id="black-d4-test-opening", colour="black",
+            openingDisplayName="Black d4 test opening", openingFamily="Black d4 test opening",
+        ))
+    opportunities = extract_opening_training_opportunities(games, user_id="opaque-fixture-user", username="User")
+    return {"reportId": "large-report", "opening_games": games, "openingTrainingOpportunities": opportunities}
+
+
+def test_realistic_158_game_three_role_scandinavian_repair_assigns_once():
+    repository = InMemoryMissionRepository()
+    report = _large_three_role_report()
+    first = process_completed_analysis(user_id="opaque-fixture-user", platform="chess.com", username="User", report=report, repository=repository)
+    second = process_completed_analysis(user_id="opaque-fixture-user", platform="chess.com", username="User", report=report, repository=repository)
+    assert len(report["opening_games"]) == 158
+    assert {game["playerRole"] for game in report["opening_games"]} == {"white_repertoire", "black_vs_e4", "black_vs_d4"}
+    assert first == {"encounters": 0, "candidates": 1, "assigned": 1}
+    assert second["candidates"] == 1 and second["assigned"] == 0
+    assert len(repository.missions) == 1
+    mission = next(iter(repository.missions.values()))
+    assert mission["opening_id"] == "scandinavian-defence"
+    assert mission["status"] == "assigned"
+    assert mission["baseline_evidence_count"] == 60
+
+
+def test_realistic_large_report_without_verified_move_correctly_has_no_candidate():
+    repository = InMemoryMissionRepository()
+    result = process_completed_analysis(
+        user_id="opaque-fixture-user", platform="chess.com", username="User",
+        report=_large_three_role_report(trusted_repair=False), repository=repository,
+    )
+    assert result == {"encounters": 0, "candidates": 0, "assigned": 0}
+    assert repository.missions == {}

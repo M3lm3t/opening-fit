@@ -6,6 +6,8 @@ test("mission availability distinguishes disabled, unavailable and no candidate"
   assert.equal(normaliseMissionResponse({ reasonCode: "missions_disabled" }).kind, "disabled");
   assert.equal(normaliseMissionResponse({ reasonCode: "schema_unavailable" }).kind, "unavailable");
   assert.equal(normaliseMissionResponse({ reasonCode: "no_trusted_candidate" }).kind, "no_candidate");
+  assert.equal(normaliseMissionResponse({ reasonCode: "candidate_below_confidence" }).kind, "below_confidence");
+  assert.equal(normaliseMissionResponse({ reasonCode: "persistence_failed" }).kind, "unavailable");
   assert.equal(normaliseMissionResponse({ reasonCode: "analysis_required" }).kind, "analysis_required");
 });
 

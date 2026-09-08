@@ -32,3 +32,15 @@ test("responsive board, safe areas, focus, and reduced motion are explicit", () 
   assert.match(styles, /:focus-visible/);
   assert.match(styles, /prefers-reduced-motion/);
 });
+
+test("every Mission state uses shared light and dark semantic theme tokens", () => {
+  for (const token of ["--color-bg-elevated", "--color-bg-subtle", "--color-text-primary", "--color-text-secondary", "--color-text-muted", "--color-border-subtle", "--color-border-strong", "--color-accent", "--color-danger", "--color-success"]) {
+    assert.match(styles, new RegExp(token));
+  }
+  assert.doesNotMatch(styles, /var\(--surface,#fff\)|var\(--text-color,#152033\)|background:#fff|color:#fff/i);
+  assert.match(component, /no_candidate/);
+  assert.match(component, /below_confidence/);
+  assert.match(component, /unavailable/);
+  assert.match(component, /missionCard--\$\{mission\.status\}/);
+  assert.match(styles, /missionFeedback--correct/);
+});

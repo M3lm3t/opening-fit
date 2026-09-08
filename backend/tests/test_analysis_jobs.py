@@ -71,6 +71,9 @@ def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
     main.execute_analysis_job(job_id)
     assert main.analysis_jobs[job_id]["status"] == "completed"
     assert main.analysis_jobs[job_id]["result"] is not None
+    assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {
+        "status": "unavailable", "reasonCode": "persistence_failed",
+    }
 
 
 def test_non_allowlisted_analysis_creates_no_mission_state(monkeypatch):

@@ -11116,12 +11116,16 @@ def execute_analysis_job(job_id: str) -> None:
                 if rollout["eligible"]:
                     repository = mission_repository()
                     entitlement = repository.get_entitlement(owner_user_id) if hasattr(repository, "get_entitlement") else None
-                    process_completed_analysis(user_id=owner_user_id, platform=platform, username=username,
-                                               report=result, repository=repository,
-                                               paid_access=entitlement_has_paid_access(entitlement))
+                    mission_result = process_completed_analysis(
+                        user_id=owner_user_id, platform=platform, username=username,
+                        report=result, repository=repository,
+                        paid_access=entitlement_has_paid_access(entitlement),
+                    )
+                    result["missionProcessing"] = {"status": "complete", **mission_result}
             except Exception as exc:
                 reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
                 logger.warning("mission_processing_failed reference=%s error_type=%s", reference, exc.__class__.__name__)
+                result["missionProcessing"] = {"status": "unavailable", "reasonCode": "persistence_failed"}
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
@@ -12611,10 +12615,12 @@ def select_next_mission(payload: MissionSelectNextRequest, request: Request):
             return {"mission": _mission_present(current), "reasonCode": "active_mission_exists", "featureAvailable": True, "capabilities": access["capabilities"]}
         if not access["capabilities"]["canSelectNextMission"]:
             return {"mission": None, "reasonCode": access["capabilities"]["reasonCode"], "featureAvailable": True, "capabilities": access["capabilities"]}
-        candidates = repository.list_candidates(user_id, limit=20)
-        candidates = [row for row in candidates if float((row.get("confidence") or {}).get("score") or 0) >= 70]
-        if not candidates:
+        persisted_candidates = repository.list_candidates(user_id, limit=20)
+        if not persisted_candidates:
             return {"mission": None, "reasonCode": "no_trusted_candidate", "featureAvailable": True}
+        candidates = [row for row in persisted_candidates if float((row.get("confidence") or {}).get("score") or 0) >= 70]
+        if not candidates:
+            return {"mission": None, "reasonCode": "candidate_below_confidence", "featureAvailable": True}
         if hasattr(repository, "assign_with_allowance"):
             assigned = repository.assign_with_allowance(user_id=user_id, mission_id=candidates[0]["id"],
                 paid=entitlement_has_paid_access(access.get("entitlement")), idempotency_key=payload.idempotencyKey)

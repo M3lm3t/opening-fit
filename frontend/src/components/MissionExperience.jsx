@@ -19,7 +19,13 @@ function useMission(onAvailabilityChange) {
     catch (error) { if (error?.name !== "AbortError") setState((known) => normaliseMissionResponse({ reasonCode: error.code }, known)); }
   }, [user?.id]);
   useEffect(() => { let active = true; if (user?.id) getCurrentMission({ dedupeKey: user.id }).then((payload) => { if (active) setState((known) => normaliseMissionResponse(payload, known)); }).catch((error) => { if (active && error?.name !== "AbortError") setState((known) => normaliseMissionResponse({ reasonCode: error.code }, known)); }); return () => { active = false; }; }, [user?.id]);
-  useEffect(() => subscribeToMissionAnalysisCompleted(() => { void refresh(); }), [refresh]);
+  useEffect(() => subscribeToMissionAnalysisCompleted((event) => {
+    if (event?.detail?.status === "unavailable") {
+      setState((known) => normaliseMissionResponse({ reasonCode: "persistence_failed" }, known));
+      return;
+    }
+    void refresh();
+  }), [refresh]);
   useEffect(() => { onAvailabilityChange?.(Boolean(state.mission)); }, [onAvailabilityChange, state.mission]);
   useEffect(() => { if (state.mission?.id) void trackProductEvent("mission_card_viewed", { surface: "home", tier: state.capabilities?.tier, cohort: state.rolloutCohort }, { onceKey: `home:${state.mission.id}` }); }, [state.capabilities?.tier, state.mission?.id, state.rolloutCohort]);
   return { state, refresh, setState, user };
@@ -54,7 +60,8 @@ function EnabledCurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilit
   if (!user?.id || state.kind === "disabled" || (state.kind === "loading" && !state.mission)) return null;
   if (state.kind === "unavailable" && !state.mission) return <section className="missionCard missionCard--quiet" role="status"><strong>Your Mission is temporarily unavailable</strong><p>Your other OpeningFit tools are ready.</p><button type="button" onClick={refresh}>Try again</button></section>;
   if (!state.mission) {
-    if (state.kind === "no_candidate") return <section className="missionCard missionCard--quiet"><h2>Current Mission</h2><p>No repeated opening leak is clear enough yet. Keep playing and OpeningFit will check again.</p></section>;
+    if (state.kind === "no_candidate") return <section className="missionCard missionCard--quiet"><h2>Current Mission</h2><p>No repeated exact opening position had both enough trusted games and a verified correction. Your broader report priorities are still available.</p></section>;
+    if (state.kind === "below_confidence") return <section className="missionCard missionCard--quiet"><h2>Current Mission</h2><p>A possible opening repair was found, but its evidence confidence is below the Mission assignment threshold. Keep playing and OpeningFit will reassess it.</p></section>;
     if (state.kind === "analysis_required") return <section className="missionCard missionCard--quiet"><h2>Find your Mission</h2><p>Analyse your recent games to find a repeated opening leak.</p><button className="primaryBtn" onClick={onAnalyse}>Analyse games</button></section>;
     if (state.kind === "no_active_mission") { const limited = state.capabilities?.reasonCode === "free_allowance_exhausted"; return <section className="missionCard missionCard--quiet"><h2>Choose your next Mission</h2><p>{limited ? `Your current mission and its verification remain available.${state.capabilities?.nextMissionAvailableAt ? ` Your next free Mission is available ${new Date(state.capabilities.nextMissionAvailableAt).toLocaleDateString()}.` : ""}` : "OpeningFit can check your persisted trusted candidates without reanalysing your full history."}</p>{limited ? <><p>OpeningFit Plus unlocks continuous new missions and full mission history.</p><button className="secondaryBtn" onClick={() => void trackProductEvent("mission_upgrade_clicked", { surface: "mission_empty", tier: state.capabilities?.tier })}>View OpeningFit Plus</button></> : <button className="primaryBtn" disabled={pending} onClick={async () => { setPending(true); try { const result = await selectNextMission(missionActionKey("select-next")); if (result.reasonCode) setState(normaliseMissionResponse(result)); else await refresh(); } catch (e) { setError(e.message); } finally { setPending(false); } }}>Find my next Mission</button>}{error ? <p role="alert" className="missionError">{error}</p> : null}</section>; }
     return null;

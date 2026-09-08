@@ -15524,7 +15524,7 @@ export default function App() {
       await waitForProgressCompletion(abortController.signal, 350, window);
       if (activeImportRunRef.current !== runId || abortController.signal.aborted) return;
       setData(cleanData);
-      notifyMissionAnalysisCompleted(window);
+      notifyMissionAnalysisCompleted(window, cleanData.missionProcessing || null);
       setUsername(importedUsername);
       setImportStatus(
         importOutcome.tone === "warning"

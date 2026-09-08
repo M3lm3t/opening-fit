@@ -368,7 +368,10 @@ def extract_opening_training_opportunities(
         if not snapshots:
             continue
         name = _opening_name(raw_game, parsed, sans)
-        opening_id = _text(raw_game.get("openingId") or raw_game.get("opening_id")) or _canonical_opening_id(name)
+        opening_id = _text(
+            raw_game.get("canonicalOpeningId") or raw_game.get("canonical_opening_id")
+            or raw_game.get("openingId") or raw_game.get("opening_id")
+        ) or _canonical_opening_id(name)
         side = "white" if colour == chess.WHITE else "black"
         game_id = _game_id(raw_game, pgn)
         expected, expected_source = _expected_line(raw_game, name, opening_id, repertoire or [])

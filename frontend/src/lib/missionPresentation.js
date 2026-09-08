@@ -5,8 +5,9 @@ export function normaliseMissionResponse(payload, previous = null) {
   const reason = payload?.reasonCode || payload?.availability;
   const metadata = { capabilities: payload?.capabilities || previous?.capabilities || null, rolloutCohort: payload?.rolloutCohort || previous?.rolloutCohort || null };
   if (reason === "missions_disabled") return { kind: "disabled", mission: null, ...metadata };
-  if (["schema_unavailable", "training_schema_unavailable", "temporarily_unavailable", "database_unavailable", "unavailable", "offline", "rollout_unavailable", "rollout_not_configured"].includes(reason)) return { kind: "unavailable", mission: previous?.mission || null, ...metadata };
+  if (["schema_unavailable", "training_schema_unavailable", "temporarily_unavailable", "database_unavailable", "unavailable", "offline", "rollout_unavailable", "rollout_not_configured", "persistence_failed"].includes(reason)) return { kind: "unavailable", mission: previous?.mission || null, ...metadata };
   if (reason === "no_trusted_candidate") return { kind: "no_candidate", mission: null, ...metadata };
+  if (reason === "candidate_below_confidence") return { kind: "below_confidence", mission: null, ...metadata };
   if (reason === "analysis_required") return { kind: "analysis_required", mission: null, ...metadata };
   if (!payload?.mission) return { kind: "no_active_mission", mission: null, ...metadata };
   return { kind: payload.mission.status || "assigned", mission: payload.mission, ...metadata };

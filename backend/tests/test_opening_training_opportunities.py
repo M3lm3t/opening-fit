@@ -142,3 +142,15 @@ def test_output_is_deterministic_bounded_and_contains_the_required_shape():
     assert len(first) <= 2
     required = {"opportunityId", "userId", "gameId", "openingId", "side", "moveNumber", "positionFen", "playedMove", "recommendedMove", "alternativeMoves", "issueType", "explanation", "evidence", "confidence", "recurrenceCount", "source"}
     assert required.issubset(first[0])
+
+
+def test_canonical_classifier_id_wins_over_display_name_slug_spelling():
+    analysed = game(
+        "delayed_castling.pgn",
+        "canonical-id-1",
+        canonicalOpeningId="scandinavian-defence",
+        opening="Scandinavian Defence",
+    )
+    opportunities = extract_opening_training_opportunities([analysed], user_id="opaque-test-user")
+    assert opportunities
+    assert {row["openingId"] for row in opportunities} == {"scandinavian-defence"}

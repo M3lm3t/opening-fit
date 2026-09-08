@@ -46,6 +46,15 @@ def test_select_next_rejects_client_authored_candidate_and_never_replaces_active
     assert len(repository.missions) == 1
 
 
+def test_select_next_distinguishes_absent_from_below_confidence_candidates(monkeypatch):
+    repository = InMemoryMissionRepository()
+    enabled(monkeypatch, repository)
+    assert main.select_next_mission(main.MissionSelectNextRequest(idempotencyKey="none"), request())["reasonCode"] == "no_trusted_candidate"
+    low = candidate(); low["confidence"] = {"score": 69, "level": "medium"}
+    MissionPersistenceService(repository).persist_candidate(user_id="user-1", candidate=low)
+    assert main.select_next_mission(main.MissionSelectNextRequest(idempotencyKey="low"), request())["reasonCode"] == "candidate_below_confidence"
+
+
 def test_history_is_owned_bounded_and_dismissal_validates_reason(monkeypatch):
     repository = InMemoryMissionRepository()
     enabled(monkeypatch, repository)
