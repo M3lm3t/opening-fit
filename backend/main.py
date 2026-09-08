@@ -74,6 +74,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, ConfigDict
 from supabase import create_client, Client
+from authentication import LegacyHmacToken, LocalAuthInvalid, LocalAuthUnavailable, verify_asymmetric_supabase_token
 from feature_entitlements import FEATURE_ACCESS, can_use_feature, entitlement_has_paid_access, feature_limit, normalise_entitlement_record
 from mission_rollout import MISSION_CLIENT_EVENTS, entitlement_tier, mission_capabilities, rollout_eligibility, rollout_percentage
 from runtime_config import (
@@ -12436,6 +12437,41 @@ def get_auth_user(request: Request):
     token = auth_header.split(" ", 1)[1].strip()
     if not token:
         raise HTTPException(status_code=401, detail="Missing auth token.")
+
+    try:
+        return verify_asymmetric_supabase_token(token)
+    except LegacyHmacToken:
+        pass
+    except LocalAuthInvalid as exc:
+        request_id = uuid4().hex[:12]
+        log_supabase_diagnostic(
+            "local auth token validation failed",
+            request_id=request_id,
+            authorization_present=True,
+            failure_category="invalid_token",
+            upstream_status=None,
+            exception_class=exc.__class__.__name__,
+        )
+        raise HTTPException(
+            status_code=401,
+            detail={"code": "authentication_required"},
+            headers={"X-OpeningFit-Request-ID": request_id},
+        )
+    except LocalAuthUnavailable as exc:
+        request_id = uuid4().hex[:12]
+        log_supabase_diagnostic(
+            "local auth signing keys unavailable",
+            request_id=request_id,
+            authorization_present=True,
+            failure_category="jwks_unavailable",
+            upstream_status=None,
+            exception_class=exc.__class__.__name__,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={"code": "authentication_service_unavailable"},
+            headers={"X-OpeningFit-Request-ID": request_id},
+        )
 
     try:
         auth_response = get_supabase_admin_client().auth.get_user(token)

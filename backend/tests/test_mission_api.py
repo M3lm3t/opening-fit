@@ -108,6 +108,7 @@ def test_validated_identity_reaches_eligibility_http_contract(monkeypatch):
     monkeypatch.setenv("OPENINGFIT_MISSIONS_ROLLOUT_PERCENT", "0")
     monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True, "training_ready": True})
+    monkeypatch.setattr(main, "verify_asymmetric_supabase_token", lambda _token: (_ for _ in ()).throw(main.LegacyHmacToken()))
     monkeypatch.setattr(main, "get_supabase_admin_client", lambda: SimpleNamespace(
         auth=SimpleNamespace(get_user=lambda _token: SimpleNamespace(user=SimpleNamespace(id=allowed)))
     ))
@@ -129,6 +130,7 @@ def test_supabase_auth_validation_classifies_credentials_and_upstream_failures(m
             return SimpleNamespace(user=SimpleNamespace(id="11111111-1111-4111-8111-111111111111"))
 
     auth = Auth()
+    monkeypatch.setattr(main, "verify_asymmetric_supabase_token", lambda _token: (_ for _ in ()).throw(main.LegacyHmacToken()))
     monkeypatch.setattr(main, "get_supabase_admin_client", lambda: SimpleNamespace(auth=auth))
     monkeypatch.setattr(main, "log_supabase_diagnostic", lambda *_args, **_kwargs: None)
 
