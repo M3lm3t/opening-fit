@@ -94,6 +94,7 @@ assert_valid_startup_configuration()
 
 app = FastAPI(title="Opening Fit API")
 logger = logging.getLogger("openingfit")
+mission_outcome_logger = logging.getLogger("uvicorn.error")
 
 
 SECRET_QUERY_KEYS = {"token", "key", "secret", "password", "authorization", "session", "access_token"}
@@ -11029,7 +11030,32 @@ def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
     return enforce_serialized_role_contract(compact)
 
 
-def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
+MISSION_JOB_OUTCOMES = frozenset({
+    "created_assigned", "created", "no_eligible_candidate", "already_processed",
+    "disabled", "ineligible", "failed",
+})
+MISSION_OUTCOME_COUNT_LIMIT = 100
+
+
+def bounded_mission_outcome(outcome: str, reason: str, *, candidates: Any = 0, assigned: Any = 0) -> Dict[str, Any]:
+    safe_outcome = outcome if outcome in MISSION_JOB_OUTCOMES else "failed"
+    safe_reason = re.sub(r"[^a-z0-9_]", "_", str(reason or "unknown").strip().lower())[:64] or "unknown"
+    return {
+        "outcome": safe_outcome,
+        "reasonCode": safe_reason,
+        "candidateCount": max(0, min(MISSION_OUTCOME_COUNT_LIMIT, int(candidates or 0))),
+        "assignedCount": max(0, min(MISSION_OUTCOME_COUNT_LIMIT, int(assigned or 0))),
+    }
+
+
+def emit_mission_outcome(value: Mapping[str, Any]) -> None:
+    mission_outcome_logger.info(
+        "mission_processing_outcome outcome=%s reason=%s candidates=%d assigned=%d",
+        value["outcome"], value["reasonCode"], value["candidateCount"], value["assignedCount"],
+    )
+
+
+def analysis_job_public(job: Dict[str, Any], *, include_mission_outcome: bool = False) -> Dict[str, Any]:
     payload = {
         key: job[key]
         for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months", "timeControl")
@@ -11039,6 +11065,8 @@ def analysis_job_public(job: Dict[str, Any]) -> Dict[str, Any]:
         payload["result"] = job["result"]
     if job.get("error") is not None:
         payload["error"] = job["error"]
+    if include_mission_outcome and job.get("missionOutcome") is not None:
+        payload["missionOutcome"] = dict(job["missionOutcome"])
     if job.get("progress") is not None:
         payload["progress"] = {
             **job["progress"],
@@ -11110,10 +11138,13 @@ def execute_analysis_job(job_id: str) -> None:
             analysedGames=result_counts.get("analysedGames"),
             excludedGames=result_counts.get("excludedGames"),
         )
+        mission_outcome = None
         if not owner_user_id:
-            logger.info("mission_processing_outcome outcome=ineligible reason=anonymous candidates=0 assigned=0")
+            mission_outcome = bounded_mission_outcome("ineligible", "anonymous")
+            emit_mission_outcome(mission_outcome)
         elif not missions_enabled():
-            logger.info("mission_processing_outcome outcome=disabled reason=missions_disabled candidates=0 assigned=0")
+            mission_outcome = bounded_mission_outcome("disabled", "missions_disabled")
+            emit_mission_outcome(mission_outcome)
             result["missionProcessing"] = {"status": "skipped", "reasonCode": "missions_disabled"}
         else:
             try:
@@ -11131,28 +11162,28 @@ def execute_analysis_job(job_id: str) -> None:
                     candidates = int(mission_result.get("candidates") or 0)
                     assigned = int(mission_result.get("assigned") or 0)
                     outcome = "created_assigned" if assigned else "created" if candidates else "no_eligible_candidate"
-                    logger.info(
-                        "mission_processing_outcome outcome=%s reason=none candidates=%d assigned=%d",
-                        outcome, candidates, assigned,
-                    )
+                    mission_outcome = bounded_mission_outcome(outcome, "none", candidates=candidates, assigned=assigned)
+                    emit_mission_outcome(mission_outcome)
                 else:
                     reason = str(rollout.get("reasonCode") or "rollout_unavailable")
                     result["missionProcessing"] = {"status": "skipped", "reasonCode": reason}
-                    logger.info(
-                        "mission_processing_outcome outcome=ineligible reason=%s candidates=0 assigned=0",
-                        reason,
-                    )
+                    mission_outcome = bounded_mission_outcome("ineligible", reason)
+                    emit_mission_outcome(mission_outcome)
             except Exception as exc:
                 reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
-                logger.warning(
+                mission_outcome = bounded_mission_outcome("failed", "persistence_failed")
+                mission_outcome_logger.warning(
                     "mission_processing_outcome outcome=failed reason=persistence_failed candidates=0 assigned=0 reference=%s error_type=%s",
                     reference, exc.__class__.__name__,
                 )
                 result["missionProcessing"] = {"status": "unavailable", "reasonCode": "persistence_failed"}
+        if owner_user_id and mission_outcome:
+            result["missionOutcome"] = dict(mission_outcome)
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
-                job.update(status="completed", result=result, updatedAt=now_iso(), finishedMonotonic=time.monotonic())
+                job.update(status="completed", result=result, missionOutcome=mission_outcome,
+                           updatedAt=now_iso(), finishedMonotonic=time.monotonic())
     except HTTPException as exc:
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
@@ -11192,13 +11223,15 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
             time.monotonic() - float(existing.get("finishedMonotonic") or 0)
         ) < refresh_minutes * 60
         if recently_finished:
-            mission_state = (existing.get("result") or {}).get("missionProcessing") or {}
+            mission_state = existing.get("missionOutcome") or {}
             if owner_user_id and mission_state:
-                logger.info(
-                    "mission_processing_outcome outcome=already_processed reason=completed_job_deduplicated candidates=%d assigned=%d",
-                    int(mission_state.get("candidates") or 0), int(mission_state.get("assigned") or 0),
+                existing["missionOutcome"] = bounded_mission_outcome(
+                    "already_processed", "completed_job_deduplicated",
+                    candidates=mission_state.get("candidateCount"), assigned=mission_state.get("assignedCount"),
                 )
-            return {**analysis_job_public(existing), "deduplicated": True, "refreshAfterMinutes": refresh_minutes}
+                emit_mission_outcome(existing["missionOutcome"])
+            return {**analysis_job_public(existing, include_mission_outcome=bool(owner_user_id)),
+                    "deduplicated": True, "refreshAfterMinutes": refresh_minutes}
         active_count = sum(1 for job in analysis_jobs.values() if job["status"] in {"queued", "running"})
         if active_count >= ANALYSIS_JOB_MAX_ACTIVE:
             raise HTTPException(status_code=503, detail="The analysis queue is busy. Please try again shortly.")
@@ -11210,6 +11243,7 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
             "createdAt": created_at, "updatedAt": created_at, "createdMonotonic": time.monotonic(), "platform": platform,
             "username": username, "months": months, "timeControl": time_control, "result": None, "error": None,
             "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
+            "missionOutcome": None,
             "progress": {"stage": "queued", "counts": {}},
         }
         analysis_jobs[job_id] = job
@@ -11231,7 +11265,7 @@ def get_analysis_job(job_id: UUID, request: Request = None):
             auth_user = get_auth_user(request)
             if str(getattr(auth_user, "id", "") or "") != job["ownerUserId"]:
                 raise HTTPException(status_code=403, detail="That analysis job belongs to another account.")
-        return analysis_job_public(job)
+        return analysis_job_public(job, include_mission_outcome=bool(job.get("ownerUserId")))
 
 
 @app.get("/api/profile/{username}")

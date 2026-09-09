@@ -75,6 +75,9 @@ def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
     assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {
         "status": "unavailable", "reasonCode": "persistence_failed",
     }
+    assert main.analysis_jobs[job_id]["missionOutcome"] == {
+        "outcome": "failed", "reasonCode": "persistence_failed", "candidateCount": 0, "assignedCount": 0,
+    }
 
 
 def test_authenticated_async_job_runs_mission_processing_after_success(monkeypatch, caplog):
@@ -106,8 +109,15 @@ def test_authenticated_async_job_runs_mission_processing_after_success(monkeypat
     assert job["status"] == "completed"
     assert job["ownerUserId"] == allowed
     assert calls[0]["user_id"] == allowed
-    assert calls[0]["report"] == {"reportId": "report-1", "opening_games": [], "missionProcessing": {"status": "complete", "encounters": 0, "candidates": 1, "assigned": 1}}
+    assert calls[0]["report"]["reportId"] == "report-1"
     assert job["result"]["missionProcessing"]["assigned"] == 1
+    owner_payload = TestClient(main.app).get(
+        f"/api/analysis/jobs/{response.json()['jobId']}", headers={"Authorization": "Bearer opaque-test-token"},
+    ).json()
+    assert owner_payload["missionOutcome"] == {
+        "outcome": "created_assigned", "reasonCode": "none", "candidateCount": 1, "assignedCount": 1,
+    }
+    assert owner_payload["result"]["missionOutcome"] == owner_payload["missionOutcome"]
     assert "outcome=created_assigned" in caplog.text
     assert allowed not in caplog.text
 
@@ -134,6 +144,7 @@ def test_async_job_skips_disabled_and_ineligible_users(monkeypatch, enabled, eli
         main.execute_analysis_job(job_id)
     assert main.analysis_jobs[job_id]["status"] == "completed"
     assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {"status": "skipped", "reasonCode": expected_reason}
+    assert main.analysis_jobs[job_id]["missionOutcome"]["outcome"] == ("disabled" if not enabled else "ineligible")
     assert f"reason={expected_reason}" in caplog.text
 
 
@@ -164,6 +175,88 @@ def test_async_job_logs_no_candidate_and_completed_job_dedupe(monkeypatch, caplo
                                 request=type("Request", (), {"headers": {"authorization": "Bearer token"}})())
     assert "outcome=no_eligible_candidate" in caplog.text
     assert "outcome=already_processed" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("enabled", "eligible", "processing", "expected"),
+    [
+        (True, True, {"encounters": 0, "candidates": 1, "assigned": 1}, "created_assigned"),
+        (True, True, {"encounters": 0, "candidates": 1, "assigned": 0}, "created"),
+        (True, True, {"encounters": 0, "candidates": 0, "assigned": 0}, "no_eligible_candidate"),
+        (False, False, None, "disabled"),
+        (True, False, None, "ineligible"),
+        (True, True, RuntimeError("bounded failure"), "failed"),
+    ],
+)
+def test_real_post_worker_get_exposes_every_bounded_owner_outcome(monkeypatch, enabled, eligible, processing, expected):
+    owner = "11111111-1111-4111-8111-111111111111"
+    submitted = []
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda function, job_id: submitted.append((function, job_id)))
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": owner})())
+    monkeypatch.setattr(main, "trusted_entitlement_for_request", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main, "enforce_game_history_limit", lambda _request, months: months)
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"reportId": "report-1", "opening_games": []})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: enabled)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": eligible, "reasonCode": "rollout_unavailable"})
+    monkeypatch.setattr(main, "mission_repository", lambda: object())
+
+    def process(**_kwargs):
+        if isinstance(processing, Exception):
+            raise processing
+        return processing
+
+    monkeypatch.setattr(main, "process_completed_analysis", process)
+    client = TestClient(main.app)
+    started = client.post(
+        "/api/analysis/jobs", headers={"Authorization": "Bearer opaque-test-token"},
+        json={"platform": "lichess", "username": "Player", "months": 1, "time_control": "rapid"},
+    )
+    assert started.status_code == 202
+    submitted[0][0](submitted[0][1])
+    completed = client.get(
+        f"/api/analysis/jobs/{started.json()['jobId']}", headers={"Authorization": "Bearer opaque-test-token"},
+    )
+    assert completed.status_code == 200
+    outcome = completed.json()["missionOutcome"]
+    assert outcome["outcome"] == expected
+    assert set(outcome) == {"outcome", "reasonCode", "candidateCount", "assignedCount"}
+    assert 0 <= outcome["candidateCount"] <= main.MISSION_OUTCOME_COUNT_LIMIT
+    assert 0 <= outcome["assignedCount"] <= main.MISSION_OUTCOME_COUNT_LIMIT
+
+
+def test_anonymous_job_does_not_expose_diagnostics_and_non_owner_is_denied(monkeypatch):
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"gamesImported": 1})
+    anonymous = main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="Guest", months=1))
+    main.execute_analysis_job(anonymous["jobId"])
+    anonymous_payload = main.get_analysis_job(main.UUID(anonymous["jobId"]))
+    assert "missionOutcome" not in anonymous_payload
+    assert "missionOutcome" not in anonymous_payload.get("result", {})
+
+    owner = "11111111-1111-4111-8111-111111111111"
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": "owned", "status": "completed", "platform": "lichess",
+            "username": "Player", "months": 1, "timeControl": "rapid", "ownerUserId": owner,
+            "createdAt": main.now_iso(), "updatedAt": main.now_iso(), "result": {}, "error": None,
+            "missionOutcome": main.bounded_mission_outcome("created", "none", candidates=1),
+            "progress": {"stage": "complete", "counts": {}}, "finishedMonotonic": time.monotonic(),
+        }
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": "different-owner"})())
+    with pytest.raises(HTTPException) as denied:
+        main.get_analysis_job(main.UUID(job_id), request=type("Request", (), {"headers": {}})())
+    assert denied.value.status_code == 403
+
+
+def test_mission_outcomes_use_uvicorn_logger_and_bound_untrusted_values():
+    assert main.mission_outcome_logger.name == "uvicorn.error"
+    outcome = main.bounded_mission_outcome("unexpected", "UPSTREAM value with spaces/and punctuation", candidates=1000, assigned=-3)
+    assert outcome == {
+        "outcome": "failed", "reasonCode": "upstream_value_with_spaces_and_punctuation",
+        "candidateCount": 100, "assignedCount": 0,
+    }
 
 
 def test_non_allowlisted_analysis_creates_no_mission_state(monkeypatch):
