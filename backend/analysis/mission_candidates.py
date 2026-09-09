@@ -72,6 +72,7 @@ class MissionCandidateResult(TypedDict):
     excludedCandidates: list[dict[str, Any]]
     exclusionReasons: dict[str, int]
     accounting: dict[str, int]
+    reasonCode: str
 
 
 def exact_position_key(board_or_fen: chess.Board | str) -> str:
@@ -262,7 +263,8 @@ def build_mission_candidates(
         else:
             reasons[reason or "canonical_record_ineligible"] += 1
 
-    observations = [row for game in eligible_games for row in _observations(game)]
+    observations_by_game = {_game_id(game): _observations(game) for game in eligible_games}
+    observations = [row for rows in observations_by_game.values() for row in rows]
     positions = defaultdict(list)
     for row in observations:
         positions[(row["role"], row["openingId"], row["positionKey"], row["playedUci"])].append(row)
@@ -270,7 +272,16 @@ def build_mission_candidates(
     corrections = _source_contracts(trusted_corrections)
     candidates: list[MissionCandidate] = []
     excluded: list[dict[str, Any]] = []
-    repeated_position_keys = {key[:3] for key, rows in positions.items() if len({row["gameId"] for row in rows}) >= 2}
+    exact_positions: dict[tuple[str, str, str], list[dict[str, Any]]] = defaultdict(list)
+    for row in observations:
+        exact_positions[(row["role"], row["openingId"], row["positionKey"])].append(row)
+    repeated_position_keys = {
+        key for key, rows in exact_positions.items() if len({row["gameId"] for row in rows}) >= 2
+    }
+    repeated_move_groups = 0
+    correction_groups = 0
+    conflict_groups = 0
+    already_correct_groups = 0
 
     for group_key in sorted(positions):
         role, opening_id, position_key, played_uci = group_key
@@ -278,16 +289,21 @@ def build_mission_candidates(
         rows = [rows_by_game[key] for key in sorted(rows_by_game)]
         if len(rows) < 2:
             continue
+        repeated_move_groups += 1
         contracts = corrections.get((role, opening_id, position_key), [])
         exclusion_codes: list[str] = []
         if not contracts:
             exclusion_codes.append("trusted_correction_missing")
+        else:
+            correction_groups += 1
         move_sets = {tuple(move["uci"] for move in contract["moves"]) for contract in contracts}
         if len(move_sets) > 1:
             exclusion_codes.append("trusted_correction_conflict")
+            conflict_groups += 1
         accepted = contracts[0]["moves"] if contracts and len(move_sets) == 1 else []
         if any(move["uci"] == played_uci for move in accepted):
             exclusion_codes.append("played_move_matches_correction")
+            already_correct_groups += 1
         if exclusion_codes:
             for code in exclusion_codes:
                 reasons[code] += 1
@@ -358,20 +374,53 @@ def build_mission_candidates(
         -(float(_parse_time(row["lastSeenAt"])[0]) if row["lastSeenAt"] and _parse_time(row["lastSeenAt"]) else float("-inf")),
         row["candidateKey"],
     ))
+    below_confidence = sum(1 for row in candidates if float(row["confidence"]["score"]) < 70)
+    if candidates:
+        reason_code = "candidate_available"
+    elif not received:
+        reason_code = "no_analysis_records"
+    elif not eligible_games:
+        reason_code = "no_repertoire_eligible_records"
+    elif not observations:
+        reason_code = "no_parseable_pgn"
+    elif not repeated_position_keys:
+        reason_code = "no_repeated_exact_position"
+    elif not repeated_move_groups:
+        reason_code = "no_repeated_played_move"
+    elif reasons:
+        reason_code = min(reasons.items(), key=lambda item: (-item[1], item[0]))[0]
+    else:
+        reason_code = "no_eligible_candidate"
     return {
         "algorithmVersion": MISSIONS_CANDIDATE_ALGORITHM_VERSION,
         "candidates": candidates,
         "excludedCandidates": sorted(excluded, key=lambda row: (row["role"], row["canonicalOpeningId"], row["exactPositionKey"])),
         "exclusionReasons": dict(sorted(reasons.items())),
+        "reasonCode": reason_code,
         "accounting": {
             "canonicalRecordsReceived": len(received),
+            "recordsWithRequiredCanonicalData": sum(
+                1 for game in unique.values()
+                if _opening_id(game) and _text(game.get("playerColour")).lower() in {"white", "black"}
+                and _role(game)
+            ),
+            "roleTrustedRecords": sum(1 for game in unique.values() if game.get("roleAttributionTrusted") is True),
+            "repertoireEligibleRecords": len(eligible_games),
             "uniqueCanonicalRecords": len(unique),
             "recordsWithoutIdentity": reasons["missing_game_identity"],
             "eligibleAttributedRecords": len(eligible_games),
             "excludedRecords": len(unique) - len(eligible_games),
             "duplicateIdentities": reasons["duplicate_game_identity"],
+            "recordsWithStableIdentity": len(unique),
+            "recordsWithParseablePgn": sum(1 for rows in observations_by_game.values() if rows),
+            "recordsWithLegalPositions": sum(1 for rows in observations_by_game.values() if rows),
             "positionsExamined": len({(row["role"], row["openingId"], row["positionKey"]) for row in observations}),
             "repeatedPositionGroups": len(repeated_position_keys),
+            "repeatedPlayedMoveGroups": repeated_move_groups,
+            "trustedCorrectionGroups": correction_groups,
+            "correctionConflictGroups": conflict_groups,
+            "alreadyCorrectGroups": already_correct_groups,
+            "candidatesBelowConfidence70": below_confidence,
             "candidatesGenerated": len(candidates),
             "candidatesExcluded": len(excluded),
         },

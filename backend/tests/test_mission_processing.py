@@ -24,7 +24,10 @@ def test_processing_is_idempotent_and_baseline_does_not_verify_new_mission():
     repository = InMemoryMissionRepository()
     first = process_completed_analysis(user_id="user-1", platform="chess.com", username="User", report=report(), repository=repository)
     second = process_completed_analysis(user_id="user-1", platform="chess.com", username="User", report=report(), repository=repository)
-    assert first == {"encounters": 0, "candidates": 1, "assigned": 1}
+    assert {key: first[key] for key in ("encounters", "candidates", "assigned")} == {
+        "encounters": 0, "candidates": 1, "assigned": 1,
+    }
+    assert first["reasonCode"] == "candidate_available"
     assert second["assigned"] == 0
     assert len(repository.missions) == 1
     assert repository.encounters == {}
@@ -76,7 +79,7 @@ def _large_three_role_report(*, trusted_repair=True):
             f"scandinavian-{index}", SCANDINAVIAN, role="black_vs_e4",
             opening_id="scandinavian-defence", colour="black", **extra,
         ))
-    for index in range(49):
+    for index in range(70):
         games.append(canonical_game(
             f"white-{index}", '[White "User"]\n[Black "Other"]\n\n1. a3 a6 *',
             opening_id="white-test-opening", openingDisplayName="White test opening",
@@ -91,14 +94,17 @@ def _large_three_role_report(*, trusted_repair=True):
     return {"reportId": "large-report", "opening_games": games, "openingTrainingOpportunities": opportunities}
 
 
-def test_realistic_158_game_three_role_scandinavian_repair_assigns_once():
+def test_realistic_200_game_three_role_scandinavian_repair_assigns_once():
     repository = InMemoryMissionRepository()
     report = _large_three_role_report()
     first = process_completed_analysis(user_id="opaque-fixture-user", platform="chess.com", username="User", report=report, repository=repository)
     second = process_completed_analysis(user_id="opaque-fixture-user", platform="chess.com", username="User", report=report, repository=repository)
-    assert len(report["opening_games"]) == 158
+    assert len(report["opening_games"]) == 200
     assert {game["playerRole"] for game in report["opening_games"]} == {"white_repertoire", "black_vs_e4", "black_vs_d4"}
-    assert first == {"encounters": 0, "candidates": 1, "assigned": 1}
+    assert {key: first[key] for key in ("encounters", "candidates", "assigned")} == {
+        "encounters": 0, "candidates": 1, "assigned": 1,
+    }
+    assert first["funnel"]["canonicalRecordsReceived"] == 200
     assert second["candidates"] == 1 and second["assigned"] == 0
     assert len(repository.missions) == 1
     mission = next(iter(repository.missions.values()))
@@ -113,5 +119,29 @@ def test_realistic_large_report_without_verified_move_correctly_has_no_candidate
         user_id="opaque-fixture-user", platform="chess.com", username="User",
         report=_large_three_role_report(trusted_repair=False), repository=repository,
     )
-    assert result == {"encounters": 0, "candidates": 0, "assigned": 0}
+    assert {key: result[key] for key in ("encounters", "candidates", "assigned")} == {
+        "encounters": 0, "candidates": 0, "assigned": 0,
+    }
+    assert result["reasonCode"] == "trusted_correction_missing"
     assert repository.missions == {}
+
+
+def test_internal_full_evidence_survives_public_compaction_only_until_processing():
+    from backend import main
+
+    report = _large_three_role_report()
+    report["_missionOpeningGames"] = report["opening_games"]
+    report["_missionOpeningTrainingOpportunities"] = report["openingTrainingOpportunities"]
+    compact = main.compact_analysis_result(report, preserve_mission_evidence=True)
+    assert len(compact["opening_games"]) == main.ANALYSIS_EVIDENCE_GAME_LIMIT
+    assert len(compact["_missionOpeningGames"]) == 200
+
+    repository = InMemoryMissionRepository()
+    result = process_completed_analysis(
+        user_id="opaque-fixture-user", platform="chess.com", username="User",
+        report=compact, repository=repository,
+    )
+    assert result["candidates"] == 1
+    public = main.compact_analysis_result(compact)
+    assert "_missionOpeningGames" not in public
+    assert "_missionOpeningTrainingOpportunities" not in public

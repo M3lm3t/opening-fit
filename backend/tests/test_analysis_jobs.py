@@ -87,14 +87,22 @@ def test_authenticated_async_job_runs_mission_processing_after_success(monkeypat
     monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": allowed})())
     monkeypatch.setattr(main, "trusted_entitlement_for_request", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(main, "enforce_game_history_limit", lambda _request, months: months)
-    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"reportId": "report-1", "opening_games": []})
+    import_context = []
+    monkeypatch.setattr(
+        main,
+        "run_import_route",
+        lambda *_args: import_context.append(bool(getattr(main.mission_evidence_context, "enabled", False)))
+        or {"reportId": "report-1", "opening_games": []},
+    )
     monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
     monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": True})
     repository = object()
     monkeypatch.setattr(main, "mission_repository", lambda: repository)
     calls = []
-    monkeypatch.setattr(main, "process_completed_analysis", lambda **kwargs: calls.append(kwargs) or {"encounters": 0, "candidates": 1, "assigned": 1})
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **kwargs: calls.append(kwargs) or {
+        "encounters": 0, "candidates": 1, "assigned": 1, "reasonCode": "candidate_available",
+    })
 
     with caplog.at_level("INFO"):
         response = TestClient(main.app).post(
@@ -110,12 +118,14 @@ def test_authenticated_async_job_runs_mission_processing_after_success(monkeypat
     assert job["ownerUserId"] == allowed
     assert calls[0]["user_id"] == allowed
     assert calls[0]["report"]["reportId"] == "report-1"
+    assert import_context == [True]
+    assert getattr(main.mission_evidence_context, "enabled", False) is False
     assert job["result"]["missionProcessing"]["assigned"] == 1
     owner_payload = TestClient(main.app).get(
         f"/api/analysis/jobs/{response.json()['jobId']}", headers={"Authorization": "Bearer opaque-test-token"},
     ).json()
     assert owner_payload["missionOutcome"] == {
-        "outcome": "created_assigned", "reasonCode": "none", "candidateCount": 1, "assignedCount": 1,
+        "outcome": "created_assigned", "reasonCode": "candidate_available", "candidateCount": 1, "assignedCount": 1,
     }
     assert owner_payload["result"]["missionOutcome"] == owner_payload["missionOutcome"]
     assert "outcome=created_assigned" in caplog.text
@@ -164,7 +174,10 @@ def test_async_job_logs_no_candidate_and_completed_job_dedupe(monkeypatch, caplo
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
     monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": True})
     monkeypatch.setattr(main, "mission_repository", lambda: object())
-    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: {"encounters": 0, "candidates": 0, "assigned": 0})
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: {
+        "encounters": 0, "candidates": 0, "assigned": 0,
+        "reasonCode": "trusted_correction_missing",
+    })
     monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": allowed})())
     monkeypatch.setattr(main, "trusted_entitlement_for_request", lambda *_args, **_kwargs: None)
     monkeypatch.setattr(main, "enforce_game_history_limit", lambda _request, months: months)
@@ -174,6 +187,7 @@ def test_async_job_logs_no_candidate_and_completed_job_dedupe(monkeypatch, caplo
         main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="Player", months=1, time_control="rapid"),
                                 request=type("Request", (), {"headers": {"authorization": "Bearer token"}})())
     assert "outcome=no_eligible_candidate" in caplog.text
+    assert "reason=trusted_correction_missing" in caplog.text
     assert "outcome=already_processed" in caplog.text
 
 

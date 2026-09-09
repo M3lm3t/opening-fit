@@ -46,7 +46,7 @@ def _dt(value: Any) -> datetime | None:
 
 
 def _games(report: Mapping[str, Any]) -> list[Mapping[str, Any]]:
-    rows = report.get("opening_games") or report.get("openingGames") or []
+    rows = report.get("_missionOpeningGames") or report.get("opening_games") or report.get("openingGames") or []
     return [row for row in rows if isinstance(row, Mapping)]
 
 
@@ -65,7 +65,12 @@ def _trusted_corrections(report: Mapping[str, Any], games: list[Mapping[str, Any
         if opening and side and role:
             roles.setdefault((opening, side), set()).add(role)
     contracts: list[dict[str, Any]] = []
-    for row in report.get("openingTrainingOpportunities") or []:
+    for row in (
+        report.get("_missionOpeningTrainingOpportunities")
+        or report.get("openingTrainingOpportunities")
+        or report.get("opening_training_opportunities")
+        or []
+    ):
         if not isinstance(row, Mapping):
             continue
         source = str(row.get("source") or "").strip().lower()
@@ -129,7 +134,7 @@ def _evaluate_lifecycle(user_id: str, repository: Any) -> None:
 
 
 def process_completed_analysis(*, user_id: str, platform: str, username: str,
-                               report: Mapping[str, Any], repository: Any, paid_access: bool | None = None) -> dict[str, int]:
+                               report: Mapping[str, Any], repository: Any, paid_access: bool | None = None) -> dict[str, Any]:
     """Process old missions first, then persist/assign candidates from this report."""
     games = _games(report)
     service = MissionPersistenceService(repository)
@@ -163,7 +168,11 @@ def process_completed_analysis(*, user_id: str, platform: str, username: str,
         _event(repository, user_id, saved, "mission_candidate_generated",
                f"candidate:{saved['candidate_key']}:{saved['generation']}", platform=f"{platform} import")
     assigned = 0
-    if not service.get_current_mission(user_id):
+    active_blocked = 0
+    allowance_blocked = 0
+    if service.get_current_mission(user_id):
+        active_blocked = int(bool(persisted))
+    else:
         candidates = [row for row in repository.list_candidates(user_id, limit=20)
                       if float((row.get("confidence") or {}).get("score") or 0) >= ASSIGNABLE_CONFIDENCE]
         if candidates:
@@ -172,7 +181,17 @@ def process_completed_analysis(*, user_id: str, platform: str, username: str,
             if paid_access is not None and hasattr(repository, "assign_with_allowance"):
                 outcome = repository.assign_with_allowance(user_id=user_id, mission_id=chosen["id"], paid=paid_access, idempotency_key=key)
                 assigned = int(bool(outcome.get("assigned")))
+                allowance_blocked = int(not assigned)
             else:
                 service.assign_primary_mission(user_id=user_id, mission_id=chosen["id"], idempotency_key=key)
                 assigned = 1
-    return {"encounters": encounters, "candidates": len(persisted), "assigned": assigned}
+    accounting = dict(result["accounting"])
+    accounting.update({"assignmentsBlockedByActiveMission": active_blocked,
+                       "assignmentsBlockedByAllowance": allowance_blocked})
+    return {
+        "encounters": encounters,
+        "candidates": len(persisted),
+        "assigned": assigned,
+        "reasonCode": result["reasonCode"],
+        "funnel": accounting,
+    }

@@ -9646,8 +9646,12 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     result["progressComparison"] = result["progress_comparison"]
 
     result = enrich_analysis_result(result, username=username, platform="chess.com")
-    result = compact_analysis_result(result)
-    profile = save_user_profile(username, result)
+    preserve_mission_evidence = bool(getattr(mission_evidence_context, "enabled", False))
+    if preserve_mission_evidence:
+        result["_missionOpeningGames"] = opening_game_samples
+        result["_missionOpeningTrainingOpportunities"] = opening_training_opportunities
+    result = compact_analysis_result(result, preserve_mission_evidence=preserve_mission_evidence)
+    profile = save_user_profile(username, compact_analysis_result(result))
 
     log_analytics_event(
         "analysis_completed",
@@ -10423,8 +10427,12 @@ def build_lichess_analysis(
     result["progressComparison"] = result["progress_comparison"]
 
     result = enrich_analysis_result(result, username=username, platform="lichess")
-    result = compact_analysis_result(result)
-    profile = save_user_profile(username, result)
+    preserve_mission_evidence = bool(getattr(mission_evidence_context, "enabled", False))
+    if preserve_mission_evidence:
+        result["_missionOpeningGames"] = opening_game_samples
+        result["_missionOpeningTrainingOpportunities"] = opening_training_opportunities
+    result = compact_analysis_result(result, preserve_mission_evidence=preserve_mission_evidence)
+    profile = save_user_profile(username, compact_analysis_result(result))
 
     log_analytics_event(
         "analysis_completed",
@@ -10875,6 +10883,7 @@ analysis_job_executor = ThreadPoolExecutor(max_workers=2, thread_name_prefix="op
 analysis_jobs: Dict[str, Dict[str, Any]] = {}
 analysis_job_keys: Dict[str, str] = {}
 analysis_jobs_lock = threading.Lock()
+mission_evidence_context = threading.local()
 
 
 def _serialized_role_is_legal(role: str, game: Dict[str, Any]) -> bool:
@@ -10944,12 +10953,15 @@ def enforce_serialized_role_contract(report: Dict[str, Any]) -> Dict[str, Any]:
     return {**report, "reportDecision": clean_decision, "report_decision": clean_decision, "repertoireRoles": roles}
 
 
-def compact_analysis_result(result: Dict[str, Any]) -> Dict[str, Any]:
+def compact_analysis_result(result: Dict[str, Any], *, preserve_mission_evidence: bool = False) -> Dict[str, Any]:
     """Bound public report payloads without removing the evidence used by the UI."""
     if not isinstance(result, dict):
         return result
 
     compact = dict(result)
+    if not preserve_mission_evidence:
+        compact.pop("_missionOpeningGames", None)
+        compact.pop("_missionOpeningTrainingOpportunities", None)
     has_game_evidence = "opening_games" in compact or "openingGames" in compact
     game_source = compact.get("opening_games") or compact.get("openingGames") or []
     if has_game_evidence and isinstance(game_source, list):
@@ -11122,7 +11134,11 @@ def execute_analysis_job(job_id: str) -> None:
 
     try:
         progress = lambda stage, **counts: update_analysis_job_progress(job_id, stage, **counts)
-        result = run_import_route(platform, username, months, time_control, progress)
+        mission_evidence_context.enabled = True
+        try:
+            result = run_import_route(platform, username, months, time_control, progress)
+        finally:
+            mission_evidence_context.enabled = False
         if isinstance(result, JSONResponse):
             try:
                 error_payload = json.loads(result.body.decode("utf-8", errors="replace"))
@@ -11162,7 +11178,8 @@ def execute_analysis_job(job_id: str) -> None:
                     candidates = int(mission_result.get("candidates") or 0)
                     assigned = int(mission_result.get("assigned") or 0)
                     outcome = "created_assigned" if assigned else "created" if candidates else "no_eligible_candidate"
-                    mission_outcome = bounded_mission_outcome(outcome, "none", candidates=candidates, assigned=assigned)
+                    reason = str(mission_result.get("reasonCode") or "unknown")
+                    mission_outcome = bounded_mission_outcome(outcome, reason, candidates=candidates, assigned=assigned)
                     emit_mission_outcome(mission_outcome)
                 else:
                     reason = str(rollout.get("reasonCode") or "rollout_unavailable")

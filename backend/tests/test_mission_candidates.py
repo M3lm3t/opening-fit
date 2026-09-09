@@ -220,7 +220,7 @@ def test_300_trusted_game_reconciliation_fixture_balances_exactly():
     games.extend([dict(games[0]), dict(games[1]), canonical_game("untrusted-extra", trusted=False)])
     result = build(reversed(games), [correction()])
     accounting = result["accounting"]
-    assert accounting == {
+    assert accounting.items() >= {
         "canonicalRecordsReceived": 303,
         "uniqueCanonicalRecords": 301,
         "recordsWithoutIdentity": 0,
@@ -231,7 +231,11 @@ def test_300_trusted_game_reconciliation_fixture_balances_exactly():
         "repeatedPositionGroups": accounting["repeatedPositionGroups"],
         "candidatesGenerated": 1,
         "candidatesExcluded": len(result["excludedCandidates"]),
-    }
+    }.items()
+    assert accounting["recordsWithStableIdentity"] == 301
+    assert accounting["recordsWithParseablePgn"] == 300
+    assert accounting["repertoireEligibleRecords"] == 300
+    assert accounting["repeatedPlayedMoveGroups"] > 0
     assert accounting["positionsExamined"] > 0
     assert accounting["repeatedPositionGroups"] >= 3
     assert result["candidates"][0]["evidenceCount"] == 100
