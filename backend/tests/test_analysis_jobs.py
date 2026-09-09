@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 from fastapi import HTTPException
+from fastapi.testclient import TestClient
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import main
@@ -74,6 +75,95 @@ def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
     assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {
         "status": "unavailable", "reasonCode": "persistence_failed",
     }
+
+
+def test_authenticated_async_job_runs_mission_processing_after_success(monkeypatch, caplog):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    submitted = []
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda function, job_id: submitted.append((function, job_id)))
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": allowed})())
+    monkeypatch.setattr(main, "trusted_entitlement_for_request", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main, "enforce_game_history_limit", lambda _request, months: months)
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"reportId": "report-1", "opening_games": []})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": True})
+    repository = object()
+    monkeypatch.setattr(main, "mission_repository", lambda: repository)
+    calls = []
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **kwargs: calls.append(kwargs) or {"encounters": 0, "candidates": 1, "assigned": 1})
+
+    with caplog.at_level("INFO"):
+        response = TestClient(main.app).post(
+            "/api/analysis/jobs",
+            headers={"Authorization": "Bearer opaque-test-token"},
+            json={"platform": "lichess", "username": "ExamplePlayer", "months": 2, "time_control": "rapid"},
+        )
+        assert response.status_code == 202
+        submitted[0][0](submitted[0][1])
+
+    job = main.analysis_jobs[response.json()["jobId"]]
+    assert job["status"] == "completed"
+    assert job["ownerUserId"] == allowed
+    assert calls[0]["user_id"] == allowed
+    assert calls[0]["report"] == {"reportId": "report-1", "opening_games": [], "missionProcessing": {"status": "complete", "encounters": 0, "candidates": 1, "assigned": 1}}
+    assert job["result"]["missionProcessing"]["assigned"] == 1
+    assert "outcome=created_assigned" in caplog.text
+    assert allowed not in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("enabled", "eligible", "expected_reason"),
+    [(False, False, "missions_disabled"), (True, False, "rollout_unavailable")],
+)
+def test_async_job_skips_disabled_and_ineligible_users(monkeypatch, enabled, eligible, expected_reason, caplog):
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": "opaque:lichess:player:1:rapid", "status": "queued",
+            "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
+            "ownerUserId": "22222222-2222-4222-8222-222222222222", "createdAt": main.now_iso(),
+            "updatedAt": main.now_iso(), "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
+        }
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"gamesImported": 1})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: enabled)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": eligible, "reasonCode": "rollout_unavailable"})
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(AssertionError("must not run")))
+    with caplog.at_level("INFO"):
+        main.execute_analysis_job(job_id)
+    assert main.analysis_jobs[job_id]["status"] == "completed"
+    assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {"status": "skipped", "reasonCode": expected_reason}
+    assert f"reason={expected_reason}" in caplog.text
+
+
+def test_async_job_logs_no_candidate_and_completed_job_dedupe(monkeypatch, caplog):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": f"{allowed}:lichess:player:1:rapid", "status": "queued",
+            "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
+            "ownerUserId": allowed, "createdAt": main.now_iso(), "updatedAt": main.now_iso(), "createdMonotonic": time.monotonic(),
+            "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
+        }
+        main.analysis_job_keys[f"{allowed}:lichess:player:1:rapid"] = job_id
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"gamesImported": 1})
+    monkeypatch.setattr(main, "missions_enabled", lambda *_args: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": True})
+    monkeypatch.setattr(main, "mission_repository", lambda: object())
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: {"encounters": 0, "candidates": 0, "assigned": 0})
+    monkeypatch.setattr(main, "get_auth_user", lambda _request: type("User", (), {"id": allowed})())
+    monkeypatch.setattr(main, "trusted_entitlement_for_request", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(main, "enforce_game_history_limit", lambda _request, months: months)
+    monkeypatch.setattr(main.analysis_job_executor, "submit", lambda *_args: None)
+    with caplog.at_level("INFO"):
+        main.execute_analysis_job(job_id)
+        main.start_analysis_job(main.AnalysisJobRequest(platform="lichess", username="Player", months=1, time_control="rapid"),
+                                request=type("Request", (), {"headers": {"authorization": "Bearer token"}})())
+    assert "outcome=no_eligible_candidate" in caplog.text
+    assert "outcome=already_processed" in caplog.text
 
 
 def test_non_allowlisted_analysis_creates_no_mission_state(monkeypatch):

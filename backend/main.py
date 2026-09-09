@@ -11110,7 +11110,12 @@ def execute_analysis_job(job_id: str) -> None:
             analysedGames=result_counts.get("analysedGames"),
             excludedGames=result_counts.get("excludedGames"),
         )
-        if owner_user_id and missions_enabled():
+        if not owner_user_id:
+            logger.info("mission_processing_outcome outcome=ineligible reason=anonymous candidates=0 assigned=0")
+        elif not missions_enabled():
+            logger.info("mission_processing_outcome outcome=disabled reason=missions_disabled candidates=0 assigned=0")
+            result["missionProcessing"] = {"status": "skipped", "reasonCode": "missions_disabled"}
+        else:
             try:
                 readiness = missions_schema_readiness()
                 rollout = _mission_rollout(owner_user_id, readiness)
@@ -11123,9 +11128,26 @@ def execute_analysis_job(job_id: str) -> None:
                         paid_access=entitlement_has_paid_access(entitlement),
                     )
                     result["missionProcessing"] = {"status": "complete", **mission_result}
+                    candidates = int(mission_result.get("candidates") or 0)
+                    assigned = int(mission_result.get("assigned") or 0)
+                    outcome = "created_assigned" if assigned else "created" if candidates else "no_eligible_candidate"
+                    logger.info(
+                        "mission_processing_outcome outcome=%s reason=none candidates=%d assigned=%d",
+                        outcome, candidates, assigned,
+                    )
+                else:
+                    reason = str(rollout.get("reasonCode") or "rollout_unavailable")
+                    result["missionProcessing"] = {"status": "skipped", "reasonCode": reason}
+                    logger.info(
+                        "mission_processing_outcome outcome=ineligible reason=%s candidates=0 assigned=0",
+                        reason,
+                    )
             except Exception as exc:
                 reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
-                logger.warning("mission_processing_failed reference=%s error_type=%s", reference, exc.__class__.__name__)
+                logger.warning(
+                    "mission_processing_outcome outcome=failed reason=persistence_failed candidates=0 assigned=0 reference=%s error_type=%s",
+                    reference, exc.__class__.__name__,
+                )
                 result["missionProcessing"] = {"status": "unavailable", "reasonCode": "persistence_failed"}
         result = compact_analysis_result(result)
         with analysis_jobs_lock:
@@ -11170,6 +11192,12 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
             time.monotonic() - float(existing.get("finishedMonotonic") or 0)
         ) < refresh_minutes * 60
         if recently_finished:
+            mission_state = (existing.get("result") or {}).get("missionProcessing") or {}
+            if owner_user_id and mission_state:
+                logger.info(
+                    "mission_processing_outcome outcome=already_processed reason=completed_job_deduplicated candidates=%d assigned=%d",
+                    int(mission_state.get("candidates") or 0), int(mission_state.get("assigned") or 0),
+                )
             return {**analysis_job_public(existing), "deduplicated": True, "refreshAfterMinutes": refresh_minutes}
         active_count = sum(1 for job in analysis_jobs.values() if job["status"] in {"queued", "running"})
         if active_count >= ANALYSIS_JOB_MAX_ACTIVE:
