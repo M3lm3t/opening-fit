@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
-import { useMissionFeatureState } from "../context/MissionFeatureProvider.jsx";
+import { useMissionFeatureRetry, useMissionFeatureState } from "../context/MissionFeatureProvider.jsx";
 import ChessPositionBoard from "./ChessPositionBoard.jsx";
 import { completeTrainingSession, dismissMission, getCurrentMission, getCurrentTrainingSession, listMissionHistory, missionActionKey, selectNextMission, startTrainingSession, submitTrainingAttempt } from "../services/missionApi.js";
 import { confidenceCopy, missionAction, missionStatement, missionStatusLabel, normaliseMissionResponse, provenanceLabel, roleLabel } from "../lib/missionPresentation.js";
@@ -106,14 +106,23 @@ function EnabledMissionTrainingPanel({ onHome, onAnalyse, onReport }) {
   return <section className="missionTraining" aria-labelledby="mission-training-title"><header><div><p className="missionEyebrow">Mission training</p><h2 id="mission-training-title">{mission.opening_name} · {roleLabel(mission.role)}</h2><p>{session.exerciseCount === 1 ? "Your key position — the exact position OpeningFit found in your games." : `${session.progress?.solvedCount || 0} solved of ${session.exerciseCount}`}</p></div></header>{exercise ? <div className="missionTrainingLayout"><div className="missionBoard"><ChessPositionBoard position={exercise.fen} orientation={exercise.boardOrientation} interactive={phase !== "submitting"} draggableColor={exercise.sideToMove === "black" ? "b" : "w"} selectedSquare={selected} lastMoveSquares={lastMove} onSquareClick={squareClick} onPieceDrop={attempt} /></div><div className="missionTrainingPrompt" aria-live="polite"><h3>{exercise.prompt || "Find your prepared move."}</h3><p>{phase === "submitting" ? "Checking your move…" : "Play your move on the board. OpeningFit validates it on the server."}</p>{feedback ? <div className={`missionFeedback missionFeedback--${feedback.result}`} role="status"><strong>{feedback.feedback}</strong>{feedback.acceptedMoves?.length ? <p>Prepared response: {feedback.acceptedMoves.map((move) => move.san).join(" or ")}</p> : null}</div> : null}{error ? <p className="missionError" role="alert">{error}</p> : null}{feedback?.progress?.eligible ? <button className="primaryBtn" disabled={phase === "completing"} onClick={complete}>{phase === "completing" ? "Completing…" : "Complete session"}</button> : feedback ? <button className="secondaryBtn" onClick={() => { setFeedback(null); setLastMove([]); setPhase("active"); }}>Try again</button> : null}</div></div> : <div className="missionTrainingPrompt"><h3>All positions attempted</h3>{session.progress?.eligible ? <button className="primaryBtn" onClick={complete}>Complete session</button> : <><p>One or more positions still need the prepared response.</p><button className="secondaryBtn" onClick={() => setPhase("active")}>Continue</button></>}</div>}</section>;
 }
 
+function MissionGate({ children }) {
+  const state = useMissionFeatureState();
+  const retry = useMissionFeatureRetry();
+  const { user } = useAuth();
+  if (state === "enabled") return children;
+  if (state !== "unavailable" || !user?.id) return null;
+  return <section className="missionCard missionCard--quiet" role="status"><strong>Mission availability could not be checked</strong><p>Your other OpeningFit tools are ready.</p><button type="button" onClick={retry}>Try again</button></section>;
+}
+
 export function CurrentMissionCard(props) {
-  return useMissionFeatureState() === "enabled" ? <EnabledCurrentMissionCard {...props} /> : null;
+  return <MissionGate><EnabledCurrentMissionCard {...props} /></MissionGate>;
 }
 
 export function MissionEvidencePanel(props) {
-  return useMissionFeatureState() === "enabled" ? <EnabledMissionEvidencePanel {...props} /> : null;
+  return <MissionGate><EnabledMissionEvidencePanel {...props} /></MissionGate>;
 }
 
 export function MissionTrainingPanel(props) {
-  return useMissionFeatureState() === "enabled" ? <EnabledMissionTrainingPanel {...props} /> : null;
+  return <MissionGate><EnabledMissionTrainingPanel {...props} /></MissionGate>;
 }
