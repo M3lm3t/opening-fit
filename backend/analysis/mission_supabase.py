@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from collections.abc import Mapping
+from datetime import date, datetime
 from typing import Any
 
 from .mission_persistence import MissionPersistenceError
@@ -47,20 +49,48 @@ def _error_code(error: Exception) -> str:
     return "transient_storage_failure"
 
 
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Mapping):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    return value
+
+
+def _serializable_candidate_row(row: Mapping[str, Any]) -> dict[str, Any]:
+    normalized = _json_safe(dict(row))
+    try:
+        json.dumps(normalized, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise MissionPersistenceError(
+            "candidate_serialization_failed",
+            "Mission candidate serialization failed.",
+            stage="candidate_serialization_failed",
+        ) from exc
+    return normalized
+
+
 class SupabaseMissionRepository:
     """Uses the existing backend service client; credentials are never retained in rows or output."""
 
     def __init__(self, client: Any):
         self.client = client
 
-    def _execute(self, operation):
+    def _execute(self, operation, *, failure_stage: str = "repository_request_failed"):
         for attempt in range(TRANSIENT_TIMEOUT_RETRIES + 1):
             try:
                 return operation.execute()
             except Exception as exc:
                 code = _error_code(exc)
                 if code != "statement_timeout" or attempt >= TRANSIENT_TIMEOUT_RETRIES:
-                    raise MissionPersistenceError(code, "Mission storage operation failed.") from exc
+                    raise MissionPersistenceError(
+                        code,
+                        "Mission storage operation failed.",
+                        stage=failure_stage,
+                        database_code=code,
+                    ) from exc
                 logger.info("mission_storage_retry reason=statement_timeout attempt=%d", attempt + 1)
                 time.sleep(TRANSIENT_TIMEOUT_BACKOFF_SECONDS)
         raise AssertionError("unreachable")
@@ -78,13 +108,14 @@ class SupabaseMissionRepository:
             return {"ready": False, "reason": exc.code}
 
     def upsert_candidate(self, row: Mapping[str, Any]) -> dict[str, Any]:
-        query = self.client.table("openingfit_missions").select("*").eq("user_id", row["user_id"]).eq("candidate_key", row["candidate_key"]).eq("algorithm_version", row["algorithm_version"]).eq("generation", row["generation"]).limit(1)
-        existing = (self._execute(query).data or [])
+        serialized = _serializable_candidate_row(row)
+        query = self.client.table("openingfit_missions").select("*").eq("user_id", serialized["user_id"]).eq("candidate_key", serialized["candidate_key"]).eq("algorithm_version", serialized["algorithm_version"]).eq("generation", serialized["generation"]).limit(1)
+        existing = (self._execute(query, failure_stage="candidate_insert_request_failed").data or [])
         if existing:
-            patch = {key: value for key, value in row.items() if key in MUTABLE_CANDIDATE_FIELDS}
-            result = self._execute(self.client.table("openingfit_missions").update(patch).eq("id", existing[0]["id"]).eq("user_id", row["user_id"]))
+            patch = {key: value for key, value in serialized.items() if key in MUTABLE_CANDIDATE_FIELDS}
+            result = self._execute(self.client.table("openingfit_missions").update(patch).eq("id", existing[0]["id"]).eq("user_id", serialized["user_id"]), failure_stage="candidate_insert_request_failed")
             return dict((result.data or existing)[0])
-        result = self._execute(self.client.table("openingfit_missions").insert(dict(row)))
+        result = self._execute(self.client.table("openingfit_missions").insert(serialized), failure_stage="candidate_insert_request_failed")
         return dict((result.data or [])[0])
 
     def get_mission(self, mission_id: str) -> dict[str, Any] | None:
@@ -114,7 +145,7 @@ class SupabaseMissionRepository:
         return dict(rows[0]) if rows else {"assignment_count": 0}
 
     def assign_with_allowance(self, *, user_id: str, mission_id: str, paid: bool, idempotency_key: str) -> dict[str, Any]:
-        result = self._execute(self.client.rpc("assign_openingfit_mission_with_allowance", {"p_user_id": user_id, "p_mission_id": mission_id, "p_paid_access": paid, "p_idempotency_key": idempotency_key}))
+        result = self._execute(self.client.rpc("assign_openingfit_mission_with_allowance", {"p_user_id": user_id, "p_mission_id": mission_id, "p_paid_access": paid, "p_idempotency_key": idempotency_key}), failure_stage="assignment_request_failed")
         return dict(result.data or {})
 
     def project_activity(self, outbox_id: str) -> dict[str, Any]:

@@ -31,9 +31,11 @@ UCI_RE = re.compile(r"^[a-h][1-8][a-h][1-8][qrbn]?$")
 
 
 class MissionPersistenceError(ValueError):
-    def __init__(self, code: str, message: str):
+    def __init__(self, code: str, message: str, *, stage: str | None = None, database_code: str | None = None):
         super().__init__(message)
         self.code = code
+        self.stage = stage
+        self.database_code = database_code
 
 
 @dataclass(frozen=True)
@@ -137,7 +139,15 @@ class MissionPersistenceService:
         self.repository = repository
 
     def persist_candidate(self, *, user_id: str, candidate: Mapping[str, Any], generation: int = 1, references: Mapping[str, Any] | None = None) -> dict[str, Any]:
-        return self.repository.upsert_candidate(_candidate_row(user_id, candidate, generation, references or {}))
+        try:
+            row = _candidate_row(user_id, candidate, generation, references or {})
+        except MissionPersistenceError as exc:
+            raise MissionPersistenceError(
+                exc.code,
+                "Mission candidate validation failed.",
+                stage="candidate_validation_failed",
+            ) from exc
+        return self.repository.upsert_candidate(row)
 
     def assign_primary_mission(self, *, user_id: str, mission_id: str, idempotency_key: str) -> dict[str, Any]:
         return self.transition_mission(user_id=user_id, mission_id=mission_id, target_status="assigned", cause_type="candidate_selected", idempotency_key=idempotency_key)

@@ -52,7 +52,7 @@ def test_execute_analysis_job_publishes_completed_result(monkeypatch):
     assert callable(called[0][4])
 
 
-def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
+def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch, caplog):
     allowed = "11111111-1111-4111-8111-111111111111"
     job_id = str(main.uuid4())
     with main.analysis_jobs_lock:
@@ -68,16 +68,25 @@ def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch):
     monkeypatch.setenv("OPENINGFIT_MISSIONS_INTERNAL_USER_ID", allowed)
     monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
     monkeypatch.setattr(main, "mission_repository", lambda: object())
-    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("storage secret")))
-    main.execute_analysis_job(job_id)
+    monkeypatch.setattr(main, "process_completed_analysis", lambda **_kwargs: (_ for _ in ()).throw(
+        main.MissionPersistenceError(
+            "statement_timeout", "storage secret", stage="candidate_insert_request_failed", database_code="57014"
+        )
+    ))
+    with caplog.at_level("WARNING", logger="uvicorn.error"):
+        main.execute_analysis_job(job_id)
     assert main.analysis_jobs[job_id]["status"] == "completed"
     assert main.analysis_jobs[job_id]["result"] is not None
     assert main.analysis_jobs[job_id]["result"]["missionProcessing"] == {
-        "status": "unavailable", "reasonCode": "persistence_failed",
+        "status": "unavailable", "reasonCode": "candidate_insert_request_failed",
     }
     assert main.analysis_jobs[job_id]["missionOutcome"] == {
-        "outcome": "failed", "reasonCode": "persistence_failed", "candidateCount": 0, "assignedCount": 0,
+        "outcome": "failed", "reasonCode": "candidate_insert_request_failed", "candidateCount": 0, "assignedCount": 0,
     }
+    assert "stage=candidate_insert_request_failed" in caplog.text
+    assert "database_code=57014" in caplog.text
+    assert "storage secret" not in caplog.text
+    assert allowed not in caplog.text
 
 
 def test_authenticated_async_job_runs_mission_processing_after_success(monkeypatch, caplog):

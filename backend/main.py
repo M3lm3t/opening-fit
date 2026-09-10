@@ -11163,12 +11163,15 @@ def execute_analysis_job(job_id: str) -> None:
             emit_mission_outcome(mission_outcome)
             result["missionProcessing"] = {"status": "skipped", "reasonCode": "missions_disabled"}
         else:
+            mission_stage = "repository_unavailable"
             try:
                 readiness = missions_schema_readiness()
                 rollout = _mission_rollout(owner_user_id, readiness)
                 if rollout["eligible"]:
                     repository = mission_repository()
+                    mission_stage = "repository_request_failed"
                     entitlement = repository.get_entitlement(owner_user_id) if hasattr(repository, "get_entitlement") else None
+                    mission_stage = "candidate_validation_failed"
                     mission_result = process_completed_analysis(
                         user_id=owner_user_id, platform=platform, username=username,
                         report=result, repository=repository,
@@ -11188,12 +11191,21 @@ def execute_analysis_job(job_id: str) -> None:
                     emit_mission_outcome(mission_outcome)
             except Exception as exc:
                 reference = hashlib.sha256(f"{job_id}:{exc.__class__.__name__}".encode()).hexdigest()[:12]
-                mission_outcome = bounded_mission_outcome("failed", "persistence_failed")
+                failure_stage = str(getattr(exc, "stage", "") or mission_stage)
+                if failure_stage not in {
+                    "repository_unavailable", "repository_request_failed", "candidate_validation_failed",
+                    "candidate_serialization_failed", "candidate_insert_request_failed", "assignment_request_failed",
+                }:
+                    failure_stage = "repository_request_failed"
+                database_code = re.sub(
+                    r"[^a-z0-9_]", "_", str(getattr(exc, "database_code", "") or "none").lower()
+                )[:32] or "none"
+                mission_outcome = bounded_mission_outcome("failed", failure_stage)
                 mission_outcome_logger.warning(
-                    "mission_processing_outcome outcome=failed reason=persistence_failed candidates=0 assigned=0 reference=%s error_type=%s",
-                    reference, exc.__class__.__name__,
+                    "mission_processing_outcome outcome=failed stage=%s database_code=%s candidates=0 assigned=0 reference=%s error_type=%s",
+                    failure_stage, database_code, reference, exc.__class__.__name__,
                 )
-                result["missionProcessing"] = {"status": "unavailable", "reasonCode": "persistence_failed"}
+                result["missionProcessing"] = {"status": "unavailable", "reasonCode": failure_stage}
         if owner_user_id and mission_outcome:
             result["missionOutcome"] = dict(mission_outcome)
         result = compact_analysis_result(result)
