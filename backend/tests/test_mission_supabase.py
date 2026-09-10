@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 from supabase import create_client
+from postgrest.exceptions import APIError
 
 from backend.analysis.mission_candidates import build_mission_candidates
 from backend.analysis.mission_persistence import (
@@ -233,3 +234,51 @@ def test_numeric_http_400_is_not_classified_as_transient_or_retried(monkeypatch)
 
     assert failure.value.code == "postgrest_bad_request"
     assert operation.calls == 1
+
+
+def test_real_api_error_survives_repository_wrapper_and_exception_chain():
+    api_error = APIError({
+        "code": "PGRST202", "message": "private mismatch detail",
+        "details": "private response detail", "hint": "private hint",
+    })
+    operation = Operation([api_error])
+
+    with pytest.raises(MissionPersistenceError) as failure:
+        SupabaseMissionRepository(object())._execute(
+            operation, failure_stage="assignment_request_failed"
+        )
+
+    assert failure.value.database_code == "rpc_argument_mismatch"
+    assert failure.value.__cause__ is api_error
+    assert _error_code(failure.value) == "rpc_argument_mismatch"
+    assert operation.calls == 1
+
+
+def test_unknown_sqlstate_is_preserved_as_bounded_identifier_without_retry():
+    operation = Operation([APIError({
+        "code": "22023", "message": "private invalid parameter detail",
+        "details": None, "hint": None,
+    })])
+
+    with pytest.raises(MissionPersistenceError) as failure:
+        SupabaseMissionRepository(object())._execute(operation)
+
+    assert failure.value.database_code == "22023"
+    assert operation.calls == 1
+
+
+def test_nested_numeric_api_error_is_not_treated_as_transient():
+    api_error = APIError({
+        "code": 400, "message": "private malformed response",
+        "details": None, "hint": None,
+    })
+    try:
+        raise api_error
+    except APIError as exc:
+        wrapped = MissionPersistenceError(
+            "storage_failure", "Mission storage operation failed.",
+            stage="assignment_request_failed",
+        )
+        wrapped.__cause__ = exc
+
+    assert _error_code(wrapped) == "postgrest_bad_request"

@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 
 import pytest
+import httpx
+from supabase import create_client
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -87,6 +89,52 @@ def test_mission_failure_cannot_fail_authenticated_analysis(monkeypatch, caplog)
     assert "database_code=57014" in caplog.text
     assert "storage secret" not in caplog.text
     assert allowed not in caplog.text
+
+
+def test_real_postgrest_api_error_is_bounded_through_worker_outcome(monkeypatch, caplog):
+    allowed = "11111111-1111-4111-8111-111111111111"
+    job_id = str(main.uuid4())
+    with main.analysis_jobs_lock:
+        main.analysis_jobs[job_id] = {
+            "jobId": job_id, "requestKey": f"{allowed}:lichess:player:1:rapid", "status": "queued",
+            "platform": "lichess", "username": "Player", "months": 1, "timeControl": "rapid",
+            "ownerUserId": allowed, "createdAt": main.now_iso(), "updatedAt": main.now_iso(),
+            "result": None, "error": None, "progress": {"stage": "queued", "counts": {}},
+        }
+    monkeypatch.setattr(main, "run_import_route", lambda *_args: {"opening_games": []})
+    monkeypatch.setattr(main, "missions_enabled", lambda: True)
+    monkeypatch.setattr(main, "missions_schema_readiness", lambda: {"ready": True})
+    monkeypatch.setattr(main, "_mission_rollout", lambda *_args: {"eligible": True})
+
+    def dispatch(_request):
+        return httpx.Response(400, json={
+            "code": "PGRST202", "message": "private mismatch detail",
+            "details": "private response detail", "hint": "private hint",
+        })
+
+    client = create_client("https://example.supabase.co", "bounded-test-key")
+    client.postgrest.session = httpx.Client(transport=httpx.MockTransport(dispatch))
+    repository = main.SupabaseMissionRepository(client)
+    repository.get_entitlement = lambda _user_id: None
+    monkeypatch.setattr(main, "mission_repository", lambda: repository)
+
+    def fail_processing(**_kwargs):
+        return repository.assign_with_allowance(
+            user_id=allowed,
+            mission_id="22222222-2222-4222-8222-222222222222",
+            paid=False,
+            idempotency_key="auto-assign:bounded",
+        )
+
+    monkeypatch.setattr(main, "process_completed_analysis", fail_processing)
+    with caplog.at_level("WARNING", logger="uvicorn.error"):
+        main.execute_analysis_job(job_id)
+
+    assert "stage=assignment_request_failed" in caplog.text
+    assert "database_code=rpc_argument_mismatch" in caplog.text
+    assert "transient_storage_failure" not in caplog.text
+    for secret in ("private mismatch detail", "private response detail", "private hint", allowed):
+        assert secret not in caplog.text
 
 
 def test_authenticated_async_job_runs_mission_processing_after_success(monkeypatch, caplog):

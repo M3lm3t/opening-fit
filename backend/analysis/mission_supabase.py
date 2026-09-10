@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from collections.abc import Mapping
 from datetime import date, datetime
@@ -24,9 +25,56 @@ MUTABLE_CANDIDATE_FIELDS = {
 }
 
 
+SAFE_DATABASE_CODE = re.compile(r"^(?:[0-9]{3}|[0-9A-Z]{5}|PGRST[0-9]{3})$", re.IGNORECASE)
+
+
+def _exception_chain(error: BaseException):
+    pending = [error]
+    seen: set[int] = set()
+    while pending:
+        current = pending.pop(0)
+        if id(current) in seen:
+            continue
+        seen.add(id(current))
+        yield current
+        for linked in (getattr(current, "__cause__", None), getattr(current, "__context__", None)):
+            if isinstance(linked, BaseException):
+                pending.append(linked)
+
+
+def _structured_error_values(error: BaseException) -> tuple[list[str], list[str], list[int]]:
+    codes: list[str] = []
+    classification_text: list[str] = []
+    statuses: list[int] = []
+    for current in _exception_chain(error):
+        for key in ("database_code", "code"):
+            value = getattr(current, key, None)
+            if value is not None:
+                codes.append(str(value).strip())
+        for key in ("message", "details", "hint"):
+            value = getattr(current, key, None)
+            if isinstance(value, str):
+                classification_text.append(value)
+        for value in getattr(current, "args", ()):
+            if isinstance(value, Mapping):
+                raw_code = value.get("code")
+                if raw_code is not None:
+                    codes.append(str(raw_code).strip())
+        raw_error = getattr(current, "_raw_error", None)
+        if isinstance(raw_error, Mapping) and raw_error.get("code") is not None:
+            codes.append(str(raw_error["code"]).strip())
+        response = getattr(current, "response", None)
+        for value in (getattr(current, "status_code", None), getattr(current, "status", None),
+                      getattr(response, "status_code", None)):
+            if isinstance(value, int):
+                statuses.append(value)
+    return codes, classification_text, statuses
+
+
 def _error_code(error: Exception) -> str:
-    text = " ".join(str(getattr(error, key, "") or "") for key in ("code", "message", "details", "hint")).lower()
-    raw_code = str(getattr(error, "code", "") or "").strip().lower()
+    codes, parts, statuses = _structured_error_values(error)
+    normalized_codes = [value.lower() for value in codes if value]
+    text = " ".join([*normalized_codes, *parts]).lower()
     if any(token in text for token in ("pgrst205", "42p01", "does not exist", "schema cache")):
         return "schema_unavailable"
     if any(token in text for token in ("jwt", "authentication", "unauthorized", "401")):
@@ -37,9 +85,9 @@ def _error_code(error: Exception) -> str:
         return "conflict"
     if any(token in text for token in ("57014", "statement timeout", "canceling statement due to statement timeout", "cancelling statement due to statement timeout")):
         return "statement_timeout"
-    if raw_code in {"pgrst202", "pgrst203"}:
+    if any(code in {"pgrst202", "pgrst203"} for code in normalized_codes):
         return "rpc_argument_mismatch"
-    if raw_code == "400" or getattr(error, "status_code", None) == 400 or getattr(error, "status", None) == 400:
+    if "400" in normalized_codes or 400 in statuses:
         return "postgrest_bad_request"
     if "illegal mission transition" in text:
         return "illegal_transition"
@@ -52,6 +100,9 @@ def _error_code(error: Exception) -> str:
     for token, code in domain_errors.items():
         if token in text:
             return code
+    for code in normalized_codes:
+        if SAFE_DATABASE_CODE.fullmatch(code):
+            return code.lower()
     return "transient_storage_failure"
 
 
