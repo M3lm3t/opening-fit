@@ -1,8 +1,11 @@
 import copy
+import json
 from datetime import datetime, timezone
 from types import SimpleNamespace
 
+import httpx
 import pytest
+from supabase import create_client
 
 from backend.analysis.mission_candidates import build_mission_candidates
 from backend.analysis.mission_persistence import (
@@ -161,3 +164,72 @@ def test_unserializable_candidate_fails_before_dispatch_with_bounded_stage():
 
     assert failure.value.stage == "candidate_serialization_failed"
     assert client.dispatches == 0
+
+
+@pytest.mark.parametrize("paid", [False, True])
+def test_real_supabase_client_builds_exact_assignment_rpc_contract(paid):
+    captured = []
+
+    def dispatch(request):
+        captured.append(request)
+        return httpx.Response(200, json={"assigned": True, "mission": {"status": "assigned"}})
+
+    client = create_client("https://example.supabase.co", "bounded-test-key")
+    client.postgrest.session = httpx.Client(transport=httpx.MockTransport(dispatch))
+    repository = SupabaseMissionRepository(client)
+    result = repository.assign_with_allowance(
+        user_id="11111111-1111-4111-8111-111111111111",
+        mission_id="22222222-2222-4222-8222-222222222222",
+        paid=paid,
+        idempotency_key="select-next:stable-key",
+    )
+
+    assert result["assigned"] is True
+    assert len(captured) == 1
+    request = captured[0]
+    assert request.method == "POST"
+    assert request.url == "https://example.supabase.co/rest/v1/rpc/assign_openingfit_mission_with_allowance"
+    assert json.loads(request.content) == {
+        "p_user_id": "11111111-1111-4111-8111-111111111111",
+        "p_mission_id": "22222222-2222-4222-8222-222222222222",
+        "p_paid_access": paid,
+        "p_idempotency_key": "select-next:stable-key",
+    }
+
+
+def test_postgrest_argument_mismatch_is_bounded_and_never_retried():
+    dispatches = 0
+
+    def dispatch(_request):
+        nonlocal dispatches
+        dispatches += 1
+        return httpx.Response(
+            400,
+            json={"code": "PGRST202", "message": "bounded mismatch", "details": None, "hint": None},
+        )
+
+    client = create_client("https://example.supabase.co", "bounded-test-key")
+    client.postgrest.session = httpx.Client(transport=httpx.MockTransport(dispatch))
+
+    with pytest.raises(MissionPersistenceError) as failure:
+        SupabaseMissionRepository(client).assign_with_allowance(
+            user_id="11111111-1111-4111-8111-111111111111",
+            mission_id="22222222-2222-4222-8222-222222222222",
+            paid=False,
+            idempotency_key="select-next:stable-key",
+        )
+
+    assert failure.value.code == "rpc_argument_mismatch"
+    assert failure.value.stage == "assignment_request_failed"
+    assert dispatches == 1
+
+
+def test_numeric_http_400_is_not_classified_as_transient_or_retried(monkeypatch):
+    monkeypatch.setattr("backend.analysis.mission_supabase.time.sleep", lambda _seconds: None)
+    operation = Operation([PostgrestError(400, "Bad Request")])
+
+    with pytest.raises(MissionPersistenceError) as failure:
+        SupabaseMissionRepository(object())._execute(operation, failure_stage="assignment_request_failed")
+
+    assert failure.value.code == "postgrest_bad_request"
+    assert operation.calls == 1

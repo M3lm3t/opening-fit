@@ -47,6 +47,42 @@ def test_select_next_rejects_client_authored_candidate_and_never_replaces_active
     assert len(repository.missions) == 1
 
 
+def test_find_next_assigns_an_existing_candidate_through_allowance_rpc_contract(monkeypatch):
+    class AllowanceRepository(InMemoryMissionRepository):
+        def get_entitlement(self, _user_id):
+            return None
+
+        def get_allowance(self, _user_id):
+            return {"assignment_count": 0}
+
+        def assign_with_allowance(self, *, user_id, mission_id, paid, idempotency_key):
+            assert paid is False
+            mission = MissionPersistenceService(self).assign_primary_mission(
+                user_id=user_id,
+                mission_id=mission_id,
+                idempotency_key=idempotency_key,
+            )
+            return {"assigned": True, "mission": mission}
+
+    repository = AllowanceRepository()
+    enabled(monkeypatch, repository)
+    monkeypatch.setattr(main, "_mission_access_context", lambda *_args, **_kwargs: {
+        "rollout": {"eligible": True},
+        "entitlement": None,
+        "capabilities": {"canSelectNextMission": True, "reasonCode": None},
+    })
+    trusted = candidate()
+    trusted["confidence"] = {"score": 90, "level": "high"}
+    saved = MissionPersistenceService(repository).persist_candidate(user_id="user-1", candidate=trusted)
+
+    response = main.select_next_mission(
+        main.MissionSelectNextRequest(idempotencyKey="select-existing"), request()
+    )
+
+    assert response["mission"]["id"] == saved["id"]
+    assert response["mission"]["status"] == "assigned"
+
+
 def test_select_next_distinguishes_absent_from_below_confidence_candidates(monkeypatch):
     repository = InMemoryMissionRepository()
     enabled(monkeypatch, repository)

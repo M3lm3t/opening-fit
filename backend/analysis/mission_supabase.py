@@ -8,6 +8,7 @@ import time
 from collections.abc import Mapping
 from datetime import date, datetime
 from typing import Any
+from uuid import UUID
 
 from .mission_persistence import MissionPersistenceError
 
@@ -25,6 +26,7 @@ MUTABLE_CANDIDATE_FIELDS = {
 
 def _error_code(error: Exception) -> str:
     text = " ".join(str(getattr(error, key, "") or "") for key in ("code", "message", "details", "hint")).lower()
+    raw_code = str(getattr(error, "code", "") or "").strip().lower()
     if any(token in text for token in ("pgrst205", "42p01", "does not exist", "schema cache")):
         return "schema_unavailable"
     if any(token in text for token in ("jwt", "authentication", "unauthorized", "401")):
@@ -35,6 +37,10 @@ def _error_code(error: Exception) -> str:
         return "conflict"
     if any(token in text for token in ("57014", "statement timeout", "canceling statement due to statement timeout", "cancelling statement due to statement timeout")):
         return "statement_timeout"
+    if raw_code in {"pgrst202", "pgrst203"}:
+        return "rpc_argument_mismatch"
+    if raw_code == "400" or getattr(error, "status_code", None) == 400 or getattr(error, "status", None) == 400:
+        return "postgrest_bad_request"
     if "illegal mission transition" in text:
         return "illegal_transition"
     domain_errors = {
@@ -70,6 +76,30 @@ def _serializable_candidate_row(row: Mapping[str, Any]) -> dict[str, Any]:
             stage="candidate_serialization_failed",
         ) from exc
     return normalized
+
+
+def _assignment_rpc_params(*, user_id: str, mission_id: str, paid: bool, idempotency_key: str) -> dict[str, Any]:
+    try:
+        canonical_user_id = str(UUID(str(user_id)))
+        canonical_mission_id = str(UUID(str(mission_id)))
+    except (TypeError, ValueError, AttributeError) as exc:
+        raise MissionPersistenceError(
+            "assignment_contract_invalid",
+            "Mission assignment identifiers are invalid.",
+            stage="assignment_request_failed",
+        ) from exc
+    if not isinstance(paid, bool) or not isinstance(idempotency_key, str) or not idempotency_key.strip() or len(idempotency_key) > 200:
+        raise MissionPersistenceError(
+            "assignment_contract_invalid",
+            "Mission assignment parameters are invalid.",
+            stage="assignment_request_failed",
+        )
+    return {
+        "p_user_id": canonical_user_id,
+        "p_mission_id": canonical_mission_id,
+        "p_paid_access": paid,
+        "p_idempotency_key": idempotency_key,
+    }
 
 
 class SupabaseMissionRepository:
@@ -145,7 +175,16 @@ class SupabaseMissionRepository:
         return dict(rows[0]) if rows else {"assignment_count": 0}
 
     def assign_with_allowance(self, *, user_id: str, mission_id: str, paid: bool, idempotency_key: str) -> dict[str, Any]:
-        result = self._execute(self.client.rpc("assign_openingfit_mission_with_allowance", {"p_user_id": user_id, "p_mission_id": mission_id, "p_paid_access": paid, "p_idempotency_key": idempotency_key}), failure_stage="assignment_request_failed")
+        params = _assignment_rpc_params(
+            user_id=user_id,
+            mission_id=mission_id,
+            paid=paid,
+            idempotency_key=idempotency_key,
+        )
+        result = self._execute(
+            self.client.rpc("assign_openingfit_mission_with_allowance", params),
+            failure_stage="assignment_request_failed",
+        )
         return dict(result.data or {})
 
     def project_activity(self, outbox_id: str) -> dict[str, Any]:
