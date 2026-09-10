@@ -924,8 +924,6 @@ export function AuthDataProvider({ children }) {
       if (isPersistedLegacyKey(key)) queueLegacySync();
     };
 
-    queueLegacySync();
-
     return () => {
       window.clearTimeout(debounceRef.current);
       window.localStorage.setItem = originalSetItem;

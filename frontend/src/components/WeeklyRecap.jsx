@@ -47,10 +47,11 @@ function RecapDetails({ recap }) {
   );
 }
 
-export default function WeeklyRecap({ data, fitData, reportHistory = [], active = false, onTraining, onReport }) {
+export default function WeeklyRecap({ data, fitData, reportHistory = [], active = false, weeklyGoal: sharedWeeklyGoal = null, onTraining, onReport }) {
   const { user, settings, saveSettings, profileLoading, hydrated, entitlement } = useAuth();
   const [plan, setPlan] = useState(null);
-  const [weeklyGoal, setWeeklyGoal] = useState(null);
+  const [loadedWeeklyGoal, setLoadedWeeklyGoal] = useState(null);
+  const weeklyGoal = sharedWeeklyGoal || loadedWeeklyGoal;
   const [responsePlan, setResponsePlan] = useState(null);
   const [cloudHistory, setCloudHistory] = useState([]);
   const [visible, setVisible] = useState(false);
@@ -62,15 +63,16 @@ export default function WeeklyRecap({ data, fitData, reportHistory = [], active 
   useEffect(() => {
     let cancelled = false;
     if (!active || !user?.id) { setPlan(null); return undefined; }
-    Promise.allSettled([getCurrentWeeklyTrainingPlan(user.id), getWeeklyCoachingGoal(user.id), getActiveCoachingResponsePlan(user.id), listWeeklyCoachingReviews(user.id)]).then(([planResult, goalResult, responseResult, historyResult]) => {
+    const goalRequest = sharedWeeklyGoal ? Promise.resolve(sharedWeeklyGoal) : getWeeklyCoachingGoal(user.id);
+    Promise.allSettled([getCurrentWeeklyTrainingPlan(user.id), goalRequest, getActiveCoachingResponsePlan(user.id), listWeeklyCoachingReviews(user.id)]).then(([planResult, goalResult, responseResult, historyResult]) => {
       if (cancelled) return;
       setPlan(planResult.status === "fulfilled" ? planResult.value : null);
-      setWeeklyGoal(goalResult.status === "fulfilled" ? goalResult.value : null);
+      setLoadedWeeklyGoal(goalResult.status === "fulfilled" ? goalResult.value : null);
       setResponsePlan(responseResult.status === "fulfilled" ? responseResult.value : null);
       setCloudHistory(historyResult.status === "fulfilled" ? historyResult.value : []);
     });
     return () => { cancelled = true; };
-  }, [active, user?.id]);
+  }, [active, sharedWeeklyGoal, user?.id]);
 
   const currentSnapshot = useMemo(() => data ? buildReportSnapshot({ report: data, summary: fitData || {} }) : null, [data, fitData]);
   const snapshots = useMemo(() => reportHistory.map((item) => adaptReportHistoryRow(item)), [reportHistory]);

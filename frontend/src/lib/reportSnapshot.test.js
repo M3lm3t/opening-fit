@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  CLOUD_REPORT_PAYLOAD_BUDGET_BYTES,
   REPORT_SCHEMA_VERSION,
   adaptReportHistoryRow,
   analysisFingerprint,
+  buildCloudReportProjection,
   buildReportSnapshot,
   isValidCompletedReport,
   persistReportSnapshot,
+  serializedPayloadBytes,
 } from "./reportSnapshot.js";
 
 function completedReport(platform = "chesscom") {
@@ -315,4 +318,29 @@ test("only completed, owned, non-demo reports are eligible for cloud history", (
   assert.equal(isValidCompletedReport({ ...valid, analysisCompleted: false }, {}, "user-1"), false);
   assert.equal(isValidCompletedReport({ ...valid, analysisOwnerUserId: null }, {}, "user-1"), false);
   assert.equal(isValidCompletedReport({ ...valid, isDemo: true }, {}, "user-1"), false);
+});
+
+test("cloud report projection stores game evidence once and stays within its payload budget", () => {
+  const games = Array.from({ length: 211 }, (_, index) => ({
+    id: `game-${index}`,
+    pgn: `[Event "Private game ${index}"]\n${"1. e4 e5 2. Nf3 Nc6 ".repeat(900)}`,
+    opening: "Scandinavian Defence",
+  }));
+  const report = {
+    ...completedReport(),
+    opening_games: games,
+    recent_games: games.slice(0, 10),
+    _missionOpeningGames: games,
+    reportDecision: { primaryProblem: { opening: "Scandinavian Defence", verdict: "repair" } },
+    trainingPriority: { openingName: "Scandinavian Defence", trainingTask: "Repair the recurring line." },
+  };
+
+  const projected = buildCloudReportProjection(report);
+  assert.ok(serializedPayloadBytes(report) > 7_000_000);
+  assert.ok(serializedPayloadBytes(projected) < CLOUD_REPORT_PAYLOAD_BUDGET_BYTES);
+  assert.equal(projected.opening_games, undefined);
+  assert.equal(projected.recent_games, undefined);
+  assert.equal(projected._missionOpeningGames, undefined);
+  assert.equal(projected.reportDecision.primaryProblem.verdict, "repair");
+  assert.equal(projected.trainingPriority.openingName, "Scandinavian Defence");
 });

@@ -7,10 +7,12 @@ import {
 import { resolvePremiumEntitlement } from "../lib/premiumEntitlement";
 import {
   analysisFingerprint,
+  buildCloudReportProjection,
   buildReportSnapshot,
   createSnapshotReportId,
   isValidCompletedReport,
   persistReportSnapshot,
+  serializedPayloadBytes,
 } from "../lib/reportSnapshot";
 import { completedTrainingFocuses, evaluateTrainingOutcomes } from "../lib/trainingOutcomes";
 import { restoreWithRetry } from "../lib/userDataRestore.js";
@@ -724,10 +726,10 @@ export async function upsertUserRow(table, userId, row, options = {}) {
   }
 
   if (error) {
-    logQueryFailure(table, "upsert row", error, { userId, row, options });
+    logQueryFailure(table, "upsert row", error, { userId, options, payloadBytes: serializedPayloadBytes(payload) });
     throw new Error(safeUserMessage(error, `Could not save ${table}.`));
   }
-  logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options });
+  logQuerySuccess(table, "upsert row", { userId, count: data?.length || 0, options, payloadBytes: serializedPayloadBytes(payload) });
   return data;
 }
 
@@ -874,6 +876,7 @@ export async function saveReport(userId, report, summary = {}) {
     trainingOutcomeContext: measured.context,
     training_outcome_context: measured.context,
   };
+  const durableReport = buildCloudReportProjection(measuredReport);
   const reportId = createSnapshotReportId();
   const snapshot = buildReportSnapshot({ report: measuredReport, summary: enrichedSummary, userId, reportId });
   const fingerprint = analysisFingerprint(measuredReport, enrichedSummary);
@@ -885,7 +888,7 @@ export async function saveReport(userId, report, summary = {}) {
     username,
     platform,
     summary: enrichedSummary,
-    report: measuredReport,
+    report: durableReport,
     report_key: reportKey,
     updated_at: new Date().toISOString(),
   };
@@ -936,6 +939,7 @@ export async function saveReport(userId, report, summary = {}) {
     userId,
     reportKey,
     rowId: data?.id,
+    payloadBytes: serializedPayloadBytes(payload),
   });
   return data;
 }
@@ -1377,6 +1381,8 @@ function normalizeSavedGameMetadata(game = {}) {
 
 function extractAnalysedGames(report = {}) {
   const candidates = [
+    report.opening_games,
+    report.openingGames,
     report.analysed_games,
     report.analyzed_games,
     report.analysedGames,
@@ -1440,6 +1446,7 @@ export async function saveAnalysedGames(userId, report = {}, summary = {}) {
       platform,
       username,
       count: rows.length,
+      payloadBytes: serializedPayloadBytes(rows),
     });
     throw new Error(safeUserMessage(error, "Could not save analysed games to Supabase."));
   }
@@ -1449,6 +1456,7 @@ export async function saveAnalysedGames(userId, report = {}, summary = {}) {
     platform,
     username,
     count: data?.length || 0,
+    payloadBytes: serializedPayloadBytes(rows),
   });
   return data || [];
 }

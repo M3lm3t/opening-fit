@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Mapping
+import logging
+import time
+from collections.abc import Mapping
+from typing import Any
 
 from .mission_persistence import MissionPersistenceError
 
-
 HISTORY_LIMIT_MAX = 50
+TRANSIENT_TIMEOUT_RETRIES = 1
+TRANSIENT_TIMEOUT_BACKOFF_SECONDS = 0.1
+logger = logging.getLogger("uvicorn.error")
 MUTABLE_CANDIDATE_FIELDS = {
     "opening_name", "repeated_played_move_san", "correction_provenance", "candidate_score",
     "score_components", "confidence", "confidence_reason_codes", "conflicts", "evidence_summary",
@@ -27,6 +31,8 @@ def _error_code(error: Exception) -> str:
         return "ownership_failure"
     if any(token in text for token in ("duplicate", "unique", "23505", "conflict")):
         return "conflict"
+    if any(token in text for token in ("57014", "statement timeout", "canceling statement due to statement timeout", "cancelling statement due to statement timeout")):
+        return "statement_timeout"
     if "illegal mission transition" in text:
         return "illegal_transition"
     domain_errors = {
@@ -48,10 +54,16 @@ class SupabaseMissionRepository:
         self.client = client
 
     def _execute(self, operation):
-        try:
-            return operation.execute()
-        except Exception as exc:
-            raise MissionPersistenceError(_error_code(exc), "Mission storage operation failed.") from exc
+        for attempt in range(TRANSIENT_TIMEOUT_RETRIES + 1):
+            try:
+                return operation.execute()
+            except Exception as exc:
+                code = _error_code(exc)
+                if code != "statement_timeout" or attempt >= TRANSIENT_TIMEOUT_RETRIES:
+                    raise MissionPersistenceError(code, "Mission storage operation failed.") from exc
+                logger.info("mission_storage_retry reason=statement_timeout attempt=%d", attempt + 1)
+                time.sleep(TRANSIENT_TIMEOUT_BACKOFF_SECONDS)
+        raise AssertionError("unreachable")
 
     def schema_readiness(self) -> dict[str, Any]:
         try:

@@ -137,7 +137,7 @@ import {
 import { buildReportDecisionModel, openingPerspective } from "./lib/reportDecisionModel";
 import { describeLineProvenance } from "./lib/lineProvenance.js";
 import { buildFilteredReportDecision } from "./lib/recommendationEvidence.js";
-import { adaptReportHistoryRow, buildReportSnapshot } from "./lib/reportSnapshot.js";
+import { adaptReportHistoryRow, buildCloudReportProjection, buildReportSnapshot } from "./lib/reportSnapshot.js";
 import { saveRecommendationFeedback } from "./lib/fitTrustModel";
 import { REPERTOIRE_PENDING_KEY } from "./lib/repertoireWorkspace";
 import { canUseFeature, featureLimit, OPENINGFIT_FEATURES } from "./lib/premiumEntitlement.js";
@@ -15082,7 +15082,7 @@ export default function App() {
         ...(existingState?.id ? { id: existingState.id } : {}),
         platform: nextPlatform,
         username: nextUsername,
-        last_report: report,
+        last_report: buildCloudReportProjection(report),
         coach_progress: {
           ...(existingState?.coach_progress || {}),
           openingFitProgress: progressSnapshot,
@@ -15632,10 +15632,19 @@ export default function App() {
         reportSummary.openingGamification = openingGamification;
 
         void (async () => {
-          const cloudSyncResults = await Promise.allSettled([
-            runOptionalCloudSyncStep("report history", () => saveCloudReport?.(cleanData, reportSummary)),
-            runOptionalCloudSyncStep("analysed games", () => saveCloudAnalysedGames?.(cleanData, reportSummary)),
-            runOptionalCloudSyncStep("progress state", () => saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot)),
+          // Keep the three report-bearing writes sequential. Parallel multi-row
+          // JSON writes can exhaust limited Supabase/PostgREST capacity.
+          const orderedCloudSyncResults = [];
+          for (const [label, work] of [
+            ["analysed games", () => saveCloudAnalysedGames?.(cleanData, reportSummary)],
+            ["report history", () => saveCloudReport?.(cleanData, reportSummary)],
+            ["progress state", () => saveOpeningFitProgressState(cleanData, reportSummary, progressSnapshot)],
+          ]) {
+            orderedCloudSyncResults.push({ status: "fulfilled", value: await runOptionalCloudSyncStep(label, work) });
+          }
+          const cloudSyncResults = [
+            ...orderedCloudSyncResults,
+            ...await Promise.allSettled([
             runOptionalCloudSyncStep("recommendation history", () => saveRecommendationHistory?.(recommendationSnapshot)),
             runOptionalCloudSyncStep("activity", () =>
               recordCloudActivity?.("report_imported", {
@@ -15653,7 +15662,8 @@ export default function App() {
                 dedupe_key: `report_imported:${userReportRetentionKey}`,
               })
             ),
-          ]);
+            ]),
+          ];
           const cloudSyncFailures = cloudSyncResults.filter(
             (result) => result.status === "rejected" || result.value?.ok === false
           );
@@ -15662,14 +15672,6 @@ export default function App() {
               result.status === "rejected" ||
               result.value?.label === "report history"
           );
-          const cloudSyncSuccesses = cloudSyncResults.filter(
-            (result) => result.status === "fulfilled" && result.value?.ok
-          );
-
-          if (cloudSyncSuccesses.length) {
-            await runOptionalCloudSyncStep("refresh user data", () => refreshUserData?.(supabaseUser));
-          }
-
           if (!reportSaveFailed) {
             setCloudSaveStatus("saved");
             setCloudSaveWarning("");

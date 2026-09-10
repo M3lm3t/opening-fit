@@ -359,6 +359,32 @@ export function buildReportSnapshot({
   };
 }
 
+export const CLOUD_REPORT_PAYLOAD_BUDGET_BYTES = 750_000;
+
+const CLOUD_SEPARATE_GAME_FIELDS = Object.freeze([
+  "opening_games", "openingGames", "recent_games", "recentGames",
+  "analysed_games", "analyzed_games", "analysedGames", "analyzedGames",
+  "imported_games", "importedGames", "games", "saved_games", "savedGames",
+  "analysis_game_index", "analysisGameIndex",
+]);
+
+export function serializedPayloadBytes(value) {
+  return new TextEncoder().encode(JSON.stringify(value ?? null)).byteLength;
+}
+
+/**
+ * Durable reports keep all report-level decisions and presentation data. Game
+ * rows are stored once in analysed_games and reattached by cloud restoration.
+ */
+export function buildCloudReportProjection(report = {}) {
+  if (!report || typeof report !== "object" || Array.isArray(report)) return {};
+  const projected = { ...report };
+  CLOUD_SEPARATE_GAME_FIELDS.forEach((key) => delete projected[key]);
+  delete projected._missionOpeningGames;
+  delete projected._missionOpeningTrainingOpportunities;
+  return projected;
+}
+
 export function adaptReportHistoryRow(row = {}) {
   const rawSnapshot = row.normalized_snapshot || row.snapshot;
   if (rawSnapshot && Number(rawSnapshot.report_schema_version) >= 2) {
