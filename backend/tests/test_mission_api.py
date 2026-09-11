@@ -83,6 +83,50 @@ def test_find_next_assigns_an_existing_candidate_through_allowance_rpc_contract(
     assert response["mission"]["status"] == "assigned"
 
 
+@pytest.mark.parametrize("database_code", ["rpc_argument_mismatch", "postgrest_bad_request", "22p02"])
+def test_select_next_logs_only_bounded_assignment_failure(monkeypatch, caplog, database_code):
+    class FailingRepository(InMemoryMissionRepository):
+        def get_entitlement(self, _user_id):
+            return None
+
+        def get_allowance(self, _user_id):
+            return {"assignment_count": 0}
+
+        def assign_with_allowance(self, **_kwargs):
+            raise main.MissionPersistenceError(
+                database_code,
+                "private database message",
+                stage="assignment_request_failed",
+                database_code=database_code,
+            )
+
+    repository = FailingRepository()
+    enabled(monkeypatch, repository)
+    monkeypatch.setattr(main, "_enforce_mission_select_rate_limit", lambda _user_id: None)
+    monkeypatch.setattr(main, "_mission_access_context", lambda *_args, **_kwargs: {
+        "rollout": {"eligible": True},
+        "entitlement": None,
+        "capabilities": {"canSelectNextMission": True, "reasonCode": None},
+    })
+    trusted = candidate()
+    trusted["confidence"] = {"score": 90, "level": "high"}
+    saved = MissionPersistenceService(repository).persist_candidate(user_id="user-1", candidate=trusted)
+    before = dict(repository.missions[saved["id"]])
+
+    with caplog.at_level("WARNING", logger="uvicorn.error"), pytest.raises(HTTPException) as failure:
+        main.select_next_mission(
+            main.MissionSelectNextRequest(idempotencyKey="private-idempotency-value"), request()
+        )
+
+    assert failure.value.status_code == 503
+    assert "stage=assignment_request_failed" in caplog.text
+    assert f"database_code={database_code}" in caplog.text
+    assert "transient_storage_failure" not in caplog.text
+    for private_value in ("private database message", "private-idempotency-value", "user-1"):
+        assert private_value not in caplog.text
+    assert repository.missions[saved["id"]] == before
+
+
 def test_select_next_distinguishes_absent_from_below_confidence_candidates(monkeypatch):
     repository = InMemoryMissionRepository()
     enabled(monkeypatch, repository)

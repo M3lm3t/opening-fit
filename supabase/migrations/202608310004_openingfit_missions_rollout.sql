@@ -128,7 +128,7 @@ begin
  end if;
  select * into mission from public.openingfit_missions where id=p_mission_id and user_id=p_user_id for update;
  if mission.id is null or mission.status<>'candidate' then raise exception 'Mission not assignable'; end if;
- assigned:=public.transition_openingfit_mission(p_user_id,p_mission_id,'assigned','candidate_selected',null,p_idempotency_key,'{}');
+ assigned:=to_jsonb(public.transition_openingfit_mission(p_user_id,p_mission_id,'assigned','candidate_selected',null,p_idempotency_key,'{}'));
  update public.openingfit_mission_allowances set assignment_count=assignment_count+1,last_assigned_at=now(),next_available_at=case when p_paid_access then null else now()+interval '30 days' end,updated_at=now() where user_id=p_user_id;
  perform public.record_openingfit_mission_event(p_user_id,p_mission_id,'mission_assigned','mission-assigned:'||p_mission_id||':'||(mission.generation)::text,jsonb_build_object('status','assigned'));
  return jsonb_build_object('assigned',true,'mission',assigned);

@@ -12798,6 +12798,20 @@ def select_next_mission(payload: MissionSelectNextRequest, request: Request):
             saved = service.assign_primary_mission(user_id=user_id, mission_id=candidates[0]["id"], idempotency_key=payload.idempotencyKey)
         return {"mission": _mission_present(saved), "reasonCode": None, "featureAvailable": True, "capabilities": access["capabilities"]}
     except MissionPersistenceError as exc:
+        failure_stage = str(getattr(exc, "stage", "") or "repository_request_failed")
+        if failure_stage not in {
+            "repository_unavailable", "repository_request_failed", "candidate_validation_failed",
+            "candidate_serialization_failed", "candidate_insert_request_failed", "assignment_request_failed",
+        }:
+            failure_stage = "repository_request_failed"
+        database_code = re.sub(
+            r"[^a-z0-9_]", "_", str(getattr(exc, "database_code", "") or exc.code or "none").lower()
+        )[:32] or "none"
+        reference = uuid4().hex[:12]
+        mission_outcome_logger.warning(
+            "mission_processing_outcome outcome=failed stage=%s database_code=%s candidates=0 assigned=0 reference=%s error_type=%s",
+            failure_stage, database_code, reference, exc.__class__.__name__,
+        )
         status = 403 if exc.code in {"mission_owner_mismatch", "ownership_failure"} else 409 if "conflict" in exc.code else 503
         raise HTTPException(status_code=status, detail={"code": exc.code})
     except Exception:
