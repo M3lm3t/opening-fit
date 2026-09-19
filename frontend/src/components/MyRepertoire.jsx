@@ -76,7 +76,7 @@ function SuggestedChange({ suggestion, busy, onKeep, onAccept }) {
   );
 }
 
-export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onAccount, onTrainingHistory, onUpgrade, embedded = false }) {
+export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPractice, onReport, onEvidence, onAccount, onTrainingHistory, onUpgrade, embedded = false }) {
   const { user, entitlement, settings, saveSettings, openingFitUserState = [], refreshUserData } = useAuth();
   const hasFullRepertoire = canUseFeature(entitlement, OPENINGFIT_FEATURES.FULL_REPERTOIRE);
   const cloudWorkspace = openingFitUserState.map((row) => row?.coach_progress?.repertoireWorkspace).find(Boolean) || null;
@@ -205,7 +205,7 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
         {view.sections.map((section) => (
           <section className="permanentRepertoireSlot" key={section.key} aria-labelledby={`repertoire-${section.key}`}>
             <header><div><span>Active slot</span><h2 id={`repertoire-${section.key}`}>{section.title}</h2></div><strong>{section.cards.length}</strong></header>
-            {section.cards.length ? <div className="permanentRepertoireCards">{section.cards.map((card) => <RepertoireCard key={card.id || `${card.slot}:${card.openingName}`} card={card} intention={intentions[card.slot]?.intention} savedPlan={savedPlanFor(card)} onIntention={saveIntention} onTrain={train} onEvidence={onReport} />)}</div> : <div className="repertoireSlotEmpty"><strong>{section.key === "white" ? "No White opening saved" : section.key.startsWith("black") ? "No Black opening saved for this response" : "No optional secondary choice"}</strong><p>{section.key === "optional" ? "Optional slots can stay empty." : "Not enough evidence yet to save a dependable choice here."}</p></div>}
+            {section.cards.length ? <div className="permanentRepertoireCards">{section.cards.map((card) => <RepertoireCard key={card.id || `${card.slot}:${card.openingName}`} card={card} intention={intentions[card.slot]?.intention} savedPlan={savedPlanFor(card)} onIntention={saveIntention} onTrain={train} onEvidence={onEvidence} />)}</div> : <div className="repertoireSlotEmpty"><strong>{section.key === "white" ? "No White opening saved" : section.key.startsWith("black") ? "No Black opening saved for this response" : "No optional secondary choice"}</strong><p>{section.key === "optional" ? "Optional slots can stay empty." : "Not enough evidence yet to save a dependable choice here."}</p></div>}
           </section>
         ))}
       </div>

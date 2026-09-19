@@ -162,6 +162,7 @@ import { buildPrimaryReportSummary, primaryComparisonState } from "./lib/primary
 import { selectAuthoritativeCoachingPriority } from "./lib/authoritativeReportPresentation.js";
 import { roleGapCopy, TRAINING_SUBJECT_TYPES } from "./lib/trainingPriority.js";
 import { canonicalReportAction, normaliseReportView, reportActionForPriority, reportActionFromLocation, reportActionUrl, reportViewFromLocation, reportViewHash, reportViewHeadingId } from "./lib/reportViews.js";
+import { evidenceAction, resolveReportEvidence } from "./lib/reportEvidence.js";
 import { buildReportGameCounts, reportCountSentence } from "./lib/reportGameCounts.js";
 import { canonicalResultAggregate } from "./lib/reportResults.js";
 import { buildCanonicalReportPresentation, formatCanonicalScoreRate } from "./lib/canonicalReportPresentation.js";
@@ -6601,7 +6602,10 @@ function FinalReportFlow({
     if (typeof window === "undefined") return undefined;
 
     const handleReportMode = (event) => setReportView(event.detail?.mode === "table" ? "evidence" : event.detail?.mode === "full" ? "repertoire" : "summary");
-    const handleReportView = (event) => setReportView(normaliseReportView(event.detail?.view));
+    const handleReportView = (event) => {
+      setReportView(normaliseReportView(event.detail?.view));
+      setReportActionContext(event.detail?.action || reportActionFromLocation());
+    };
     const handleHistory = () => {
       setReportView(reportViewFromLocation());
       setReportActionContext(reportActionFromLocation());
@@ -6635,7 +6639,8 @@ function FinalReportFlow({
     setReportView(action.destinationSection);
     setReportActionContext(action);
     if (typeof window !== "undefined") {
-      window.history.pushState({ reportView: action.destinationSection, reportAction: action }, "", reportActionUrl(action, window.location));
+      const url = reportActionUrl(action, window.location);
+      if (url !== `${window.location.pathname}${window.location.search}${window.location.hash}`) window.history.pushState({ reportView: action.destinationSection, reportAction: action }, "", url);
       window.requestAnimationFrame(() => document.getElementById(reportViewHeadingId(action.destinationSection))?.focus());
     }
   }, []);
@@ -6665,17 +6670,7 @@ function FinalReportFlow({
   }, [activeView, data, fitData, reportView]);
 
   const openOpeningBreakdown = useCallback((target = {}) => {
-    const source = { ...(target?.source || {}), ...(target || {}) };
-    navigateReportAction({
-      actionType: "open_evidence",
-      sourceSection: reportView,
-      destinationSection: "evidence",
-      decisionId: source.decisionId || source.decision_id || source.recommendationId,
-      diagnosisId: source.diagnosisId || source.diagnosis_id,
-      openingId: source.canonicalOpeningId || source.openingId || source.opening_id,
-      repertoireRole: source.repertoireRole || source.repertoire_role || target?.role,
-      focusTarget: "evidence-table",
-    });
+    navigateReportAction(evidenceAction(target, reportView, data));
     if (typeof window === "undefined") return;
     window.setTimeout(() => {
       document.getElementById("evidence-table")?.scrollIntoView({
@@ -6683,20 +6678,16 @@ function FinalReportFlow({
         block: "start",
       });
     }, 60);
-  }, [navigateReportAction, reportView]);
+  }, [data, navigateReportAction, reportView]);
 
   const openFullReport = useCallback(() => {
     navigateReportAction({
       actionType: "open_evidence",
       sourceSection: "summary",
       destinationSection: "evidence",
-      decisionId: decisionModel.decisionId,
-      diagnosisId: decisionModel.trainingPriority?.diagnosisId,
-      openingId: decisionModel.trainingPriority?.openingId || decisionModel.trainingPriority?.canonicalOpeningId,
-      repertoireRole: decisionModel.trainingPriority?.repertoireRole,
       focusTarget: "evidence-table",
     });
-  }, [decisionModel, navigateReportAction]);
+  }, [navigateReportAction]);
 
   const openRepertoireManagement = useCallback(() => {
     if (typeof document === "undefined") return;
@@ -6719,6 +6710,7 @@ function FinalReportFlow({
     ...(decisionModel.authoritative?.recommendations || []).flatMap((item) => [item.decisionId, item.recommendationId]),
   ].filter(Boolean).map(String)), [decisionModel]);
   const requestedContextId = reportActionContext?.diagnosisId || reportActionContext?.decisionId;
+  const evidenceResolution = resolveReportEvidence(data, reportActionContext);
   const contextIsStale = Boolean(requestedContextId && !knownContextIds.has(String(requestedContextId)));
   const contextRecommendation = (decisionModel.authoritative?.recommendations || []).find((item) =>
     [item.decisionId, item.recommendationId, item.openingId].filter(Boolean).map(String).includes(String(requestedContextId || reportActionContext?.openingId || ""))
@@ -6726,7 +6718,7 @@ function FinalReportFlow({
   const focusedPriorityName = contextRecommendation?.openingName || decisionModel.trainingPriority?.openingName || decisionModel.primaryAction?.opening || decisionModel.trainingPriority?.displayName || String(reportActionContext?.repertoireRole || "the current report priority").replaceAll("_", " ");
   const reportContextNotice = reportActionContext ? (
     <p className="reportContextNotice" role="status" data-report-context-id={requestedContextId || undefined}>
-      {contextIsStale ? "The requested report context is no longer available. The current section is shown safely." : `Report context retained: ${focusedPriorityName}.`}
+      {reportActionContext.actionType === "open_evidence" ? evidenceResolution.message : contextIsStale ? "The requested report context is no longer available. The current section is shown safely." : `Report context retained: ${focusedPriorityName}.`}
     </p>
   ) : null;
   const roleAccounting = data?.roleEvidenceAccounting || data?.role_evidence_accounting || null;
@@ -6806,6 +6798,7 @@ function FinalReportFlow({
             onAnalyse={() => onNavigate?.("analyse")}
             onPractice={onPractice}
             onReport={() => changeReportView("summary")}
+            onEvidence={openOpeningBreakdown}
             onAccount={() => onNavigate?.("account")}
             onTrainingHistory={() => onNavigate?.("progress")}
             onUpgrade={() => onNavigate?.("premium")}
@@ -6831,6 +6824,8 @@ function FinalReportFlow({
       {reportView === "evidence" ? <section className="reportViewPanel" id="report-evidence-view" role="tabpanel" aria-labelledby="report-tab-evidence">
         <header className="reportViewHeader"><span>Evidence</span><h2 id="report-evidence-view-title" tabIndex="-1">Games, filters, confidence and report tools</h2><p>Inspect what was included, what was excluded and how the report reached its decisions.</p></header>
         {reportContextNotice}
+        {reportActionContext?.actionType === "open_evidence" && evidenceResolution.target ? <section aria-label="Requested opening evidence"><h3>{getOpeningName(evidenceResolution.target)}</h3><OpeningEvidenceBlock opening={evidenceResolution.target} data={data} hideNextAction /></section> : null}
+        {reportActionContext?.actionType === "open_evidence" && ["absent", "stale"].includes(evidenceResolution.status) ? <button type="button" className="secondaryBtn" onClick={() => onNavigate?.("analyse")}>Analyse games to rebuild evidence</button> : null}
         <EvidenceSufficiencySummary report={data} onReanalyse={() => onNavigate?.("analyse")} />
         <ReportOpeningFilters filters={reportFilters} onFiltersChange={onReportFiltersChange} data={data} />
         <ReportGameCountSummary report={data} saveStatus={saveStatus} authenticated={authenticated} onAccount={onAccount} />
@@ -16867,6 +16862,7 @@ export default function App() {
               onAnalyse={goToAnalyseImport}
               onPractice={startOpeningPractice}
               onReport={() => handleAppNavigate("report")}
+              onEvidence={(target) => handleAppNavigate({ view: "report", path: "/report", target: "evidence-table", reportAction: evidenceAction(target, "summary", data || reportData) })}
               onTraining={() => handleAppNavigate("training")}
               onRecommendations={() => handleAppNavigate("repertoire")}
               onProgress={() => goToReturnUserProfileSection("openingfit-progress")}

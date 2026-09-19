@@ -540,6 +540,7 @@ export default function CoachDashboard({
   onAnalyse,
   onPractice,
   onReport,
+  onEvidence,
   onRecommendations,
   onTraining,
 }) {
@@ -603,7 +604,7 @@ export default function CoachDashboard({
       return;
     }
     if (task?.route === "report") {
-      onReport?.();
+      onEvidence?.(task.target);
       return;
     }
     onAnalyse?.();

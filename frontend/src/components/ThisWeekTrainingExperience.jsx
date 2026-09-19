@@ -334,6 +334,7 @@ export default function ThisWeekTrainingExperience({ report, onPractice, onAnaly
   }
 
   if (!plan) {
+    if (!currentPriority) return <section className="thisWeekTraining thisWeekTraining--error" role="status"><div><span>This Week</span><h1>Training evidence unavailable</h1><p>This saved report does not retain a complete training target. Your report is still available. Analyse your games again to prepare a supported training action.</p><button type="button" className="primaryBtn" onClick={onAnalyse}>Analyse games</button><button type="button" className="secondaryBtn" onClick={onReport}>Back to report</button></div></section>;
     return <section className="thisWeekTraining thisWeekTraining--error" role="alert"><AlertTriangle size={22} /><div><span>This Week</span><h1>Your plan needs another try.</h1><p>{error || "OpeningFit could not prepare a weekly plan."}</p><button type="button" className="primaryBtn" onClick={loadPlan}>Try again</button></div></section>;
   }
 

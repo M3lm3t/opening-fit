@@ -89,8 +89,7 @@ test("rendered report CTAs use canonical report destinations and retain safe fal
   const flow = app.slice(app.indexOf("function FinalReportFlow"), app.indexOf("function NextBestTrainingActionCard"));
   assert.match(summary, /View evidence and methodology/);
   assert.match(flow, /openFullReport[\s\S]*destinationSection: "evidence"/);
-  assert.match(flow, /openOpeningBreakdown[\s\S]*decisionId:[\s\S]*destinationSection: "evidence"/);
-  assert.match(flow, /source = \{ \.\.\.\(target\?\.source \|\| \{\}\), \.\.\.\(target \|\| \{\}\) \}/);
+  assert.match(flow, /navigateReportAction\(evidenceAction\(target, reportView, data\)\)/);
   assert.match(flow, /reportActionForPriority/);
   assert.doesNotMatch(flow, /onAction=\{\(route\) => onNavigate\?\.\(route\)\}/);
   assert.match(flow, /The requested report context is no longer available/);

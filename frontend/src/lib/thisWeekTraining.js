@@ -48,9 +48,11 @@ function foundationalTask({ type, title, explanation, successCriteria, minutes, 
 
 export function buildFoundationalWeeklyPlan({ userId = "local", report = {}, repertoire = [], now = new Date(), preferences = null } = {}) {
   const priority = selectAuthoritativeCoachingPriority(report);
+  // A retained but incomplete canonical target deliberately resolves to null.
+  // Do not turn that stale target into an unrelated foundation exercise.
+  if (!priority || !validateTrainingSubject(priority).valid) return null;
   const { weekStart, weekEnd } = weeklyPlanWindow(now);
   const priorityTask = { ...trainingTaskFromPriority(priority, 1), fixedDuration: !priority.fallback };
-  if (!validateTrainingSubject(priority).valid) return null;
   if (priority.subjectType === TRAINING_SUBJECT_TYPES.ROLE_GAP) {
     const copy = roleGapCopy(priority.subjectRole);
     return {

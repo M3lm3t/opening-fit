@@ -32,7 +32,7 @@ export function isCanonicalDestinationActive(key, location = globalThis.location
   return destination.reportView ? reportViewFromLocation(location) === destination.reportView : true;
 }
 
-export const REPORT_CONTEXT_QUERY_KEYS = Object.freeze(["reportAction", "decision", "diagnosis", "opening", "role", "task", "focus", "source"]);
+export const REPORT_CONTEXT_QUERY_KEYS = Object.freeze(["reportAction", "report", "decision", "diagnosis", "opening", "openingName", "role", "task", "focus", "source"]);
 
 /**
  * @typedef {Object} ReportAction
@@ -70,9 +70,12 @@ export function reportViewFromLocation(location = globalThis.location) {
 }
 
 export function canonicalReportAction(input = {}) {
+  input = input && typeof input === "object" ? input : {};
   return Object.freeze({
     actionType: clean(input.actionType || input.type) || "open_report_section",
     sourceSection: normaliseReportView(input.sourceSection || "summary"),
+    reportId: clean(input.reportId || input.sourceReportId),
+    openingName: clean(input.openingName || input.opening_name),
     decisionId: clean(input.decisionId || input.decision_id),
     diagnosisId: clean(input.diagnosisId || input.diagnosis_id),
     openingId: clean(input.openingId || input.opening_id || input.canonicalOpeningId),
@@ -90,6 +93,8 @@ export function reportActionUrl(input, location = globalThis.location) {
   REPORT_CONTEXT_QUERY_KEYS.forEach((key) => currentSearch.delete(key));
   const values = {
     reportAction: action.actionType,
+    report: action.reportId,
+    openingName: action.openingName,
     decision: action.decisionId,
     diagnosis: action.diagnosisId,
     opening: action.openingId,
@@ -108,6 +113,8 @@ export function reportActionFromLocation(location = globalThis.location) {
   if (!params.get("reportAction")) return null;
   return canonicalReportAction({
     actionType: params.get("reportAction"),
+    reportId: params.get("report"),
+    openingName: params.get("openingName"),
     sourceSection: params.get("source"),
     decisionId: params.get("decision"),
     diagnosisId: params.get("diagnosis"),

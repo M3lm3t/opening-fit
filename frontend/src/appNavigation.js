@@ -1,4 +1,4 @@
-import { canonicalDestinationUrl } from "./lib/reportViews.js";
+import { canonicalDestinationUrl, reportActionUrl } from "./lib/reportViews.js";
 
 export const HOME_NAVIGATION = Object.freeze({ key: "home", label: "OpeningFit homepage", path: "/", native: true });
 
@@ -180,7 +180,12 @@ export function navigateApp(routeOrKey, options = {}) {
   }
 
   const canonicalUrl = route.key ? canonicalDestinationUrl(route.key, window.location) : null;
-  if (canonicalUrl) {
+  if (route.reportAction) {
+    const destinationUrl = reportActionUrl(route.reportAction, window.location);
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (destinationUrl !== currentUrl) window.history.pushState({ reportAction: route.reportAction }, "", destinationUrl);
+    window.dispatchEvent(new CustomEvent("openingfit:set-report-view", { detail: { view: "evidence", action: route.reportAction } }));
+  } else if (canonicalUrl) {
     const destinationUrl = canonicalUrl;
     const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     if (destinationUrl !== currentUrl) window.history.pushState({ destination: route.key }, "", destinationUrl);
