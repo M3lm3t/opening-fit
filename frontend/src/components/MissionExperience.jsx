@@ -84,9 +84,30 @@ function EnabledCurrentMissionCard({ onTrain, onReport, onAnalyse, onAvailabilit
 
 function EnabledMissionEvidencePanel() {
   const { state, user } = useMission(); const [history, setHistory] = useState([]); const [cursor, setCursor] = useState(null); const [open, setOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
   if (!user?.id || state.kind === "disabled" || !state.mission) return null;
-  const loadHistory = async () => { const result = await listMissionHistory({ limit: 10, cursor }); setHistory((rows) => [...rows, ...(result.missions || [])]); setCursor(result.nextCursor || null); setOpen(true); };
-  return <section className="missionEvidencePanel" id="mission-evidence"><p className="missionEyebrow">Why this Mission</p><h2>{missionStatement(state.mission)}</h2><p>{confidenceCopy(state.mission)}</p><Evidence mission={state.mission} /><button type="button" className="secondaryBtn" onClick={loadHistory}>{open ? "Load more past Missions" : "Past Missions"}</button>{open ? <ul className="missionHistory">{history.map((item) => <li key={item.id}><strong>{item.opening_name || item.opening_id}</strong><span>{roleLabel(item.role)} · {missionStatusLabel(item.status)}</span><small>{item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at ? new Date(item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at).toLocaleDateString() : ""}</small></li>)}</ul> : null}{open && cursor ? <button type="button" onClick={loadHistory}>Load more</button> : null}</section>;
+  const loadHistory = async () => {
+    if (historyLoading || (open && !cursor)) return;
+    setHistoryLoading(true);
+    setHistoryError("");
+    try {
+      const result = await listMissionHistory({ limit: 10, cursor });
+      setHistory((rows) => [...rows, ...(result.missions || [])]);
+      setCursor(result.nextCursor || null);
+      setOpen(true);
+    } catch (error) {
+      setHistoryError(error.message || "Past Missions could not be loaded. Please retry.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+  return <section className="missionEvidencePanel" id="mission-evidence"><p className="missionEyebrow">Why this Mission</p><h2>{missionStatement(state.mission)}</h2><p>{confidenceCopy(state.mission)}</p><Evidence mission={state.mission} />
+    {historyError ? <p role="alert" className="missionError">{historyError}</p> : null}
+    {!open || cursor ? <button type="button" className="secondaryBtn" disabled={historyLoading} onClick={loadHistory}>{historyLoading ? "Loading past Missions…" : historyError ? "Retry past Missions" : open ? "Load more past Missions" : "Past Missions"}</button> : null}
+    {open && !history.length ? <p role="status">No past Missions yet.</p> : null}
+    {open && history.length ? <ul className="missionHistory">{history.map((item) => <li key={item.id}><strong>{item.opening_name || item.opening_id}</strong><span>{roleLabel(item.role)} · {missionStatusLabel(item.status)}</span><small>{item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at ? new Date(item.repaired_at || item.dismissed_at || item.superseded_at || item.assigned_at || item.created_at).toLocaleDateString() : ""}</small></li>)}</ul> : null}
+  </section>;
 }
 
 function EnabledMissionTrainingPanel({ onHome, onAnalyse, onReport }) {

@@ -157,7 +157,7 @@ export function scrollToAppTarget(targetId, options = {}) {
   const top = target.getBoundingClientRect().top + window.scrollY - offset;
   window.scrollTo({
     top: Math.max(0, top),
-    behavior: options.behavior || "smooth",
+    behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "instant" : options.behavior || "smooth",
   });
 
   return true;

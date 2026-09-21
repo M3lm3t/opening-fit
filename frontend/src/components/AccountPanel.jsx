@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { isSupabaseConfigured, supabase } from "../lib/supabaseClient";
 import {
@@ -214,6 +214,8 @@ export default function AccountPanel({ variant = "floating",
   } = useAuth();
   const [isOpen, setIsOpen] = useState(isScreen);
   const [profile, setProfile] = useState(EMPTY_PROFILE);
+  const [profileDirty, setProfileDirty] = useState(false);
+  const profileUserId = useRef(user?.id);
   const [signupDisplayName, setSignupDisplayName] = useState("");
   const [signupUsername, setSignupUsername] = useState("");
   const [email, setEmail] = useState("");
@@ -254,18 +256,26 @@ export default function AccountPanel({ variant = "floating",
   }, [lastSavedAt]);
 
   useEffect(() => {
+    const changedUser = profileUserId.current !== user?.id;
+    if (changedUser) {
+      profileUserId.current = user?.id;
+      setProfileDirty(false);
+      setProfile(EMPTY_PROFILE);
+      setStatus("");
+    }
     if (!user) {
       setProfile(EMPTY_PROFILE);
+      setProfileDirty(false);
       return;
     }
 
-    if (!profileLoaded || profileLoading) return;
+    if (!profileLoaded || profileLoading || (profileDirty && !changedUser)) return;
 
     setProfile({
       chesscom_username: cloudProfile?.chesscom_username || "",
       lichess_username: cloudProfile?.lichess_username || "",
     });
-  }, [cloudProfile, profileLoaded, profileLoading, user]);
+  }, [cloudProfile, profileLoaded, profileLoading, profileDirty, user]);
 
   const signInWithGoogle = async () => {
     if (!supabase) {
@@ -506,7 +516,13 @@ export default function AccountPanel({ variant = "floating",
         chesscom_username: profile.chesscom_username.trim(),
         lichess_username: profile.lichess_username.trim(),
       });
-      await refreshUserData(user);
+      const refreshed = await refreshUserData(user);
+      if (!refreshed?.profile ||
+        (refreshed.profile.chesscom_username || "") !== profile.chesscom_username.trim() ||
+        (refreshed.profile.lichess_username || "") !== profile.lichess_username.trim()) {
+        throw new Error("Your usernames were sent, but the cloud refresh could not confirm the save. Your edits are still shown; retry when connected.");
+      }
+      setProfileDirty(false);
       logRetentionEvent(
         "profile_updated",
         {
@@ -705,14 +721,14 @@ export default function AccountPanel({ variant = "floating",
 
       {isOpen ? (
         <div className={`accountPanel accountPanel--${variant}`}>
-          <div className="accountPanelHeader">
+          {isProfile && user ? null : <div className="accountPanelHeader">
             <div>
               <span className="accountEyebrow">Account security</span>
-              <HeadingTag>{user ? "Account details" : "Log in or create account"}</HeadingTag>
+              <HeadingTag>{user ? isDataSupport ? "Account controls" : "Account details" : "Log in or create account"}</HeadingTag>
               {isScreen ? (
                 <p>
                   {user
-                    ? "Manage sign-in, chess usernames, sync, and account actions."
+                    ? isDataSupport ? "Sign out, contact support, or delete your account." : "Manage sign-in, chess usernames, sync, and account actions."
                     : `${ACCOUNT_SAVE_EXPLANATION} Choose Google, email and password, or a secure login link.`}
                 </p>
               ) : null}
@@ -723,7 +739,7 @@ export default function AccountPanel({ variant = "floating",
                 <X size={20} aria-hidden="true" />
               </button>
             ) : null}
-          </div>
+          </div>}
 
           {!isSupabaseConfigured ? (
             <div className="accountNotice">
@@ -774,6 +790,7 @@ export default function AccountPanel({ variant = "floating",
                 </div>
               )}
 
+              <p className="accountPasswordMethod">Email and password</p>
               <div className="accountAuthMode" role="tablist" aria-label="Account mode">
                 <button
                   type="button"
@@ -900,8 +917,9 @@ export default function AccountPanel({ variant = "floating",
                 onClick={sendMagicLink}
                 disabled={authBusy}
               >
-                Send login link
+                Email me a passwordless login link
               </button>
+              <p className="accountPasswordlessHelp">Use the email above. No password is needed for a login link.</p>
 
               {status ? (
                 <div className="accountStatus accountAuthStatus" role="status" aria-live="polite">
@@ -929,7 +947,7 @@ export default function AccountPanel({ variant = "floating",
                 onManage={handleManageSubscription}
               /> : null}
 
-              {isDataSupport ? null : <div className="premiumStatusCard accountLoginStatusCard">
+              {isDataSupport || isProfile ? null : <div className="premiumStatusCard accountLoginStatusCard">
                 <span>Email / login status</span>
                 <strong>{user.email || displayName}</strong>
                 <small>
@@ -944,9 +962,11 @@ export default function AccountPanel({ variant = "floating",
                     ? "Restoring..."
                     : saving
                       ? "Saving..."
+                      : profileDirty
+                        ? "Unsaved changes"
                       : syncStatus === "error"
                         ? "Save failed - retry"
-                        : "Cloud sync active"}
+                        : lastSavedAt ? "Cloud sync active" : "Ready to save"}
                 </strong>
                 <small>
                   Logged in as {user.email || displayName}. Last saved: {formattedLastSaved}
@@ -967,7 +987,8 @@ export default function AccountPanel({ variant = "floating",
 
                         const existingProfile = await getUserProfile(currentUser.id);
                         if (!existingProfile) await upsertUserProfile(currentUser);
-                        await refreshUserData(currentUser);
+                        const restored = await refreshUserData(currentUser);
+                        if (!restored?.profile) throw new Error("Account sync could not be confirmed. Please retry.");
                         setStatus("Account sync restored.");
                       } catch (retryError) {
                         console.error("OpeningFit account sync retry failed", retryError);
@@ -985,12 +1006,15 @@ export default function AccountPanel({ variant = "floating",
                 <input
                   value={profile.chesscom_username}
                   placeholder="e.g. melmet"
-                  onChange={(event) =>
+                  disabled={saving || profileLoading || !profileLoaded}
+                  onChange={(event) => {
+                    setProfileDirty(true);
+                    setStatus("");
                     setProfile((current) => ({
                       ...current,
                       chesscom_username: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>}
 
@@ -999,12 +1023,15 @@ export default function AccountPanel({ variant = "floating",
                 <input
                   value={profile.lichess_username}
                   placeholder="e.g. DrNykterstein"
-                  onChange={(event) =>
+                  disabled={saving || profileLoading || !profileLoaded}
+                  onChange={(event) => {
+                    setProfileDirty(true);
+                    setStatus("");
                     setProfile((current) => ({
                       ...current,
                       lichess_username: event.target.value,
-                    }))
-                  }
+                    }));
+                  }}
                 />
               </label>}
 
@@ -1085,7 +1112,7 @@ export default function AccountPanel({ variant = "floating",
             </div>
           ) : null}
 
-          {status && user ? <div className="accountStatus">{status}</div> : null}
+          {status && user ? <div className="accountStatus" role="status" aria-live="polite">{status}</div> : null}
 
           {user && !isProfile ? <nav className="accountLegalLinks" aria-label="Account help and legal links">
             <a href="/privacy">Privacy Policy</a>

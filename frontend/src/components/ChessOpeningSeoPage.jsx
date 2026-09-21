@@ -69,9 +69,9 @@ export function ChessOpeningNotFoundPage({ ThemeToggle, Analytics, AppTopNav = n
   const fallback = chessOpeningSeoPages[0];
 
   return (
-    <div className="seoPage" data-theme="dark">
+    <div className="seoPage" data-theme={AppTopNav ? undefined : "dark"}>
       <div className="seoPageShell">
-        {AppTopNav ? <AppTopNav /> : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme="dark" setSeoTheme={() => {}} />}
+        {AppTopNav ? AppTopNav() : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme="dark" setSeoTheme={() => {}} />}
         <section className="seoHero">
           <div>
             <p className="seoEyebrow">Opening guide</p>
@@ -104,6 +104,7 @@ export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics, A
   const relatedOpenings = chessOpeningSeoPages.filter((item) => item.slug !== opening.slug);
 
   useEffect(() => {
+    if (AppTopNav) return;
     document.documentElement.dataset.theme = seoTheme;
     document.body.dataset.theme = seoTheme;
     try {
@@ -111,12 +112,12 @@ export default function ChessOpeningSeoPage({ opening, ThemeToggle, Analytics, A
     } catch {
       // Ignore storage failures.
     }
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
-    <div className="seoPage" data-theme={seoTheme}>
+    <div className="seoPage" data-theme={AppTopNav ? undefined : seoTheme}>
       <div className="seoPageShell">
-        {AppTopNav ? <AppTopNav /> : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
+        {AppTopNav ? AppTopNav() : <ChessOpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
 
         <section className="seoHero">
           <div>

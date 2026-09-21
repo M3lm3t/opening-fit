@@ -65,7 +65,7 @@ test("signed-out profile route returns the auth surface before dashboard widgets
 test("login copy contains operational methods without beta or dashboard language", () => {
   const account = read("../components/AccountPanel.jsx");
   assert.match(account, /Continue with Google/);
-  assert.match(account, /Send login link/);
+  assert.match(account, /Email me a passwordless login link/);
   assert.match(account, /\bLog in\b/);
   assert.match(account, /\bCreate account\b/);
   assert.doesNotMatch(account, /Beta note/i);

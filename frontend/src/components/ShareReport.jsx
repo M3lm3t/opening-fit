@@ -1,182 +1,6 @@
 import { useMemo, useState } from "react";
-import { buildReportGameCounts } from "../lib/reportGameCounts.js";
-import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
-import { recommendationCopy, trainingActionCopy } from "../lib/reportCoachCopy.js";
-import { formatOpeningVerdictText } from "../lib/fitTrustModel.js";
-import { formatTrainingPriorityTitle } from "../lib/trainingPriority.js";
-import { selectAuthoritativeCoachingPriority } from "../lib/authoritativeReportPresentation.js";
+import { buildShareReportModel } from "../lib/shareReportPresentation.js";
 import OpeningVerdictSummary from "./OpeningVerdictSummary.jsx";
-
-function getOpeningName(item) {
-  return (
-    item?.opening ||
-    item?.name ||
-    item?.ecoName ||
-    item?.opening_name ||
-    item?.label ||
-    "Unknown opening"
-  );
-}
-
-function getGames(item) {
-  return Number(item?.sample?.games ?? item?.games ?? item?.count ?? item?.total ?? 0);
-}
-
-function getWinRate(item) {
-  const direct = item?.sample?.scoreRate ?? item?.scoreRate ?? item?.score_rate ?? item?.winRate ?? item?.win_rate ?? item?.score;
-
-  if (typeof direct === "number") {
-    return direct > 1 ? Math.round(direct) : Math.round(direct * 100);
-  }
-
-  const games = getGames(item);
-  const wins = Number(item?.wins ?? item?.w ?? 0);
-  const draws = Number(item?.draws ?? item?.d ?? 0);
-
-  if (!games) return 0;
-
-  return Math.round(((wins + draws * 0.5) / games) * 100);
-}
-
-function collectOpenings(data) {
-  const possible =
-    data?.openingStats ||
-    data?.openings ||
-    data?.topOpenings ||
-    data?.verdicts ||
-    data?.opening_win_rates ||
-    data?.openingWinRates ||
-    [];
-
-  if (Array.isArray(possible)) return possible;
-
-  if (possible && typeof possible === "object") {
-    return Object.entries(possible).map(([name, value]) => ({
-      name,
-      ...(typeof value === "object" ? value : { games: value }),
-    }));
-  }
-
-  return [];
-}
-
-function isUnknownOpening(name) {
-  const normalised = String(name || "").trim().toLowerCase();
-
-  return (
-    !normalised ||
-    normalised === "unknown" ||
-    normalised === "unknown opening" ||
-    normalised.includes("uncommon opening")
-  );
-}
-
-function getUsername(data) {
-  return (
-    data?.username ||
-    data?.playerName ||
-    data?.player ||
-    data?.profile?.username ||
-    "my account"
-  );
-}
-
-function getGamesImported(data) {
-  return buildReportGameCounts(data).analysedGames;
-}
-
-function inferStyle(openings) {
-  const names = openings.map((item) => item.name.toLowerCase()).join(" ");
-
-  if (
-    names.includes("vienna") ||
-    names.includes("scotch") ||
-    names.includes("king's gambit") ||
-    names.includes("sicilian")
-  ) {
-    return "Direct tactical player";
-  }
-
-  if (
-    names.includes("london") ||
-    names.includes("caro") ||
-    names.includes("queen's gambit") ||
-    names.includes("slav")
-  ) {
-    return "Solid structure-based player";
-  }
-
-  if (
-    names.includes("english") ||
-    names.includes("reti") ||
-    names.includes("réti") ||
-    names.includes("indian")
-  ) {
-    return "Flexible positional player";
-  }
-
-  return "Practical club player";
-}
-
-function buildShareReportModel(data) {
-    if (!data) return null;
-
-    const openings = collectOpenings(data)
-      .map((item) => ({
-        name: getOpeningName(item),
-        games: getGames(item),
-        winRate: getWinRate(item),
-      }))
-      .filter((item) => !isUnknownOpening(item.name))
-      .filter((item) => item.games > 0)
-      .sort((a, b) => {
-        if (b.games !== a.games) return b.games - a.games;
-        return b.winRate - a.winRate;
-      });
-
-    const decision = normaliseReportDecision(data.reportDecision || data.report_decision, data);
-    const card = (entry) => entry ? { name: entry.opening, games: entry.sample?.games ?? entry.games, winRate: entry.sample?.scoreRate ?? entry.scoreRate ?? entry.score, source: entry } : null;
-    const best = card(decision?.establishedStrength);
-    const weakest = card(decision?.primaryProblem);
-    const nextAction = decision?.nextTrainingAction || { label: "Collect more games before changing your repertoire", reason: "No single opening currently has enough evidence to qualify as an authoritative repair target." };
-    const trainingPriority = selectAuthoritativeCoachingPriority(data, { decision, allowFallback: true });
-    const training = trainingPriority
-      ? { title: formatTrainingPriorityTitle(trainingPriority, { prefix: false }), explanation: trainingPriority.rationale }
-      : trainingActionCopy(nextAction, decision?.primaryProblem || decision?.establishedStrength);
-
-    const username = getUsername(data);
-    const gamesImported = getGamesImported(data);
-    const style = inferStyle(openings);
-
-    const text = `My OpeningFit report
-
-Player: ${username}
-Games analysed: ${gamesImported || "Imported games"}
-Style: ${style}
-
-Established strength: ${decision?.establishedStrength ? recommendationCopy(decision.establishedStrength, "keep") : "We do not have enough consistent results to name one yet."}
-${decision?.establishedStrength ? formatOpeningVerdictText(decision.establishedStrength, { verdict: "keep" }) : ""}
-
-Primary problem: ${recommendationCopy(decision?.primaryProblem, "repair")}
-${decision?.primaryProblem ? formatOpeningVerdictText(decision.primaryProblem, { verdict: "repair" }) : ""}
-
-Next training action:
-${training.title}. ${training.explanation}
-
-Try it: https://www.openingfit.com`;
-
-    return {
-      username,
-      gamesImported,
-      style,
-      best,
-      weakest,
-      nextAction,
-      trainingPriority,
-      training,
-      text,
-    };
-}
 
 export default function ShareReport({ data }) {
   const [copied, setCopied] = useState(false);
@@ -214,10 +38,9 @@ export default function ShareReport({ data }) {
       <div className="shareReportHeader">
         <div>
           <div className="shareReportEyebrow">Share your result</div>
-          <h2>Turn your analysis into something worth sharing.</h2>
+          <h2>Share this report</h2>
           <p>
-            A shareable report helps users remember their result, ask for feedback, and spread
-            OpeningFit without sounding like an advert.
+            Copy your result or share it to ask for feedback.
           </p>
         </div>
 
@@ -238,7 +61,7 @@ export default function ShareReport({ data }) {
 
       <div className="shareReportCard">
         <div className="shareReportTop">
-          <span>OpeningFit report</span>
+          <span>{report.sample ? "Illustrative example ? Fictional data" : "OpeningFit report"}</span>
           <strong>{report.username}</strong>
         </div>
 
@@ -263,7 +86,7 @@ export default function ShareReport({ data }) {
 
           <div className="shareReportResult fix">
             <span>Primary problem</span>
-            <h3>{report.weakest?.name || "No authoritative repair target yet"}</h3>
+            <h3>{report.weakest?.name || "No supported repair target yet"}</h3>
             {report.weakest ? <OpeningVerdictSummary opening={report.weakest.source} verdict="repair" compact /> : <p>No weakness claim is supported</p>}
           </div>
         </div>

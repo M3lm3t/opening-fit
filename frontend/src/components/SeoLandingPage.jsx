@@ -655,15 +655,16 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
+    if (AppTopNav) return;
     localStorage.setItem("openingFit:theme", seoTheme);
     document.documentElement.setAttribute("data-theme", seoTheme);
     document.body.classList.remove("light", "dark");
     document.body.classList.add(seoTheme);
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
     <>
-      <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
+      <div className={`page ${AppTopNav ? "" : seoTheme} publicLandingPage seoPage`} data-theme={AppTopNav ? undefined : seoTheme}>
         {ThemeToggle && !AppTopNav ? (
           <ThemeToggle
             theme={seoTheme}
@@ -673,7 +674,7 @@ export default function SeoLandingPage({ page, ThemeToggle, Analytics, AppTopNav
 
         <main className="seoPageShell">
           {AppTopNav ? (
-            <AppTopNav />
+            AppTopNav()
           ) : (
             <nav className="seoTopNav" aria-label="OpeningFit navigation">
               <a className="seoBrandLink" href="/">

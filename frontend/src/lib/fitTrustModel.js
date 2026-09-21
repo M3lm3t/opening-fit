@@ -1,4 +1,5 @@
 import { formatResultCounts } from "./reportGameCounts.js";
+import { canonicalResultAggregate } from "./reportResults.js";
 
 export const OPENING_EVIDENCE_THRESHOLDS = Object.freeze({
   minimum: 5,
@@ -82,7 +83,7 @@ export function analysisConfidence(item = {}) {
     return {
       level: String(authoritative.level || "insufficient"),
       label: String(authoritative.label || "Insufficient"),
-      games: Number(authoritative.sampleSize ?? authoritative.sample_size ?? 0),
+      games: Number(authoritative.sampleSize ?? authoritative.sample_size ?? gameCount(item)),
       explanation: String(authoritative.explanation || authoritative.reasons?.[0] || "Evidence confidence is unavailable."),
       scope: String(authoritative.scope || "opening_decision"),
       version: authoritative.version || null,
@@ -126,7 +127,7 @@ export function fitBand(score) {
 }
 
 export function performanceBand(item = {}) {
-  const score = resultSample(item).scoreRate;
+  const score = canonicalResultAggregate(item).scoreRate;
   if (score === null) return "Unknown";
   if (score >= OPENING_VERDICT_BANDS.performance.strong) return "Strong";
   if (score >= OPENING_VERDICT_BANDS.performance.inconsistent) return "Inconsistent";
@@ -135,8 +136,9 @@ export function performanceBand(item = {}) {
 
 export function performanceSummary(item = {}) {
   const sample = resultSample(item);
-  if (sample.reconciled) return `${formatResultCounts(sample)} · Win Rate ${sample.winRate}% · Score Rate ${sample.scoreRate}%`;
-  if (sample.scoreRate !== null) return `${sample.scoreRate}% chess score across ${sample.games} game${sample.games === 1 ? "" : "s"}`;
+  const result = canonicalResultAggregate(item);
+  if (sample.reconciled && result.scoreRate !== null) return `${formatResultCounts(sample)} · Win Rate ${sample.winRate}% · Score Rate ${result.scoreRate}%`;
+  if (result.scoreRate !== null) return `${result.scoreRate}% chess score across ${sample.games} game${sample.games === 1 ? "" : "s"}`;
   return sample.games ? `${sample.games} opening-specific game${sample.games === 1 ? "" : "s"}; result split unavailable` : "Performance unavailable";
 }
 
@@ -151,7 +153,8 @@ function branchLabel(item = {}) {
 function recommendationLabel(item = {}, fallback = "Review") {
   const raw = String(item.verdict || item.recommendationLabel || item.recommendation_label || fallback).toLowerCase();
   if (/keep|strong|main/.test(raw)) return "Keep";
-  if (/repair|improve|fix|review/.test(raw)) return "Improve";
+  if (/repair|improve|fix/.test(raw)) return "Repair";
+  if (/watch|review|explore/.test(raw)) return "Watch";
   if (/replace|avoid|reduce|drop|park/.test(raw)) return "Replace";
   if (/recommend|try|explore/.test(raw)) return "Recommended";
   if (/insufficient/.test(raw)) return "Wait for more data";
@@ -161,19 +164,19 @@ function recommendationLabel(item = {}, fallback = "Review") {
 export function buildOpeningVerdictPresentation(item = {}, options = {}) {
   const fitScore = openingFitScore(item);
   const suitabilityContract = item.openingSuitability || item.opening_suitability || null;
-  const result = resultSample(item);
+  const result = canonicalResultAggregate(item);
   const confidence = analysisConfidence(item);
   const opening = String(item.opening || item.openingName || item.name || options.opening || "this opening").trim();
   const baseRecommendation = recommendationLabel(item, options.verdict || "Review");
   const branch = branchLabel(item);
-  const branchRepair = Boolean(branch && ["Improve", "Replace"].includes(baseRecommendation));
+  const branchRepair = Boolean(branch && ["Repair", "Replace"].includes(baseRecommendation));
   const recommendation = branchRepair
     ? branch.startsWith("after ")
       ? `Keep ${opening}, but repair the branch ${branch}.`
       : `Keep ${opening}, but repair the ${branch} branch.`
     : baseRecommendation;
   return {
-    fit: { label: fitBand(fitScore), score: fitScore, displayName: suitabilityContract ? "Opening Suitability" : "Legacy fit estimate", version: suitabilityContract?.version || null, definition: OPENING_VERDICT_DEFINITIONS.fit },
+    fit: { label: fitBand(fitScore), score: fitScore, displayName: suitabilityContract ? "Opening Suitability" : "Opening fit estimate", version: suitabilityContract?.version || null, definition: OPENING_VERDICT_DEFINITIONS.fit },
     performance: { label: performanceBand(item), score: result.scoreRate, detail: performanceSummary(item), definition: OPENING_VERDICT_DEFINITIONS.performance },
     confidence: { label: confidence.label, level: confidence.level, games: confidence.games, detail: confidence.explanation, displayName: "Evidence Confidence", scope: confidence.scope || "opening_decision", definition: OPENING_VERDICT_DEFINITIONS.confidence },
     recommendation,

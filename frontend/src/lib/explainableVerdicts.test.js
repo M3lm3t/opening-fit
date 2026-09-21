@@ -66,7 +66,8 @@ test("Overview keeps one evidence renderer, compact mobile rules, and canonical 
   assert.equal((source.match(/data-command-role="keep"/g) || []).length, 1);
   assert.equal((source.match(/data-command-role="repair"/g) || []).length, 1);
   assert.equal((source.match(/data-command-role="train-next"/g) || []).length, 1);
-  assert.match(source, /<h2[^>]*>\{scoreView\.scoreDisplayLabel\}[^<]+\{scoreView\.developmentState\.label\}<\/h2>\s*<p className="primaryReportHealthSummary">\{scoreView\.explanation\}<\/p>/);
+  assert.match(source, /<h2[^>]*>\{scoreView\.scoreDisplayLabel\}[^<]+\{scoreView\.developmentState\.label\}<\/h2>/);
+  assert.match(source, /<p className="primaryReportHealthSummary">\{scoreView\.explanation\}<\/p>/);
   assert.match(source, /data-decision-id=\{view\.decisionId \|\| undefined\}/);
   assert.match(source, /data-diagnosis-id=\{view\.diagnosisId \|\| undefined\}/);
   assert.ok(source.indexOf('data-command-role="repair"') < source.indexOf('data-command-role="keep"'));

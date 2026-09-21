@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PublicFooter from "./PublicFooter.jsx";
 import OpeningLandingPage from "./OpeningLandingPage.jsx";
 import { guideSeoPages } from "../content/seoPages.js";
 import "./SeoLandingPage.css";
@@ -20,7 +21,7 @@ function SeoTopNav({ ThemeToggle, seoTheme, setSeoTheme }) {
       <div>
         <a href="/guides">Guides</a>
         <a href="/openings">Openings</a>
-        <a href="/#app-dashboard">Analyse games</a>
+        <a href="/analyse">Analyse games</a>
       </div>
       {ThemeToggle ? (
         <ThemeToggle
@@ -42,7 +43,7 @@ export function SeoAnalysisCta({ title = "Find the openings that fit your own ga
         improve, and study-next opening report.
       </p>
       <div className="seoHeroActions">
-        <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
+        <a className="seoPrimaryCta" href="/analyse">Analyse your games</a>
         <a className="seoSecondaryCta" href="/report/sample">View example report</a>
       </div>
     </section>
@@ -109,19 +110,21 @@ export function SeoPageLayout({ children, ThemeToggle, Analytics, AppTopNav = nu
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
+    if (AppTopNav) return;
     localStorage.setItem("openingFit:theme", seoTheme);
     document.documentElement.setAttribute("data-theme", seoTheme);
     document.body.classList.remove("light", "dark");
     document.body.classList.add(seoTheme);
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
     <>
-      <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
+      <div className={`page ${AppTopNav ? "" : seoTheme} publicLandingPage seoPage`} data-theme={AppTopNav ? undefined : seoTheme}>
         <main className="seoPageShell">
-          {AppTopNav ? <AppTopNav /> : <SeoTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
+          {AppTopNav ? AppTopNav() : <SeoTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
           {children}
         </main>
+        <PublicFooter />
       </div>
       {Analytics ? <Analytics /> : null}
     </>
@@ -137,7 +140,7 @@ export function SeoGuidePage({ page, ThemeToggle, Analytics, AppTopNav = null })
           <h1>{page.h1}</h1>
           <p>{page.intro}</p>
           <div className="seoHeroActions">
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
+            <a className="seoPrimaryCta" href="/analyse">Analyse your games</a>
             <a className="seoSecondaryCta" href="/guides">Browse guides</a>
           </div>
         </div>
@@ -147,7 +150,6 @@ export function SeoGuidePage({ page, ThemeToggle, Analytics, AppTopNav = null })
       <section className="seoGuideSectionGrid" aria-label="Guide sections">
         {page.sections.map((section) => (
           <article className="seoGuideSectionCard" key={section.heading}>
-            <span>Guide</span>
             <h2>{section.heading}</h2>
             <p>{section.body}</p>
           </article>
@@ -173,7 +175,7 @@ export function GuidesHubPage({ ThemeToggle, Analytics, AppTopNav = null }) {
             which openings actually fit.
           </p>
           <div className="seoHeroActions">
-            <a className="seoPrimaryCta" href="/#app-dashboard">Analyse your games</a>
+            <a className="seoPrimaryCta" href="/analyse">Analyse your games</a>
             <a className="seoSecondaryCta" href="/openings">Browse openings</a>
           </div>
         </div>
@@ -218,7 +220,7 @@ export function GuideNotFoundPage({ ThemeToggle, Analytics, AppTopNav = null }) 
         <p>Browse the published OpeningFit guides or analyse your own games for opening recommendations.</p>
         <div className="seoHeroActions">
           <a className="seoPrimaryCta" href="/guides">Browse guides</a>
-          <a className="seoSecondaryCta" href="/#app-dashboard">Analyse games</a>
+          <a className="seoSecondaryCta" href="/analyse">Analyse games</a>
         </div>
       </section>
     </SeoPageLayout>

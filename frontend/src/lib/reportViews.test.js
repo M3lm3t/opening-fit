@@ -77,7 +77,7 @@ test("the report uses one accessible navigation model with history support", asy
   assert.match(flow, /window\.addEventListener\("popstate"/);
   assert.match(flow, /setReportActionContext\(reportActionFromLocation\(\)\)/);
   assert.match(flow, /reportViewHeadingId\(next\).*focus\(\)/s);
-  assert.match(flow, /<h1 className="reportPageTitle"/);
+  assert.match(command, /<h1 className="reportPageTitle"/);
   assert.match(primitives, /ArrowLeft.*ArrowRight.*Home.*End/);
   assert.doesNotMatch(flow, />Full report<|>Supporting evidence<|>Advanced recommendations<|>Progress and details</);
 });

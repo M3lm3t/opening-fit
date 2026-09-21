@@ -38,7 +38,7 @@ export default function ReferralCodeEntry() {
   return (
     <details className="referralCodeEntry">
       <summary>Have a referral code?</summary>
-      <form onSubmit={applyCode}>
+      <div className="referralCodeFields" role="group" aria-label="Apply referral code">
         <label htmlFor="openingfit-referral-code">Referral code</label>
         <div>
           <input
@@ -47,13 +47,20 @@ export default function ReferralCodeEntry() {
             maxLength={50}
             autoComplete="off"
             onChange={(event) => setCode(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!busy && code.trim()) void applyCode(event);
+              }
+            }}
             disabled={busy}
           />
-          <button type="submit" disabled={busy || !code.trim()}>{busy ? "Checking…" : "Apply"}</button>
+          <button type="button" onClick={applyCode} disabled={busy || !code.trim()}>{busy ? "Checking…" : "Apply"}</button>
         </div>
         {existing && !status ? <p>Referral applied from {existing.partnerName}.</p> : null}
         {status ? <p role="status" aria-live="polite">{status}</p> : null}
-      </form>
+      </div>
     </details>
   );
 }

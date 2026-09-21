@@ -347,8 +347,8 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     : buildCostlyIssues(data, decisions);
   const games = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.games_analyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
   const healthContract = serverDecision?.repertoireHealth || serverDecision?.repertoireCoverageScore || data.repertoireHealth || data.repertoire_health || data.repertoireCoverageScore || data.repertoire_coverage_score || null;
-  const score = Number(healthContract?.score ?? data.openingFitScore ?? data.opening_fit_score ?? fitData?.overallScore);
-  const scoreValue = Number.isFinite(score) ? Math.round(score) : null;
+  const rawScore = healthContract ? healthContract.score : data.openingFitScore ?? data.opening_fit_score ?? fitData?.overallScore;
+  const scoreValue = rawScore !== null && rawScore !== undefined && rawScore !== "" && Number.isFinite(Number(rawScore)) ? Math.round(Number(rawScore)) : null;
   const confidence = reportPresentation.reportConfidenceCode === "unavailable"
     ? `${games} analysed game${games === 1 ? "" : "s"}`
     : reportPresentation.reportConfidenceLabel;

@@ -36,7 +36,7 @@ test("sufficient report evidence and medium repair confidence remain separate", 
   const model = { ...completeModel, health: { score: 83, confidence: "Sufficient evidence", games: 72 }, repertoire: roles, authoritative: { confidence: { status: "sufficient", label: "Sufficient evidence" }, primaryProblem: { ...completeModel.primaryProblem, confidence: { label: "Medium confidence" } } } };
   const report = { repertoireHealth: { version: "repertoire_health_v3", score: 83, confidence: { status: "sufficient", label: "Sufficient evidence" }, components: [{ key: "roleCompleteness", score: 100, effectiveWeight: 100, contribution: 100, available: true }] } };
   const view = buildPrimaryReportSummary(model, report);
-  assert.equal(view.verdict, "Your repertoire is complete and performing well overall.");
+  assert.equal(view.verdict, "Your repertoire covers all three core roles with sufficient overall evidence. Individual openings can still need repair or more evidence.");
   assert.equal(view.repair.confidence, "Medium confidence");
   assert.equal(view.confidenceWarning, "");
   assert.doesNotMatch(view.verdict, /more qualifying games/i);

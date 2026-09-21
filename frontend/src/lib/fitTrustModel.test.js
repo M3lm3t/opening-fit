@@ -53,7 +53,7 @@ test("branch-level evidence repairs the branch without rejecting the opening", (
 test("legacy reports receive safe bands without treating result score as fit", () => {
   const model = buildOpeningVerdictPresentation({ games_played: 12, win_rate: 60, recommendation_label: "Keep" });
   assert.equal(model.fit.label, "Unknown");
-  assert.equal(model.performance.label, "Strong");
+  assert.equal(model.performance.label, "Unknown"); // A win rate alone cannot establish draw-inclusive performance.
   assert.equal(model.confidence.label, "Medium");
   assert.equal(model.recommendation, "Keep");
 });

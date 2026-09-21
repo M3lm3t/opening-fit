@@ -30,7 +30,8 @@ function breakdown(report = {}) {
 }
 
 function scoreContract(report = {}) {
-  const value = report.repertoireHealth || report.repertoire_health || report.repertoireCoverageScore || report.repertoire_coverage_score || report.openingFitScoreContract || report.opening_fit_score_contract || report.score_contract;
+  const decision = report.reportDecision || report.report_decision || {};
+  const value = decision.repertoireHealth || decision.repertoire_health || decision.repertoireCoverageScore || report.repertoireHealth || report.repertoire_health || report.repertoireCoverageScore || report.repertoire_coverage_score || report.openingFitScoreContract || report.opening_fit_score_contract || report.score_contract;
   return value && typeof value === "object" ? value : {};
 }
 
@@ -72,10 +73,10 @@ function healthExplanation(contract, contributors, repairStatus) {
     return "At least one core repertoire role is still a coverage gap and needs more established opening evidence.";
   }
   if (["evidenceStrength", "evidenceConfidence", "evidenceCoverage"].includes(limitingKey)) {
-    return "Your current openings need more qualifying games before the evidence is consistently reliable.";
+    return "Evidence strength has room to grow. Enough games to establish a role does not mean maximum confidence in every opening; check each role's evidence separately.";
   }
   if (limitingKey === "concentrationConsistency") {
-    return "Your evidence is spread across openings, so the repertoire is not yet consistently established.";
+    return "Evidence is spread across openings within some roles. Role coverage and confidence are shown separately.";
   }
   return "Your repertoire health reflects the available role coverage, evidence strength, consistency, and unresolved problems.";
 }

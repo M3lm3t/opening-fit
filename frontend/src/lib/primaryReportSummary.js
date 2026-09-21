@@ -6,6 +6,7 @@ import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
 import { buildAuthoritativeRoleViewModels } from "./authoritativeReportPresentation.js";
 import { Chess } from "chess.js";
 import { buildOpeningFitScoreTransparency } from "./openingFitScoreTransparency.js";
+import { canonicalResultAggregate } from "./reportResults.js";
 
 const text = (value) => String(value ?? "").replace(/\s+/g, " ").trim();
 
@@ -204,7 +205,7 @@ function observedSummary(candidate) {
   const draws = Number(observed.draws ?? sample.draws ?? combined.draws);
   const losses = Number(observed.losses ?? sample.losses ?? combined.losses);
   const knownResults = Number(observed.knownResults ?? sample.knownResults ?? sample.known_results ?? wins + draws + losses);
-  const scoreRate = Number(observed.scoreRate ?? observed.score_rate ?? sample.scoreRate ?? sample.score_rate ?? combined.scoreRate ?? combined.score_rate);
+  const scoreRate = canonicalResultAggregate(combined).scoreRate;
   const reconciled = games > 0 && [wins, draws, losses, knownResults].every(Number.isFinite) && wins + draws + losses === knownResults && knownResults <= games;
   return {
     games,
@@ -213,13 +214,13 @@ function observedSummary(candidate) {
     draws: reconciled ? draws : null,
     losses: reconciled ? losses : null,
     results: reconciled ? `${wins} W · ${draws} D · ${losses} L` : null,
-    scoreRate: Number.isFinite(scoreRate) ? `${Math.round(scoreRate * 10) / 10}% score` : null,
+    scoreRate: scoreRate !== null ? `${scoreRate}% score` : null,
     confidence: evidenceLabel(combined),
   };
 }
 
 export function buildPrimaryReportSummary(model = {}, report = {}) {
-  const healthContract = report.repertoireHealth || report.repertoire_health || model.authoritative?.repertoireHealth || model.authoritative?.repertoireCoverageScore || null;
+  const healthContract = model.authoritative?.repertoireHealth || model.authoritative?.repertoireCoverageScore || report.repertoireHealth || report.repertoire_health || null;
   const suppliedRoles = Array.isArray(model.repertoire) ? model.repertoire : [];
   const roleModels = suppliedRoles.length && suppliedRoles.every((item) => ["established", "building", "insufficient", "unresolved"].includes(item.status))
     ? suppliedRoles
@@ -273,14 +274,12 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
   primaryAction.title = formatOpeningNameForDisplay(primaryAction.title);
   const trainingReason = formatOpeningNameForDisplay(trainingPriority?.fallbackSetupDrill?.instruction || preparationReason({ problem, collectMoreGames, priority: trainingPriority, training, nextAction, fallback: rawTrainingReason }));
   const establishedRoleCount = slots.filter((slot) => slot.complete).length;
-  const completenessLabel = ({ 0: "Repertoire not established yet", 1: "Building repertoire", 2: "Nearly complete", 3: "Complete repertoire" })[establishedRoleCount] || "Repertoire status unavailable";
+  const completenessLabel = ({ 0: "No core roles established", 1: "One core role established", 2: "Two core roles established", 3: "All core roles covered" })[establishedRoleCount] || "Role coverage unavailable";
   const reportConfidenceStatus = text(healthContract?.confidence?.status || model.authoritative?.confidence?.status || model.confidence?.status).toLowerCase();
   const reportEvidenceSufficient = /sufficient|strong|high/.test(reportConfidenceStatus) && !/insufficient|limited|low/.test(reportConfidenceStatus);
   const scoreView = buildOpeningFitScoreTransparency({ model, report });
   const overallSummary = establishedRoleCount === 3 && reportEvidenceSufficient
-    ? scoreView.currentScore !== null && scoreView.currentScore >= 78
-      ? "Your repertoire is complete and performing well overall."
-      : "Your repertoire covers all three core roles with sufficient overall evidence."
+    ? "Your repertoire covers all three core roles with sufficient overall evidence. Individual openings can still need repair or more evidence."
     : establishedRoleCount < slots.length
       ? `${completenessLabel}. ${slots.length - establishedRoleCount} core role${slots.length - establishedRoleCount === 1 ? " needs" : "s need"} more trustworthy role-specific evidence.`
       : oneSentence(model);
@@ -304,7 +303,7 @@ export function buildPrimaryReportSummary(model = {}, report = {}) {
     recommendationContext: fitContext,
     trainingPriority,
     primaryAction,
-    confidence: healthContract?.confidence?.label ? `Overall Evidence Confidence: ${healthContract.confidence.label}` : text(model.health?.confidence) || "Insufficient data",
+    confidence: `Overall Evidence Confidence: ${text(model.health?.confidence) || "Unavailable"}`,
     confidenceWarning: lowConfidence && !reportEvidenceSufficient ? `This report has ${model.health?.games || 0} game${Number(model.health?.games || 0) === 1 ? "" : "s"} with enough opening information, so recommendations are provisional. More analysed games will improve confidence.` : "",
     decisionId: model.authoritative?.decisionId || model.decisionId || null,
     diagnosisId: diagnosis?.diagnosisId || diagnosis?.diagnosis_id || trainingPriority?.diagnosisId || null,

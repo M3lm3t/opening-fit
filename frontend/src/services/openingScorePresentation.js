@@ -1,7 +1,8 @@
-import { buildOpeningHealthSnapshot } from "./openingHealth";
-import { buildRepertoireMap } from "./repertoireStatus";
-import { openingPerspective } from "../lib/reportDecisionModel.js";
-import { openingFitDevelopmentState } from "../lib/openingFitScoreTransparency.js";
+import { buildOpeningHealthSnapshot } from "./openingHealth.js";
+import { buildRepertoireMap } from "./repertoireStatus.js";
+import { openingPerspective, buildReportDecisionModel } from "../lib/reportDecisionModel.js";
+import { openingFitDevelopmentState, buildOpeningFitScoreTransparency } from "../lib/openingFitScoreTransparency.js";
+import { canonicalResultAggregate } from "../lib/reportResults.js";
 
 function asArray(value) {
   return Array.isArray(value) ? value : [];
@@ -49,6 +50,9 @@ function dateFromRow(row = {}) {
 }
 
 function scoreFromReport(report = {}) {
+  const decision = report.reportDecision || report.report_decision || {};
+  const contract = decision.repertoireHealth || decision.repertoire_health || decision.repertoireCoverageScore || report.repertoireHealth || report.repertoire_health || report.repertoireCoverageScore || report.repertoire_coverage_score;
+  if (contract) return contract.score === null || contract.score === undefined || contract.score === "" ? null : Math.round(Number(contract.score));
   return numberValue(
     report.openingFitScore ??
       report.opening_fit_score ??
@@ -125,7 +129,8 @@ function scoreOpening(item = {}) {
 }
 
 function openingGames(item = {}) {
-  return numberValue(item.games ?? item.count ?? item.total ?? item.games_played ?? item.gamesPlayed, 0);
+  const count = Number(item.sample?.games ?? item.games ?? item.count ?? item.total ?? item.games_played ?? item.gamesPlayed ?? 0);
+  return Number.isFinite(count) ? Math.max(0, Math.round(count)) : 0;
 }
 
 function getHistoryPoints(reportHistory = [], currentScore = null) {
@@ -174,11 +179,11 @@ function actionForFactor(key) {
 function buildFactors({ data, health, repertoireMap, openings }) {
   const factors = [];
   const weakOpenings = openings.filter((item) => {
-    const score = scoreOpening(item);
+    const score = canonicalResultAggregate(item).scoreRate;
     return score !== null && score < 45 && openingGames(item) >= 3;
   });
   const strongOpenings = openings.filter((item) => {
-    const score = scoreOpening(item);
+    const score = canonicalResultAggregate(item).scoreRate;
     return score !== null && score >= 62 && openingGames(item) >= 3;
   });
   const weakLines = [
@@ -216,7 +221,7 @@ function buildFactors({ data, health, repertoireMap, openings }) {
       status: statusForScore(health.breakdown.recentForm),
       text:
         strongOpenings.length
-          ? `${openingName(strongOpenings[0])} ${evidenceContext(strongOpenings[0])} helps results: ${scoreOpening(strongOpenings[0])}% across ${evidenceCount(strongOpenings[0])} games.`
+          ? `${openingName(strongOpenings[0])} ${evidenceContext(strongOpenings[0])}: ${canonicalResultAggregate(strongOpenings[0]).scoreRate}% opening score across ${evidenceCount(strongOpenings[0])} games (wins plus half of draws). This is observed performance, separate from repertoire health.`
           : "Your main-opening results are still looking for one clearly positive anchor.",
       action: actionForFactor("results"),
     });
@@ -230,7 +235,7 @@ function buildFactors({ data, health, repertoireMap, openings }) {
       text:
         weakLines.length
           ? "Recurring opening problems are still showing up in the analysed games."
-          : `${openingName(weakOpenings[0])} ${evidenceContext(weakOpenings[0])} contributes weaker results: ${scoreOpening(weakOpenings[0])}% across ${evidenceCount(weakOpenings[0])} games.`,
+          : `${openingName(weakOpenings[0])} ${evidenceContext(weakOpenings[0])}: ${canonicalResultAggregate(weakOpenings[0]).scoreRate}% opening score across ${evidenceCount(weakOpenings[0])} games (wins plus half of draws). This result alone does not identify a recurring mistake.`,
       action: actionForFactor("mistakes"),
     });
   }
@@ -374,17 +379,28 @@ function buildMilestones({ data, delta, repertoireMap, openings }) {
 }
 
 export function buildOpeningScorePresentation({ data = {}, fitData = null, reportHistory = [], openingFitUserState = [] } = {}) {
+  data = data || {};
   const hasLiveData = Boolean(data && Object.keys(data).length);
+  const decisionModel = buildReportDecisionModel(data, fitData, reportHistory);
+  const transparency = buildOpeningFitScoreTransparency({ model: decisionModel, report: data });
   const health = hasLiveData ? buildOpeningHealthSnapshot(data || {}, fitData, reportHistory) : null;
   const savedHistoryPoints = getHistoryPoints(reportHistory, null);
   const savedLatestScore = savedHistoryPoints[savedHistoryPoints.length - 1]?.score ?? null;
-  const score = scoreFromReport(data) ?? (hasLiveData ? scoreFromReport({ openingHealth: health }) ?? health.score : savedLatestScore);
+  const score = hasLiveData ? transparency.currentScore : savedLatestScore;
   const historyPoints = getHistoryPoints(reportHistory, score);
   const previous = historyPoints.length >= 2 ? historyPoints[historyPoints.length - 2] : null;
-  const delta = previous && score !== null ? score - previous.score : null;
+  const delta = previous && score !== null && decisionModel.baseline.comparisonClaimsAllowed ? score - previous.score : null;
   const repertoireMap = buildRepertoireMap(data || {});
   const openings = collectOpenings(data || {});
-  const factors = health ? buildFactors({ data: data || {}, health, repertoireMap, openings }) : [];
+  const legacyFactors = health ? buildFactors({ data, health, repertoireMap, openings }) : [];
+  const factors = transparency.formulaVersion !== "openingfit_score_v1"
+    ? transparency.components.slice(0, 3).map((component) => ({ key: component.key, title: component.title, status: `${component.value}/100`, text: component.explanation, action: "report" }))
+    : legacyFactors;
+  if (transparency.formulaVersion !== "openingfit_score_v1") {
+    const strength = decisionModel.authoritative.establishedStrength;
+    const result = strength ? canonicalResultAggregate(strength) : null;
+    if (result?.scoreRate !== null && result?.scoreRate !== undefined) factors.push({ key: "results", title: "Observed opening results", status: "Separate from health", text: `${openingName(strength)}: ${result.scoreRate}% opening score across ${result.games} games (wins plus half of draws).`, action: "report" });
+  }
   const timeline = buildTimeline({ data: data || {}, historyPoints, openingFitUserState });
   const milestones = buildMilestones({ data: data || {}, delta, repertoireMap, openings });
   // A single current snapshot cannot identify improvement.  Opening-level

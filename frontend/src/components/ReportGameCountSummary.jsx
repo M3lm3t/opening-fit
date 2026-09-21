@@ -3,7 +3,7 @@ import { isSampleReport } from "../fixtures/sampleReport.js";
 
 const labelForKey = (key) => key.replace(/([A-Z])/g, " $1").replace(/^./, (letter) => letter.toUpperCase());
 
-export default function ReportGameCountSummary({ report, saveStatus = "", authenticated = false, onAccount }) {
+export default function ReportGameCountSummary({ report, saveStatus = "", authenticated = false, onAccount, showSaveStatus = true }) {
   const counts = buildReportGameCounts(report);
   const sampleMode = isSampleReport(report);
   const save = reportSaveState(saveStatus, authenticated, sampleMode);
@@ -19,7 +19,7 @@ export default function ReportGameCountSummary({ report, saveStatus = "", authen
         <span><strong>{totalImported ?? "Unavailable"}</strong> found</span>
         <span><strong>{analysed ?? "Unavailable"}</strong> analysed</span>
         <span><strong>{excluded ?? "Unavailable"}</strong> excluded</span>
-        <span><strong>{save.label}</strong></span>
+        {showSaveStatus ? <span><strong>{save.label}</strong></span> : null}
       </div>
       {excluded ? <p className="reportGameExclusionSummary">Excluded games are normal filtering outcomes, not import errors.</p> : null}
       {exclusions.confidenceNote ? <p role="status" className="reportGameConfidenceNote">{exclusions.confidenceNote}</p> : null}

@@ -54,6 +54,14 @@ test("restored reports use the same interruption-free report journey", () => {
   assert.deepEqual(restoredReportJourney(), { view: "report", path: "/report", reportMode: "summary", dialog: null, personalisationOpen: false, source: "report_restored" });
 });
 
+test("background report restoration preserves explicit destinations and report tabs", () => {
+  for (const currentPath of ["/train", "/account", "/profile", "/dashboard", "/analyse", "/report", "/report/sample", "/premium", "/guides"]) {
+    assert.equal(restoredReportJourney({ currentPath }), null, currentPath);
+  }
+  for (const currentPath of ["/", "/login"]) assert.equal(restoredReportJourney({ currentPath }).path, "/report");
+  assert.equal(completedAnalysisJourney().path, "/report");
+});
+
 test("dialog Escape closes and cleanup restores focus and background", () => {
   const attributes = new Map();
   const background = { setAttribute: (key, value) => attributes.set(key, value), removeAttribute: (key) => attributes.delete(key) };

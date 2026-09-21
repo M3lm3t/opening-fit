@@ -134,11 +134,10 @@ test("sample route and genuine empty report remain distinct", () => {
 
 test("visible sample labels use the fictional example contract", () => {
   const appSource = readFileSync(new URL("../App.jsx", import.meta.url), "utf8");
-  const summarySource = readFileSync(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
   const commandBarSource = readFileSync(new URL("../components/ReportCommandBar.jsx", import.meta.url), "utf8");
   const countSummarySource = readFileSync(new URL("../components/ReportGameCountSummary.jsx", import.meta.url), "utf8");
   const countContractSource = readFileSync(new URL("./reportGameCounts.js", import.meta.url), "utf8");
-  for (const source of [appSource, summarySource, commandBarSource]) {
+  for (const source of [appSource, commandBarSource]) {
     assert.match(source, /Illustrative example/);
     assert.match(source, /Fictional data/);
   }

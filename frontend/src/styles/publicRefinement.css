@@ -1,0 +1,93 @@
+/* Opt-in public layouts reuse the shared blue/teal tokens. */
+.appPrimaryNav .appPrimaryTheme .themeToggle { position: static !important; inset: auto; transform: none; min-height: 44px; margin: 0; }
+.appPrimaryNav .appPrimaryTheme { display: flex; align-items: center; }
+.appPrimaryNav .appPrimaryAccount[aria-current="page"] { box-shadow: inset 0 -2px 0 var(--of-color-primary); }
+.publicFooter { width: min(1180px, calc(100% - 32px)); margin: 40px auto 0; padding: 24px 0; border-top: 1px solid var(--of-color-border); color: var(--of-color-text-soft); font-size: 14px; }
+.publicFooter nav { display: flex; flex-wrap: wrap; gap: 4px 20px; margin-block: 12px; }
+.publicFooter :is(a, button) { display: inline-flex; align-items: center; min-height: 44px; font: inherit; color: var(--of-color-text-soft); background: none; border: 0; padding: 0; text-decoration: underline; text-underline-offset: 3px; }
+.publicFooter p { max-width: 70ch; font-size: 14px; }
+.publicPricingContent { width: min(1180px, calc(100% - 32px)); margin: 32px auto; }
+.publicPricingContent > h1 { font-size: clamp(28px, 4vw, 40px); }
+.publicPricingContent .subscriptionPlanCard { padding: 24px; height: auto; }
+.publicPricingContent p, .publicPricingContent li { font-size: 16px; line-height: 1.65; }
+.publicTrustPage .publicTrustContent { width: min(840px, calc(100% - 32px)); margin: 36px auto; padding: 0; color: var(--of-color-text); }
+.publicTrustContent h1, .seoPage .seoHero h1 { font-size: clamp(28px, 4vw, 42px) !important; line-height: 1.2; max-width: 24ch; }
+.publicTrustContent h2 { font-size: 24px; margin-top: 36px; }
+.publicTrustContent :is(p, li, dd) { font-size: 16px; line-height: 1.75; max-width: 70ch; color: var(--of-color-text-soft); }
+.publicTrustContent li { margin-block: 16px; }
+.publicTrustContent details { padding: 18px 24px; margin-block: 20px; border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); }
+.publicTrustContent summary { cursor: pointer; min-height: 44px; display: list-item; font-weight: 700; }
+.methodologyMetrics { display: grid; gap: 20px; }
+.methodologyMetrics dt { font-weight: 700; font-size: 16px; }
+.methodologyMetrics dd { margin: 6px 0 0; }
+.publicReadingAction { margin-top: 36px; }
+.seoPage .seoPageShell { max-width: 1180px; width: calc(100% - 32px); margin: auto; }
+.seoPage .seoGuideSectionGrid { display: grid; grid-template-columns: minmax(0, 1fr); max-width: 840px; margin-inline: auto; gap: 32px; }
+.seoPage :is(.seoGuideSectionCard, .seoGuideCard) { padding: 24px; height: auto; min-height: 0; }
+.seoPage .seoGuideSectionCard { border: 0; background: transparent; box-shadow: none; padding-inline: 0; }
+.seoPage :is(.seoGuideCardGrid, .seoGuideHero) { gap: 24px; margin-block: 36px; }
+.seoPage :is(p, li) { font-size: 16px; line-height: 1.7; max-width: 68ch; }
+.seoPage h2 { font-size: 24px; line-height: 1.3; }
+.seoPage .seoRelatedColumns nav { align-content: start; }
+.seoPage .seoRelatedColumns a { min-height: 44px; height: auto; display: flex; align-items: center; }
+.profileSignedOutAuth { max-width: 520px !important; width: 100%; margin: 32px auto !important; }
+.appReportPage .container.appShell:has(.profileSignedOutAuth) { width: calc(100% - 32px) !important; max-width: 1180px !important; padding: 0 !important; border: 0; background: transparent !important; box-shadow: none; min-height: 0 !important; }
+.profileSignedOutAuth .accountPanel--screen { width: 100% !important; max-width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
+.profileSignedOutAuth .accountPanel--screen { display: flex !important; flex-direction: column; gap: 24px; }
+.profileSignedOutAuth .accountPanelHeader { width: 100% !important; padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.profileSignedOutAuth .accountAuthStack { width: 100% !important; max-width: none !important; }
+.profileSignedOutAuth .accountAuthMode button { color: var(--of-color-text) !important; background: transparent !important; }
+.profileSignedOutAuth .accountAuthMode button.isActive { color: #fff !important; background: #0f766e !important; }
+.profileSignedOutAuth input::placeholder { color: var(--of-color-text-soft) !important; opacity: 1; font-weight: 400; }
+#login.profileSignedOutAuth { background: transparent !important; box-shadow: none !important; border: 0 !important; padding: 0 !important; }
+#profile.profileSection:has(> #login.profileSignedOutAuth), #login.profileSignedOutAuth :is(.accountPanelShell--screen, .accountPanelHeader) { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+#login.profileSignedOutAuth .accountPanelHeader h1 { max-width: none !important; }
+#login.profileSignedOutAuth .accountAuthMode button.isActive { background: #0f766e !important; color: #fff !important; }
+#login.profileSignedOutAuth input::placeholder { color: var(--of-color-text-soft) !important; opacity: 1; }
+.appReportPage .container.appShell:has(.profileSignedOutAuth) .publicFooter { width: 100%; margin-top: 36px; }
+.profileSignedOutAuth .accountPanel--screen { padding: 24px !important; min-height: 0; }
+.profileSignedOutAuth .accountPanelHeader h1 { font-size: 28px !important; line-height: 1.25 !important; }
+.profileSignedOutAuth .accountPanelHeader p { font-size: 16px; line-height: 1.6; }
+.profileSignedOutAuth .accountAuthStack { border: 0 !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; gap: 16px; }
+.profileSignedOutAuth :is(input, button) { min-height: 44px; }
+.profileSignedOutAuth .accountPasswordlessHelp { font-size: 14px; color: var(--of-color-text-soft); margin-top: -8px; }
+.publicImportRefinement.hero { padding: 24px !important; max-width: 1180px; }
+.publicImportRefinement .heroTop { display: contents !important; }
+.publicImportRefinement .heroTitleWrap h1 { font-size: clamp(28px, 4vw, 42px) !important; line-height: 1.2 !important; max-width: 24ch; }
+.publicImportRefinement .heroTitleWrap .subtext { font-size: 16px; line-height: 1.65; max-width: 62ch; }
+.publicImportRefinement .heroImportFlow { padding: 24px !important; gap: 16px; min-width: 0; margin-block: 24px; }
+.publicImportRefinement .heroImportHeader { margin: 0; }
+.publicImportRefinement .heroUsernameHelp, .publicImportRefinement .primaryActionMicrocopy, .publicImportRefinement .homepageSampleDisclaimer { font-size: 14px !important; line-height: 1.6; color: var(--of-color-text-soft); }
+.publicImportRefinement .landingAdvancedOptions summary { min-height: 44px; padding-block: 10px; font-size: 14px; cursor: pointer; }
+.publicImportRefinement .heroUsernameField input { min-height: 48px; font-size: 16px; }
+.publicImportRefinement .homepageSamplePreview { display: block !important; margin: 24px 0 0; padding: 24px; height: auto; min-height: 0; max-height: none !important; overflow: visible; }
+.publicImportRefinement { display: flex !important; flex-direction: column; }
+.publicImportRefinement .heroTitleWrap { order: 0; }
+.publicImportRefinement .heroImportFlow { order: 1; }
+.publicImportRefinement .compactTrustRow { order: 2; }
+.publicImportRefinement .homepageSamplePreview { order: 3; }
+.publicImportRefinement > .statusMessage { order: 4; }
+.homepageOutcomeStory :is(.homepageStep, .homepageSampleCta, .homepageFounderSection) { padding: 24px; }
+.homepageOutcomeStory { gap: 36px; }
+.homepageOutcomeStory p { font-size: 16px; line-height: 1.65; }
+@media (min-width: 901px) {
+  .publicImportRefinement.hero { display: grid !important; grid-template-columns: minmax(0, 1.3fr) minmax(280px, .7fr); align-items: start; gap: 24px; }
+  .publicImportRefinement .heroTitleWrap { grid-column: 1 / -1; }
+  .publicImportRefinement .heroImportFlow { grid-column: 1; grid-row: 2; margin: 0; }
+  .publicImportRefinement .homepageSamplePreview { grid-column: 2; grid-row: 2; width: 100%; max-width: none; margin: 0; }
+  .publicImportRefinement .compactTrustRow, .publicImportRefinement > .statusMessage { grid-column: 1 / -1; }
+  .publicImportRefinement .heroUsernameField { max-width: none; width: 100%; }
+  .publicImportRefinement .appActionButtons { justify-self: start; }
+}
+@media (max-width: 900px) { .appPrimaryNav .appPrimaryTheme { display: none; } }
+@media (max-width: 767px) {
+  .appPrimaryNav .appPrimaryTheme { display: none; }
+  .publicImportRefinement.hero, .publicImportRefinement .heroImportFlow, .publicImportRefinement .homepageSamplePreview, .publicPricingContent .subscriptionPlanCard, .profileSignedOutAuth .accountPanel--screen { padding: 18px !important; }
+  .publicImportRefinement .platformSelector { display: flex; gap: 8px; }
+  .publicImportRefinement .platformButton { flex: 1; min-width: 0; }
+  .publicImportRefinement .appActionButtons { width: 100%; }
+  .publicImportRefinement .appActionButtons > button { width: 100%; }
+  .publicTrustContent details { padding: 18px; }
+  .seoPage :is(.seoGuideCard, .homepageStep) { padding: 18px; }
+  .publicFooter { padding-bottom: calc(100px + env(safe-area-inset-bottom)); }
+}

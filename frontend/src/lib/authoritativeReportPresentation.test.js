@@ -127,7 +127,9 @@ test("summary completeness and every repertoire renderer consume the authoritati
 
 test("the fictional summary uses current role-completeness copy and never calls itself saved", () => {
   const source = readFileSync(new URL("../components/PrimaryReportSummary.jsx", import.meta.url), "utf8");
-  assert.match(source, /Role completeness shows whether the fictional repertoire fills all three jobs/);
-  const sampleBranch = source.slice(source.indexOf("isSampleReport(report)"), source.indexOf(": [\"repertoire_health_v2\""));
-  assert.doesNotMatch(sampleBranch, /saved report/i);
+  assert.match(source, /view\.completenessLabel/);
+  assert.match(source, /view\.establishedRoleCount.*view\.totalRoleCount/);
+  const header = readFileSync(new URL("../components/ReportCommandBar.jsx", import.meta.url), "utf8");
+  assert.match(header, /Illustrative example.*Fictional data/);
+  assert.match(header, /reportSaveState\(saveStatus, authenticated, sampleMode\)/);
 });

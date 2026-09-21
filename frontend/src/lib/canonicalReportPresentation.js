@@ -28,7 +28,7 @@ export function canonicalConfidence(value, fallback = null) {
 }
 
 export function formatCanonicalScoreRate(value, digits = 1) {
-  if (value === null || value === undefined || !Number.isFinite(Number(value))) return "Unavailable";
+  if (value === null || value === undefined || String(value).trim() === "" || !Number.isFinite(Number(value))) return "Unavailable";
   const rounded = Number(Number(value).toFixed(digits));
   return `${rounded}%`;
 }
@@ -72,7 +72,7 @@ function toContext(report, source, decision, priority) {
   const aggregate = canonicalResultAggregate(source, { precision: 2 });
   const sample = source.sample || {};
   const gameIds = unique(sample.gameIds || sample.game_ids || source.gameIds || source.game_ids || source.evidenceGameIds || source.evidence_game_ids);
-  const confidence = canonicalConfidence(source.evidenceConfidence || source.evidence_confidence || source.sampleSizeConfidence || source.sample_size_confidence || source.confidence || source.confidenceLevel || source.confidence_level, decision.confidence?.status);
+  const confidence = canonicalConfidence(source.evidenceConfidence || source.evidence_confidence || source.sampleSizeConfidence || source.sample_size_confidence || source.confidence || source.confidenceLevel || source.confidence_level);
   const diagnosis = diagnosisFor(decision, source);
   const verdict = text(source.verdict || source.recommendation).toLowerCase().replace(/_/g, "-") || "evidence-unavailable";
   const evidenceDestination = { section: diagnosis ? "problems" : "evidence", contextId, decisionId: text(source.decisionId || source.decision_id) || null, diagnosisId: text(diagnosis?.diagnosisId || diagnosis?.diagnosis_id) || null };
@@ -136,7 +136,7 @@ export function buildCanonicalReportPresentation(report = {}) {
   return Object.freeze({
     reportId: reportIdentity(report),
     contexts,
-    healthScore: Number.isFinite(Number(health?.score)) ? Math.round(Number(health.score)) : null,
+    healthScore: health?.score !== null && health?.score !== undefined && health?.score !== "" && Number.isFinite(Number(health.score)) ? Math.round(Number(health.score)) : null,
     reportConfidenceCode: reportConfidence.code,
     reportConfidenceLabel: reportConfidence.label,
     strength: owned.find((item) => item.verdict === "keep") || null,

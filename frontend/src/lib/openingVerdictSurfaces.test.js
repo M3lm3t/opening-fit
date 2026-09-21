@@ -19,6 +19,7 @@ test("command centre stays concise while detailed evidence remains in its report
 
 test("recommended, sample and share output preserve separated verdict concepts", () => {
   assert.match(source("../components/RecommendedOpeningFit.jsx"), /<OpeningVerdictSummary/);
-  assert.match(source("../components/ShareReport.jsx"), /formatOpeningVerdictText/);
+  assert.match(source("../components/ShareReport.jsx"), /buildShareReportModel/);
+  assert.match(source("./shareReportPresentation.js"), /formatOpeningVerdictText/);
   assert.match(source("../fixtures/sampleReport.js"), /fitScore: 68/);
 });

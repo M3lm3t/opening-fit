@@ -34,6 +34,7 @@ function reportDate(data, model) {
 }
 
 function evidenceConfidenceLabel(model) {
+  if (model?.health?.confidence && /confidence|evidence/i.test(model.health.confidence)) return model.health.confidence;
   const explicitLabel =
     model?.authoritative?.repertoireHealth?.confidence?.label ||
     model?.authoritative?.repertoireHealth?.confidenceLabel ||
@@ -70,6 +71,8 @@ export default function ReportCommandBar({
   onSectionChange,
   saveStatus = "",
   authenticated = false,
+  periodLabel = "Period unavailable",
+  tools,
 }) {
   if (!data) return null;
 
@@ -77,7 +80,6 @@ export default function ReportCommandBar({
   const platform = getPlatform(data);
   const games = getGames(data);
   const sampleMode = isSampleReport(data);
-  const counts = buildReportGameCounts(data);
   const save = reportSaveState(saveStatus, authenticated, sampleMode);
   const confidence = evidenceConfidenceLabel(model);
 
@@ -86,24 +88,21 @@ export default function ReportCommandBar({
   return (
     <section className="reportCommandBar" aria-label="Report command bar" data-app-action-router-ignore="true">
       <div className="reportCommandBar__summary">
-        <span className="reportCommandBar__status">{sampleMode ? "Illustrative example" : "Live report"}</span>
+        <span className="reportCommandBar__status">{sampleMode ? "Illustrative example · Fictional data" : "Your report"}</span>
         <div>
-          <strong>{username}</strong>
+          <h1 className="reportPageTitle" tabIndex="-1">{username}</h1>
           <p>
-            {sampleMode ? "Fictional data" : platform}
-            {games ? ` · ${games} game${games === 1 ? "" : "s"} analysed` : ""}
+            {periodLabel} · {games === null ? "Game count unavailable" : `${games} game${games === 1 ? "" : "s"} analysed`} · {platform}
           </p>
         </div>
       </div>
 
       <div className="reportCommandBar__context" aria-label="Report context">
-        <span>{reportDate(data, model)}</span>
-        <span>{counts.fetchedGames ?? "Unavailable"} found</span>
-        <span>{counts.usedForOpeningStats ?? "Unavailable"} used</span>
-        <span>{counts.excludedGames ?? "Unavailable"} excluded</span>
-        <span>Evidence Confidence: {confidence}</span>
+        <span>Report date: {reportDate(data, model)}</span>
+        {activeSection !== "summary" ? <span>Overall Evidence Confidence: {confidence}</span> : null}
         <span>{save.label}</span>
       </div>
+      {tools}
 
       <TabNavigation
         className="reportCommandBar__tabs"

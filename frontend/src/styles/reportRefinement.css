@@ -1,0 +1,82 @@
+/* Report-only adoption of the shared content widths, rhythm and surfaces. */
+.appReportPage .container.appShell:has(.of-report-layout) { max-width: 1180px !important; padding: 24px 0 32px !important; background: transparent !important; border: 0; box-shadow: none !important; }
+.appReportPage #app-results.appResultsShell:has(.of-report-layout) { max-width: 1180px !important; padding: 0 !important; border: 0; background: transparent; box-shadow: none; }
+.appReportPage .of-report-layout.finalReportFlow { max-width: 1180px !important; gap: var(--of-settings-section-gap) !important; font-size: 16px; line-height: 1.5; }
+.appReportPage .of-report-layout .reportCommandBar { position: static !important; display: grid !important; grid-template-columns: minmax(0, 1fr) !important; gap: 12px !important; padding: 0 !important; border: 0; border-radius: 0; background: transparent !important; box-shadow: none !important; }
+.appReportPage .of-report-layout .reportCommandBar__summary { display: grid !important; grid-column: 1 / -1 !important; gap: 8px; padding: 0 !important; border: 0; background: transparent !important; }
+.of-report-layout .reportCommandBar__status { width: fit-content; font-size: 14px; }
+.appReportPage .of-report-layout .reportPageTitle { display: block !important; position: static; width: auto; height: auto; clip: auto; clip-path: none; overflow: visible; white-space: normal; font-size: clamp(1.5rem, 3vw, 2rem) !important; line-height: 1.2 !important; margin: 0 0 8px; overflow-wrap: anywhere; }
+.appReportPage .of-report-layout .reportCommandBar { border: 0 !important; }
+.of-report-layout .reportCommandBar__summary p { font-size: 16px; margin: 0; }
+.appReportPage .of-report-layout .reportCommandBar__context { grid-column: 1 / -1 !important; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.of-report-layout .reportCommandBar__context span { font-size: 14px; color: var(--of-color-text-soft); background: transparent; padding: 0; }
+.appReportPage .of-report-layout .reportCommandBar__tabs { grid-column: 1 / -1 !important; display: flex !important; flex-wrap: wrap; justify-content: start !important; gap: 8px; padding: 0 !important; margin: 0; border: 0; border-radius: 0; background: transparent; }
+.of-report-layout .reportCommandBar__tabs button { min-height: 44px; width: auto !important; flex: 1 1 110px; max-width: 200px; font-size: 16px; }
+.of-report-layout .reportHeaderTools { min-width: 0; }
+.of-report-layout .reportSampleProvenance { font-size: 14px; margin: 0 0 8px; color: var(--of-color-text-soft); }
+.of-report-layout .reportSampleProvenance button { margin-left: 12px; }
+.of-report-layout summary { min-height: 44px; padding-block: 10px; cursor: pointer; font-size: 16px; font-weight: 700; color: var(--of-color-text); }
+.of-report-layout details { min-width: 0; }
+.of-report-layout .reportToolsDisclosure > summary { width: fit-content; }
+.of-report-layout .reportToolsDisclosure[open] { padding: var(--of-settings-card-padding); border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); }
+.of-report-layout .reportToolsDisclosure .shareReportShell, .of-report-layout .reportToolsDisclosure .exportHistoryShell { margin-block: 16px; }
+.of-report-layout .reportViewPanel { display: grid; min-width: 0; gap: var(--of-settings-section-gap); }
+.of-report-layout .reportViewPanel, .of-report-layout .reportOpeningFilters { padding: 0 !important; border: 0 !important; background: transparent !important; box-shadow: none !important; }
+.of-report-layout .reportSummaryOverview { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 24px; align-items: start; }
+.of-report-layout .primaryReportSummary { gap: 24px; }
+.of-report-layout .primaryReportHealth { display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: 12px; padding: var(--of-settings-card-padding); height: auto; min-height: 0; }
+.of-report-layout .primaryReportHealth h2 { font-size: clamp(1.5rem, 2.5vw, 2rem) !important; line-height: 1.2 !important; margin: 0; }
+.of-report-layout .reportHealthFacts { display: grid; gap: 8px; }
+.of-report-layout .reportHealthFacts strong, .of-report-layout .reportHealthFacts p { margin: 0; font-size: 16px; }
+.of-report-layout .primaryReportHealthSummary { margin: 0; font-size: 14px; color: var(--of-color-text-soft); }
+.of-report-layout .primaryReportCommand { padding: var(--of-settings-card-padding); gap: 12px; border-radius: var(--of-radius-lg); height: auto; min-height: 0; }
+.of-report-layout .primaryReportCommand p { font-size: 16px; color: var(--of-color-text-soft); }
+.of-report-layout .primaryReportCommand small, .of-report-layout .primaryReportCommand > strong { font-size: 14px; color: var(--of-color-text-soft); }
+.of-report-layout .primaryReportTrainNext { margin: 0; max-width: none; }
+.of-report-layout .primaryReportTrainNext button { margin-top: 0; }
+.of-report-layout .primaryReportCommandGrid { grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)) !important; gap: 24px; align-items: start; }
+.of-report-layout .primaryReportPriorities { display: grid; gap: 24px; }
+.of-report-layout .reportPriorityNextAction { padding-block: 16px; border-top: 1px solid var(--of-color-border); }
+.of-report-layout .reportViewHeader h2 { font-size: 24px !important; line-height: 1.3 !important; }
+.of-report-layout .reportViewHeader p { font-size: 16px; max-width: 65ch; }
+.of-report-layout .reportEvidenceDisclosure, .of-report-layout .reportMethodologyDisclosure, .of-report-layout .reportHistoryDisclosure { padding: var(--of-settings-card-padding); border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg); margin: 0; }
+.of-report-layout .reportEvidenceDisclosure > summary { font-size: 20px; }
+.of-report-layout .reportGameCountSummary, .of-report-layout .evidenceTableSection { border: 0; background: transparent; padding: 0; box-shadow: none; }
+.of-report-layout .compactEvidenceTableWrap { max-width: 100%; overflow-x: auto !important; overscroll-behavior-inline: contain; }
+.of-report-layout .compactEvidenceTable { width: 100%; min-width: 740px; table-layout: auto; }
+.of-report-layout .compactEvidenceTable { display: table !important; }
+.of-report-layout .compactEvidenceTable thead { display: table-header-group !important; }
+.of-report-layout .compactEvidenceTable tbody { display: table-row-group !important; }
+.of-report-layout .compactEvidenceTable tr { display: table-row !important; }
+.of-report-layout .compactEvidenceTable :is(th, td) { display: table-cell !important; position: static; }
+.of-report-layout .compactEvidenceTable td::before { display: none !important; }
+.of-report-layout .reportTableScrollHint { font-size: 14px; color: var(--of-color-text-soft); }
+.of-report-layout .compactEvidenceTable :is(th,td) { padding: 12px; font-size: 14px; white-space: normal; vertical-align: top; }
+.of-report-layout .compactEvidenceTable :is(th,td):first-child { min-width: 180px; max-width: 280px; }
+.of-report-layout .compactEvidenceTable button { overflow-wrap: anywhere; }
+.of-report-layout.finalReportFlow .compactEvidenceTable { min-width: 900px; }
+.of-report-layout.finalReportFlow .compactEvidenceTable thead { position: static; width: auto; height: auto; overflow: visible; clip: auto; white-space: normal; }
+.of-report-layout.finalReportFlow .compactEvidenceTable :is(th, td) { width: auto; min-width: 80px; }
+.of-report-layout.finalReportFlow .compactEvidenceTable :is(th, td):first-child { width: 220px; min-width: 180px; }
+.of-report-layout.finalReportFlow .compactEvidenceTable tr { height: auto; padding: 0; border: 0; background: transparent; }
+.of-report-layout button { min-height: 44px; height: auto; white-space: normal; }
+.of-report-layout .primaryBtn { background: var(--of-color-primary) !important; color: #03121b !important; }
+.page.light .of-report-layout .primaryBtn { background: #0f766e !important; color: #fff !important; }
+.of-report-layout p { max-width: 70ch; overflow-wrap: anywhere; }
+.contentLoadingState, .contentLoadError { padding: var(--of-settings-card-padding, 24px); border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg, 16px); color: var(--of-color-text); background: var(--of-color-surface); }
+.contentLoadingState > div { display: grid; gap: 12px; margin-top: 16px; }
+.contentLoadingState span { display: block; height: 16px; max-width: 600px; background: var(--of-color-surface-muted); border-radius: 6px; }
+.contentLoadingState span:last-child { width: 65%; }
+@media (min-width: 900px) {
+  .appReportPage .of-report-layout .reportCommandBar:not(:has(.reportToolsDisclosure[open])) { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr) !important; }
+  .appReportPage .of-report-layout .reportCommandBar:not(:has(.reportToolsDisclosure[open])) .reportCommandBar__summary { grid-column: 1 !important; grid-row: 1; }
+  .appReportPage .of-report-layout .reportCommandBar:not(:has(.reportToolsDisclosure[open])) .reportCommandBar__context { grid-column: 1 !important; grid-row: 2; }
+  .of-report-layout .reportCommandBar:not(:has(.reportToolsDisclosure[open])) .reportHeaderTools { grid-column: 2; grid-row: 1 / 3; }
+}
+@media (max-width: 767px) {
+  .of-report-layout .primaryReportCommandGrid { grid-template-columns: minmax(0, 1fr) !important; }
+  .appReportPage .container.appShell:has(.of-report-layout) { width: calc(100% - 32px) !important; }
+  .of-report-layout .reportSummaryOverview { grid-template-columns: minmax(0, 1fr); gap: 24px; }
+  .of-report-layout .primaryReportHealth, .of-report-layout .primaryReportCommand, .of-report-layout .reportEvidenceDisclosure, .of-report-layout .reportMethodologyDisclosure, .of-report-layout .reportHistoryDisclosure, .of-report-layout .reportToolsDisclosure[open] { padding: var(--of-settings-card-padding-mobile); }
+  .of-report-layout .reportSampleProvenance button { margin: 8px 0 0; }
+}

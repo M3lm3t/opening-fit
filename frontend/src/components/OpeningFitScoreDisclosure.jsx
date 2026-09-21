@@ -8,13 +8,14 @@ export default function OpeningFitScoreDisclosure({ model, report, previousRepor
   const contributionTotal = view.components.reduce((sum, component) => sum + Number(component.contribution || 0), 0);
   return (
     <details className="openingFitScoreDisclosure" open={open} onToggle={(event) => setOpen(event.currentTarget.open)}>
-      <summary id="repertoire-health-methodology-control" aria-label="Explain Repertoire Health calculation" aria-expanded={open} aria-controls="repertoire-health-methodology">How Repertoire Health is calculated</summary>
+      <summary id="repertoire-health-methodology-control" aria-label="Explain Repertoire Health calculation" aria-expanded={open} aria-controls="repertoire-health-methodology">Technical methodology: how Repertoire Health is calculated</summary>
       <div className="openingFitScoreDisclosureBody" id="repertoire-health-methodology" role="region" aria-labelledby="repertoire-health-methodology-control">
         <p className="openingFitScoreMeaning">{view.meaning}</p>
+        <p>Stored formula version: <code>{view.formulaVersion}</code>. Historical scores retain their original calculation. Opening fit estimates describe suitability, while opening score counts wins plus half of draws and win rate counts wins only.</p>
         <dl className="openingFitScoreFacts">
           <div><dt>Current Repertoire Health</dt><dd>{view.scoreDisplayLabel}</dd></div>
           <div><dt>Previous score</dt><dd>{view.previousScore === null ? "No comparable previous score" : `${view.previousScore}/100`}</dd></div>
-          <div><dt>Overall Evidence Confidence</dt><dd>{view.evidenceConfidence?.label || view.statusLabel}</dd></div>
+          <div><dt>Health evidence</dt><dd>{view.evidenceConfidence?.label || view.statusLabel}</dd></div>
           <div><dt>Games analysed</dt><dd>{view.games}</dd></div>
         </dl>
         {view.explanation ? <p><strong>{view.explanation}</strong></p> : null}

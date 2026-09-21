@@ -12,7 +12,10 @@ export function completedAnalysisJourney() {
   return { ...REPORT_JOURNEY, source: "analysis_completed" };
 }
 
-export function restoredReportJourney() {
+export function restoredReportJourney({ currentPath = "/" } = {}) {
+  // Background restoration must not replace an explicitly requested workspace
+  // or reset an existing report tab. Entry/login still opens the restored report.
+  if (!["/", "/login"].includes(currentPath)) return null;
   return { ...REPORT_JOURNEY, source: "report_restored" };
 }
 

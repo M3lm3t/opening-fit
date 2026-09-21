@@ -138,7 +138,7 @@ test("headline, history and export count surfaces consume the shared adapter", (
     "../components/ReportCommandBar.jsx",
     "../components/CleanReportHeader.jsx",
     "../components/ReportHistoryVault.jsx",
-    "../components/ShareReport.jsx",
+    "./shareReportPresentation.js",
   ]) {
     const source = fs.readFileSync(fileURLToPath(new URL(relative, import.meta.url)), "utf8");
     assert.match(source, /buildReportGameCounts/);

@@ -1,4 +1,9 @@
 :root {
+  --of-shell-max-reading: 840px;
+  --of-settings-card-padding: 24px;
+  --of-settings-card-padding-mobile: 18px;
+  --of-settings-section-gap: 36px;
+  --of-settings-related-gap: 16px;
   --of-color-page: var(--color-bg-base, #030814);
   --of-color-page-2: #07111f;
   --of-color-surface: var(--color-bg-elevated, rgba(12, 20, 32, 0.94));

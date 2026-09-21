@@ -1,0 +1,55 @@
+/* Opt-in settings primitives; keep report and marketing layouts independent. */
+.appReportPage .container.appShell:has(.of-settings-layout) { width: 100% !important; max-width: 1180px !important; padding: 24px 0 32px !important; background: transparent !important; border: 0; box-shadow: none !important; }
+.profileSection:has(> .of-settings-layout) { background: transparent; border: 0; box-shadow: none; padding-bottom: 0 !important; }
+.of-page-container--reading { --of-shell-max: var(--of-shell-max-reading); }
+.accountHub.of-settings-layout { width: 100%; max-width: var(--of-shell-max, 1180px); margin-inline: auto; padding: 0; border: 0; background: transparent; box-shadow: none; gap: var(--of-settings-section-gap); color: var(--of-color-text); font-size: 16px; line-height: 1.5; }
+.of-settings-layout .of-settings-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: var(--of-settings-section-gap); align-items: start; }
+.of-settings-layout .of-settings-reading { max-width: var(--of-shell-max-reading); grid-template-columns: minmax(0, 1fr); }
+.of-settings-layout .accountHubHeader { align-items: start; gap: 24px; }
+.of-settings-layout .accountIdentity { min-width: 0; overflow-wrap: anywhere; }
+.accountHub.of-settings-layout .accountHubHeader h1 { font-size: clamp(1.75rem, 3vw, 2.25rem) !important; line-height: 1.2 !important; margin: 0 0 16px; letter-spacing: -.02em; }
+.of-settings-layout .accountIdentity > strong { font-size: 18px; }
+.of-settings-layout .accountIdentity p { margin: 8px 0; max-width: 65ch; }
+.of-settings-layout small, .of-settings-layout .accountLabel, .of-settings-layout .accountIdentity small { font-size: 14px; color: var(--of-color-text-soft); overflow-wrap: anywhere; }
+.of-settings-layout .simpleProfileCard, .of-settings-layout .coachingReminderSettings, .of-settings-layout .accountSubscriptionCard, .of-settings-layout .accountMembershipRestore { padding: var(--of-settings-card-padding); border: 1px solid var(--of-color-border); border-radius: var(--of-radius-lg, 16px); background: var(--of-color-surface); height: auto; min-height: 0; min-width: 0; box-shadow: none; }
+.of-settings-layout .simpleProfileCard { display: grid; align-content: start; gap: var(--of-settings-related-gap); }
+.accountHub.of-settings-layout .simpleProfileCard { padding: var(--of-settings-card-padding) !important; border-radius: var(--of-radius-lg, 16px); }
+.of-settings-layout .profileLoginAnchor { position: absolute; }
+.accountHub.of-settings-layout .simpleProfileCard h2 { font-size: 22px !important; line-height: 1.3 !important; margin: 0; }
+.of-settings-layout .simpleProfileCard > p { margin: 0; }
+.of-settings-layout .simpleProfileCardHeader { gap: 8px; }
+.accountHub.of-settings-layout .accountPanelShell--profile, .accountHub.of-settings-layout .accountPanel--profile { background: transparent !important; box-shadow: none !important; border: 0 !important; }
+.of-settings-layout .accountSectionNav[role="tablist"] { margin-bottom: 0; }
+.of-settings-layout .accountSectionNav [role="tab"][aria-selected="true"] { color: var(--of-color-text); box-shadow: inset 0 -2px var(--of-color-primary); }
+.of-settings-layout p { max-width: 65ch; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
+.of-settings-layout .accountPanelShell--profile, .of-settings-layout .accountPanelShell--data-support { position: static; width: 100%; max-width: none; min-width: 0; }
+.of-settings-layout .accountPanel--data-support { position: static; inset: auto; width: 100%; height: auto; min-height: 0; max-height: none; overflow: visible; grid-auto-rows: max-content; align-content: start; padding: var(--of-settings-card-padding); }
+.of-settings-layout .accountPanel--data-support .accountLegalLinks { height: auto; min-height: 0; }
+.of-settings-layout .accountPanelShell--data-support { max-width: var(--of-shell-max-reading); z-index: auto; }
+.of-settings-layout .accountPanel--profile { width: 100%; max-width: none; padding: 0; border: 0; background: transparent; box-shadow: none; }
+.of-settings-layout .accountProfileStack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; min-width: 0; }
+.of-settings-layout .accountLoginStatusCard { padding: 16px; min-width: 0; height: auto; }
+.of-settings-layout .accountLoginStatusCard strong { font-size: 16px; overflow-wrap: anywhere; }
+.of-settings-layout .accountLabel { display: grid; gap: 8px; }
+.of-settings-layout .accountLabel input { box-sizing: border-box; width: 100%; min-width: 0; height: 46px; font-size: 16px; padding: 10px 12px; border-radius: 10px; }
+.of-settings-layout button { min-height: 44px; height: auto; white-space: normal; overflow-wrap: anywhere; border-radius: 10px; }
+.of-settings-layout .accountActions, .of-settings-layout .simpleProfilePrimaryActions { display: flex; flex-wrap: wrap; gap: 12px; }
+.of-settings-layout .simpleProfilePrimaryActions { margin-top: 24px; }
+.of-settings-layout [role="tabpanel"] { min-width: 0; }
+.of-settings-layout .accountMembershipSection { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--of-settings-section-gap); max-width: var(--of-shell-max-reading); min-width: 0; }
+.of-settings-layout .accountMembershipSection > *, .of-settings-layout .accountMembershipSection h2 { min-width: 0; max-width: 100%; box-sizing: border-box; }
+.of-settings-layout #account-panel-preferences, .of-settings-layout .accountMembershipControls { display: grid; gap: var(--of-settings-section-gap); max-width: var(--of-shell-max-reading); }
+.of-settings-layout .coachingReminderSettings summary { font-size: 20px; font-weight: 700; }
+.of-settings-layout .coachingReminderSettings label { display: flex; align-items: start; gap: 12px; font-size: 16px; margin-block: 16px; }
+.of-settings-layout .coachingReminderSettings input { flex: 0 0 20px; width: 20px; height: 20px; margin-top: 2px; }
+.of-settings-layout .coachingReminderSettings fieldset { min-width: 0; border: 1px solid var(--of-color-border); border-radius: 10px; padding: 16px; }
+.of-settings-layout .accountDangerZone { margin-top: 24px; padding: 24px; border: 1px solid var(--of-color-error); border-radius: 16px; }
+.of-settings-layout .accountSectionNav { gap: 8px; flex-wrap: wrap; }
+@media (max-width: 767px) {
+  .appReportPage .container.appShell:has(.of-settings-layout) { width: calc(100% - 32px) !important; }
+  .accountHub.of-settings-layout { gap: 32px; }
+  .of-settings-layout .of-settings-grid { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+  .of-settings-layout .accountHubHeader { flex-direction: column; }
+  .of-settings-layout .simpleProfileCard, .of-settings-layout .coachingReminderSettings, .of-settings-layout .accountSubscriptionCard, .of-settings-layout .accountMembershipRestore, .of-settings-layout .accountDangerZone { padding: var(--of-settings-card-padding-mobile); }
+  .accountHub.of-settings-layout .simpleProfileCard { padding: var(--of-settings-card-padding-mobile) !important; }
+}

@@ -102,7 +102,8 @@ test("main score surfaces reuse the central development-state helper", async () 
   assert.match(methodologySource, /repertoire_health_v3/);
   assert.match(methodologySource, /report shows its versioned components and effective weights/i);
   assert.doesNotMatch(methodologySource, /role completeness \(35%\).*concentration and consistency \(25%\)/i);
-  assert.match(methodologySource, /Historical reports retain their stored formula version/i);
+  assert.match(methodologySource, /Historical reports retain their stored scores and formula versions/i);
+  assert.doesNotMatch(methodologySource, /not silently recalculated or compared with incompatible versions/i);
 });
 
 test("versioned coverage components reconcile and keep results and repair status separate", () => {

@@ -3,6 +3,7 @@ import { CHANGELOG } from "../content/changelog";
 import { supportPath } from "../lib/trustExperience";
 import { SUPPORT_EMAIL } from "../lib/supportConfig.js";
 import { DEFAULT_PUBLIC_ANALYSIS_CONTRACT, loadPublicAnalysisContract } from "../lib/productTransparency.js";
+import PublicFooter from "./PublicFooter.jsx";
 
 export default function PublicTrustPage({ page, appTopNav }) {
   const [analysisContract, setAnalysisContract] = useState(DEFAULT_PUBLIC_ANALYSIS_CONTRACT);
@@ -33,10 +34,17 @@ export default function PublicTrustPage({ page, appTopNav }) {
         <li><strong>Classify.</strong> Move sequences and opening metadata identify an opening and the player colour. The report separates openings played by the user from openings faced as White or Black. Unusual move orders and transpositions can remain ambiguous.</li>
         <li><strong>Decide.</strong> Repeated, sufficiently supported samples can become an established strength or primary problem. Small samples receive cautious conclusions. Zero-game suggestions are labelled as experiments, not observed results. The report selects at most one established strength, one primary problem and exactly one next training action.</li>
       </ol>
-      <details open>
-        <summary>Scores, results and confidence</summary>
+      <h2>Four different questions</h2>
+      <dl className="methodologyMetrics">
+        <div><dt>Health: how is my repertoire holding up?</dt><dd>The condition and coverage of your White opening and Black replies to 1.e4 and 1.d4.</dd></div>
+        <div><dt>Performance: what happened in my games?</dt><dd>Wins, draws and losses. Opening score includes half a point for each draw; win rate counts wins only.</dd></div>
+        <div><dt>Suitability: how well might an opening fit?</dt><dd>An estimate from available opening and playing-style signals. It is not a prediction of future results.</dd></div>
+        <div><dt>Confidence: how much evidence supports this?</dt><dd>Sample size and scope affect how firmly a conclusion can be drawn. One role may need more games even when another is well supported.</dd></div>
+      </dl>
+      <details>
+        <summary>Technical methodology and formula versions</summary>
         <p>Repertoire Health describes the condition and completeness of the three repertoire roles; it is not a measure of general chess ability. Observed Performance is the actual win/draw/loss evidence. Win Rate counts wins only, while Opening Score Rate is wins plus half of draws divided by games in the opening sample. Opening Suitability is a separate deterministic fit estimate, not predicted results. Evidence Confidence describes certainty and sample scope, not performance. The current contract is <code>repertoire_health_v3</code>; the report shows its versioned components and effective weights. Recent experiments remain visible but do not lower the main score unless they become established or the user makes them main repertoire.</p>
-        <p>Historical reports retain their stored formula version and are not silently recalculated or compared with incompatible versions. Where supporting PGNs are retained, the report and training surfaces let the player inspect the games and position behind the decision.</p>
+        <p>Historical reports retain their stored scores and formula versions; they are not silently recalculated. Where supporting PGNs are retained, the report and training surfaces let the player inspect the games and position behind the decision.</p>
       </details>
       <details>
         <summary>What OpeningFit does not do</summary>
@@ -111,5 +119,5 @@ export default function PublicTrustPage({ page, appTopNav }) {
     </>,
   };
 
-  return <div className="publicTrustPage">{appTopNav()}<main className="publicTrustContent">{sections[page]}</main><footer><a href="/about">About</a><a href="/how-it-works">How analysis works</a><a href="/privacy">Privacy</a><a href="/delete-account">Delete account</a><a href="/terms">Terms</a><a href="/changelog">Changelog</a><a href={supportPath("general")}>Support</a></footer></div>;
+  return <div className="publicTrustPage">{appTopNav()}<main className="publicTrustContent">{sections[page]}{["about", "how"].includes(page) ? <p className="publicReadingAction"><a href="/analyse">Analyse your games</a> · <a href="/report/sample">Explore the fictional sample</a></p> : null}</main><PublicFooter /></div>;
 }

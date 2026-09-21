@@ -258,17 +258,18 @@ export function OpeningHubPage({ ThemeToggle, Analytics, AppTopNav = null }) {
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
+    if (AppTopNav) return;
     localStorage.setItem("openingFit:theme", seoTheme);
     document.documentElement.setAttribute("data-theme", seoTheme);
     document.body.classList.remove("light", "dark");
     document.body.classList.add(seoTheme);
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
     <>
-      <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
+      <div className={`page ${AppTopNav ? "" : seoTheme} publicLandingPage seoPage`} data-theme={AppTopNav ? undefined : seoTheme}>
         <main className="seoPageShell">
-          {AppTopNav ? <AppTopNav /> : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
+          {AppTopNav ? AppTopNav() : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
 
           <section className="seoHero openingSeoHero">
             <div>
@@ -349,17 +350,18 @@ export function OpeningNotFoundPage({ slug, ThemeToggle, Analytics, AppTopNav = 
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
+    if (AppTopNav) return;
     localStorage.setItem("openingFit:theme", seoTheme);
     document.documentElement.setAttribute("data-theme", seoTheme);
     document.body.classList.remove("light", "dark");
     document.body.classList.add(seoTheme);
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
     <>
-      <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
+      <div className={`page ${AppTopNav ? "" : seoTheme} publicLandingPage seoPage`} data-theme={AppTopNav ? undefined : seoTheme}>
         <main className="seoPageShell">
-          {AppTopNav ? <AppTopNav /> : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
+          {AppTopNav ? AppTopNav() : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
           <section className="seoBottomCta openingNotFound">
             <p className="seoEyebrow">Opening not found</p>
             <h1>No opening guide for {slug || "that page"} yet</h1>
@@ -382,17 +384,18 @@ export default function OpeningLandingPage({ opening, ThemeToggle, Analytics, Ap
   const [seoTheme, setSeoTheme] = useState(() => localStorage.getItem("openingFit:theme") || "dark");
 
   useEffect(() => {
+    if (AppTopNav) return;
     localStorage.setItem("openingFit:theme", seoTheme);
     document.documentElement.setAttribute("data-theme", seoTheme);
     document.body.classList.remove("light", "dark");
     document.body.classList.add(seoTheme);
-  }, [seoTheme]);
+  }, [seoTheme, AppTopNav]);
 
   return (
     <>
-      <div className={`page ${seoTheme} publicLandingPage seoPage`} data-theme={seoTheme}>
+      <div className={`page ${AppTopNav ? "" : seoTheme} publicLandingPage seoPage`} data-theme={AppTopNav ? undefined : seoTheme}>
         <main className="seoPageShell openingSeoPage">
-          {AppTopNav ? <AppTopNav /> : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
+          {AppTopNav ? AppTopNav() : <OpeningTopNav ThemeToggle={ThemeToggle} seoTheme={seoTheme} setSeoTheme={setSeoTheme} />}
 
           <section className="seoHero openingSeoHero">
             <div>

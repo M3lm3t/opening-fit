@@ -1,0 +1,28 @@
+/* Confirmed acceptance defects; scope fixes to the affected controls. */
+html[data-theme] .appPrimaryNav .appPrimaryTheme .themeToggle,
+html[data-theme] .appPrimaryNav .appPrimaryTheme .themeToggle:hover {
+  background: var(--of-color-surface) !important;
+  color: var(--of-color-text) !important;
+}
+html[data-theme] .appPrimaryNav .appPrimaryTheme .themeToggle :is(span, strong) {
+  background: transparent !important;
+  color: inherit !important;
+}
+html[data-theme] #import.heroImportFlow .platformButtonActive { background: #0f766e !important; color: #fff !important; }
+html[data-theme="light"] #import.heroImportFlow .primaryBtn { background: #0f766e !important; color: #fff !important; }
+html[data-theme="light"] .seoPage .openingFitProfileCard dt { color: var(--of-color-text-soft) !important; }
+html[data-theme="light"] .seoPage .seoRelatedColumns a { color: var(--of-color-text) !important; background: var(--of-color-surface) !important; }
+html[data-theme] .chessPositionBoard .cleanReplayLight :is(.cleanReplayRank, .cleanReplayFile) { color: #0f172a !important; background: #dbe7ea; }
+html[data-theme] .chessPositionBoard .cleanReplayDark :is(.cleanReplayRank, .cleanReplayFile) { color: #fff !important; background: #243746; }
+html[data-theme="light"] :is(.thisWeekSummary, .premiumWeeklyOverview, .premiumTrainingHistory) dt {
+  color: var(--of-color-text-soft) !important;
+}
+html[data-theme="light"] .positionPlanGrid article,
+html[data-theme="light"] .practiceMoveExplanationItem .moveIdeaTag {
+  background: var(--of-color-surface);
+  border-color: var(--of-color-border);
+}
+html[data-theme="light"] .positionPlanGrid article :is(span, p),
+html[data-theme="light"] .practiceMoveExplanationItem .moveIdeaTag {
+  color: var(--of-color-text-soft) !important;
+}

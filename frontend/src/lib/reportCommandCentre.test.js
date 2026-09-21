@@ -74,9 +74,10 @@ test("report tabs, methodology and informational context expose accessible seman
   assert.match(flow, /role="tabpanel"/);
   assert.match(command, /reportCommandBar__context/);
   assert.match(command, /buildReportGameCounts\(data\)/);
-  assert.match(command, /counts\.fetchedGames/);
-  assert.match(command, /counts\.usedForOpeningStats/);
-  assert.match(command, /counts\.excludedGames/);
+  assert.match(command, /periodLabel/);
+  assert.match(command, /games.*analysed/);
+  assert.match(flow, /<ReportGameCountSummary/);
+  assert.match(flow, /Included and excluded games/);
   assert.match(command, /sufficient: "Sufficient evidence"/);
   assert.doesNotMatch(command, /model\?\.health\?\.confidence \|\| "Unavailable"/);
   assert.doesNotMatch(command, /reportCommandBar__context[\s\S]*?<button/);
