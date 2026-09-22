@@ -6,6 +6,7 @@ from typing import Any, Mapping, TypedDict
 
 DRAW_RESULTS = frozenset({"1/2-1/2", "draw", "agreed", "repetition", "stalemate", "insufficient", "50move", "timevsinsufficient"})
 LOSS_RESULTS = frozenset({"loss", "lose", "checkmated", "resigned", "timeout"})
+CLASSIFICATION_CONTRACT_VERSION = 2
 
 
 def canonical_player_result(game: Mapping[str, Any], player_colour: str) -> str:
@@ -153,7 +154,7 @@ def build_classified_game_record(
             "ownership": ownership,
             "repertoireRoleEligibility": player_role if player_role != "unknown" else "ineligible",
             "canonicalContextId": context_id,
-            "classificationContractVersion": 1,
+            "classificationContractVersion": CLASSIFICATION_CONTRACT_VERSION,
             "classificationConflictReason": classification_conflict_reason or None,
         })
     return record

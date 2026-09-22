@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from math import fsum, isclose
 from dataclasses import dataclass
 from typing import Any
 
@@ -549,13 +550,18 @@ def structure_signals(moves: list[str]) -> list[dict[str, Any]]:
     if early[:2] == ["e4", "c6"]:
         add("Caro-Kann Defence", 0.92, "Black answers 1.e4 with ...c6 and prepares ...d5.")
 
-    if "e4" in white and "c5" in black and early[:1] != ["c4"]:
+    # A later ...c5 break after an established ...e6/...d5 shell is not
+    # evidence of a Sicilian entry (notably the transposed French Advance).
+    if "e4" in white and "c5" in black and early[:1] != ["c4"] and not has_all(black[:black.index("c5")], {"e6", "d5"}):
         add("Sicilian Defence", 0.86, "The game transposes to a 1.e4 versus ...c5 Sicilian structure.", 36, "transposition")
     if "e4" in white and "e6" in black and "d5" in black:
         add("French Defence", 0.86, "Black reaches the French ...e6/...d5 structure against e4.", 36, "transposition")
     if "e4" in white and "c6" in black and "d5" in black:
         add("Caro-Kann Defence", 0.86, "Black reaches the Caro-Kann ...c6/...d5 structure against e4.", 36, "transposition")
-    if "e4" in white and "d5" in black and (early[:2] == ["e4", "d5"] or "exd5" in white or "e5" in white):
+    # Historic pawn moves alone also match French Advance/Exchange positions.
+    # Keep the demonstrated Scandinavian entry; unsupported transpositions
+    # must not acquire this family from e5 or exd5 alone.
+    if early[:2] == ["e4", "d5"]:
         add("Scandinavian Defence", 0.88, "The early e4 versus ...d5 structure is Scandinavian even if the follow-up varies.", 36, "transposition")
 
     if has_all(white, {"d4", "c4"}) and has_all(black, {"d5", "c6"}):
@@ -584,8 +590,8 @@ def structure_signals(moves: list[str]) -> list[dict[str, Any]]:
 
     if "d4" in white and "Nc3" in white and "Bf4" in white and "c4" not in white:
         add("Jobava London System", 0.88, "White combines d4, Nc3, and Bf4 in a Jobava London setup.", 40, "transposition")
-    elif "d4" in white and ("Bf4" in white or "Bg5" in white) and ("Nf3" in white or "e3" in white or "c3" in white):
-        add("London System", 0.84, "White builds a d4 plus Bf4/Bg5 system setup.", 36, "transposition")
+    elif "d4" in white and "Bf4" in white and ("Nf3" in white or "e3" in white or "c3" in white):
+        add("London System", 0.84, "White has played d4 and Bf4 in a London system setup.", 36, "transposition")
 
     if "e4" in white and "d4" in white and "d6" in black and "Nf6" in black and ("g6" in black or "Bg7" in black):
         add("Pirc Defence", 0.88, "Black reaches the Pirc ...d6/...Nf6/...g6 setup against e4/d4.", 40, "transposition")
@@ -664,10 +670,23 @@ def aggregate_signals(signals: list[dict[str, Any]]) -> dict[str, Any]:
             "classificationConfidence": 0.0,
         }
 
-    scores: dict[str, float] = {}
+    contributions: dict[str, list[float]] = {}
     for signal in signals:
         opening = normalise_opening_name(signal["opening"])
-        scores[opening] = scores.get(opening, 0) + float(signal.get("weight", 0)) * float(signal.get("confidence", 0))
+        contributions.setdefault(opening, []).append(float(signal.get("weight", 0)) * float(signal.get("confidence", 0)))
+    scores = {opening: fsum(values) for opening, values in contributions.items()}
+
+    highest = max(scores.values())
+    if sum(isclose(score, highest, rel_tol=1e-12, abs_tol=1e-12) for score in scores.values()) > 1:
+        # Reuse the unresolved contract: no family, rule, ownership or confidence
+        # may be inferred from a tied vote. Preserve diagnostics without choosing
+        # a semantic winner based on insertion or alphabetical order.
+        unresolved = aggregate_signals([])
+        unresolved["signals"] = sorted(signals, key=lambda row: (
+            -float(row.get("weight", 0)) * float(row.get("confidence", 0)),
+            normalise_opening_name(row["opening"]), str(row.get("ruleId") or ""),
+        ))
+        return unresolved
 
     best_opening = max(scores, key=scores.get)
     best_score = min(100, round(scores[best_opening]))
