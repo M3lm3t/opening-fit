@@ -98,8 +98,11 @@ def test_first_report_is_baseline_and_cannot_claim_improvement():
 
 
 def test_genuine_later_comparable_report_allows_comparison_claims():
-    previous = {**report("2026-06-23T12:00:00Z", games=10), "repertoireHealth": {"version": "repertoire_health_v4"}}
-    decision = build_report_decision(report("2026-07-23T12:00:00Z", games=12), openings=[], previous_report=previous)
+    import json
+    from pathlib import Path
+    fixture = json.loads((Path(__file__).resolve().parents[2] / "frontend/src/lib/fixtures/comparisonPolicyCases.json").read_text())[0]
+    previous, current = fixture["previous"], fixture["current"]
+    decision = build_report_decision(current, openings=[], previous_report=previous)
     assert decision["baseline"]["status"] == "comparable_later_report"
     assert decision["baseline"]["comparisonClaimsAllowed"] is True
 

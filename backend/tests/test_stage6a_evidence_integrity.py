@@ -146,7 +146,7 @@ def test_new_generation_cannot_compare_with_saved_old_health():
     assert not reports_are_comparable(current, previous)
     assert previous == before
     previous["repertoireHealth"]["version"] = "repertoire_health_v4"
-    assert reports_are_comparable(current, previous)
+    assert not reports_are_comparable(current, previous)  # Versions alone do not establish cohort provenance.
 
 
 def test_aggregate_only_preference_does_not_require_history():
@@ -200,5 +200,8 @@ def test_import_callers_keep_same_opening_opposite_colours_separate(monkeypatch,
     assert {row["sample"]["games"] for row in candidates} == {5}
     assert all(row["sample"]["wins"] == (5 if row["playerColour"] == "white" else 0) for row in candidates)
     assert len(result["analysis_game_index"]) == 10
+    assert set(result["comparisonCohort"]["gameIds"]) == {game["gameId"] for game in result["analysis_game_index"]}
+    assert result["comparisonCohort"]["timeControls"] == ["rapid"]
+    assert result["comparisonCohort"]["timeControlFilter"] == "custom"
     assert result["reportDecision"]["version"] == "report_decision_v7"
     assert_decision_consistency(result["reportDecision"])

@@ -1,3 +1,4 @@
+import { comparisonEligibility } from "../lib/comparisonPolicy.js";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { adaptReportHistoryRow } from "../lib/reportSnapshot";
@@ -330,7 +331,7 @@ function signedDelta(delta, suffix = "") {
 }
 
 function buildWhatChanged(previous, current) {
-  if (!previous || !current) return null;
+  if (!previous || !current || !comparisonEligibility(previous, current).comparable) return null;
 
   const previousSnapshot = snapshotFromHistoryItem(previous) || previous;
   const currentSnapshot = snapshotFromHistoryItem(current) || current;
@@ -378,7 +379,7 @@ function buildWhatChanged(previous, current) {
           trainingDelta !== null
             ? "Training completion data was found in saved history."
             : weakestChanged
-              ? "Your main repair target moved, which can mean the old one improved or a new one appeared."
+              ? "The selected review target changed; this does not establish that an earlier issue was resolved."
               : "Older reports did not include training progress.",
       },
     ],

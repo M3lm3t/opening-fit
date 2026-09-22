@@ -206,32 +206,8 @@ def _opening_suitability_contract(item: Mapping[str, Any], *, fit_score: Optiona
 
 
 def reports_are_comparable(current: Mapping[str, Any], previous: Optional[Mapping[str, Any]]) -> bool:
-    if not previous:
-        return False
-    def version(report):
-        decision = report.get("reportDecision") or report.get("report_decision") or {}
-        contract = (decision.get("repertoireHealth") or report.get("repertoireHealth") or report.get("repertoire_health")
-                    or report.get("repertoireCoverageScore") or report.get("repertoire_coverage_score")
-                    or report.get("openingFitScoreContract") or report.get("opening_fit_score_contract") or report.get("score_contract") or {})
-        return contract.get("version") or contract.get("formulaVersion") or contract.get("formula_version")
-    current_version, previous_version = version(current), version(previous)
-    if REPERTOIRE_HEALTH_VERSION in {current_version, previous_version} and current_version != previous_version:
-        return False
-    current_platform = str(current.get("platform") or current.get("importPlatform") or "").lower()
-    previous_platform = str(previous.get("platform") or previous.get("importPlatform") or "").lower()
-    current_user = normalise_player_identifier(current.get("username") or current.get("playerName"))
-    previous_user = normalise_player_identifier(previous.get("username") or previous.get("playerName"))
-    if current_platform and previous_platform and current_platform != previous_platform:
-        return False
-    if current_user and previous_user and current_user != previous_user:
-        return False
-    current_games = int(_number(current.get("gamesAnalysed") or current.get("gamesImported") or current.get("total_games")) or 0)
-    previous_games = int(_number(previous.get("gamesAnalysed") or previous.get("gamesImported") or previous.get("total_games")) or 0)
-    if min(current_games, previous_games) < MIN_COMPARABLE_REPORT_GAMES:
-        return False
-    current_date = _iso(current.get("importedAt") or current.get("lastUpdated"))
-    previous_date = _iso(previous.get("importedAt") or previous.get("lastUpdated"))
-    return bool(current_date and previous_date and previous_date < current_date)
+    from analysis.comparison_policy import comparison_eligibility
+    return comparison_eligibility(previous, current)["comparable"]
 
 
 def _report_games(report: Mapping[str, Any]) -> list[Mapping[str, Any]]:
@@ -1597,7 +1573,7 @@ def _build_opening_diagnosis(target: Mapping[str, Any], report: Mapping[str, Any
     )
     confidence, confidence_reason = _diagnosis_confidence(len(diagnosis_games), precision)
     if precision == "exact_position":
-        diagnosis_text = f"You reached this legal position in {len(diagnosis_games)} games and chose {len(continuations)} different continuations. This is the first strongest repeated position where your plan is inconsistent."
+        diagnosis_text = f"You reached this legal position in {len(diagnosis_games)} games and chose {len(continuations)} different continuations. These are varied legal continuations; the available evidence does not establish a move error."
         task = (
             f"Replay the {min(3, len(representative_ids))} supplied {opening} games to this position, compare your continuations, then rehearse {trusted_continuation['move']} from your {trusted_continuation['sourceLabel']}."
             if trusted_continuation else
@@ -2216,7 +2192,7 @@ def build_report_decision(
     })
 
     total_games = int(_number(report.get("gamesAnalysed") or report.get("gamesImported") or report.get("total_games")) or 0)
-    comparable = reports_are_comparable({**report, "reportDecision": {}, "report_decision": {}, "repertoireHealth": {"version": REPERTOIRE_HEALTH_VERSION}}, previous_report)
+    comparable = reports_are_comparable({**report, "reportDecision": {"version": "report_decision_v7"}, "report_decision": {}, "repertoireHealth": {"version": REPERTOIRE_HEALTH_VERSION}}, previous_report)
     coverage = _report_coverage(total_games)
     training_priority = _training_priority(action, recommendations, report)
     opening_diagnosis = training_priority.get("openingDiagnosis")

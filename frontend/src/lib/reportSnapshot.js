@@ -109,6 +109,8 @@ function recommendationSlots(report = {}) {
 
 function openingRows(report = {}, summary = {}) {
   const candidates = [
+    report.reportDecision?.recommendations,
+    report.report_decision?.recommendations,
     report.top_openings,
     report.topOpenings,
     report.best_openings,
@@ -118,10 +120,14 @@ function openingRows(report = {}, summary = {}) {
     summary.topOpenings,
   ];
   const rows = candidates.find((items) => Array.isArray(items) && items.length) || [];
-  return rows.map((item) => {
+  return rows.map((entry) => {
+    const item = { ...entry, ...(entry.sample || {}) };
     const games = numberOrNull(first(item?.games, item?.count, item?.total, item?.sample_size, item?.sampleSize));
     return {
-      name: cleanText(first(item?.name, item?.opening, item?.eco_name, item?.label)),
+      name: cleanText(first(item?.name, item?.opening, item?.openingName, item?.eco_name, item?.label)),
+      canonical_context_id: item.canonicalContextId || item.canonical_context_id || null,
+      repertoire_role: item.repertoireRole || item.repertoire_role || null,
+      playerColour: item.playerColour || item.colour || item.color || null,
       context: cleanText(first(item?.openingRole, item?.opening_role, item?.perspective?.role, item?.context, item?.repertoireContext, item?.repertoire_context)),
       colour: cleanText(first(item?.colour, item?.color, item?.side)),
       opening_role: cleanText(first(item?.openingRole, item?.opening_role, item?.perspective?.role)),
@@ -134,7 +140,8 @@ function openingRows(report = {}, summary = {}) {
       draws: numberOrNull(first(item?.draws, item?.draw_count)),
       losses: numberOrNull(first(item?.losses, item?.loss_count)),
       score: numberOrNull(first(item?.score, item?.fitScore, item?.fit_score)),
-      win_rate: numberOrNull(first(item?.winRate, item?.win_rate, item?.scoreRate, item?.score_rate)),
+      win_rate: numberOrNull(first(item?.winRate, item?.win_rate)),
+      score_rate: numberOrNull(first(item?.scoreRate, item?.score_rate)),
       confidence: {
         label: cleanText(first(item?.fitConfidence, item?.confidenceLabel, item?.confidence, item?.signal)) || "insufficient data",
         sample_size: games,
@@ -250,7 +257,7 @@ export function buildReportSnapshot({
   reportId = makeUuid(),
   defaultGeneratedAt = true,
 } = {}) {
-  const generatedAt = isoOrNull(first(summary.reportDate, summary.generatedAt, summary.generated_at, report.importedAt, report.imported_at, report.lastUpdated, report.last_updated)) || (defaultGeneratedAt ? new Date().toISOString() : null);
+  const generatedAt = isoOrNull(first(summary.reportDate, summary.generatedAt, summary.generated_at, report.generated_at, report.importedAt, report.imported_at, report.lastUpdated, report.last_updated)) || (defaultGeneratedAt ? new Date().toISOString() : null);
   const fitScore = numberOrNull(first(
     report.openingfitScore,
     report.openingfit_score,
@@ -347,6 +354,7 @@ export function buildReportSnapshot({
     active_repertoire: activeRepertoire && typeof activeRepertoire === "object" ? activeRepertoire : null,
     report_decision: reportDecision,
     training_priority: trainingPriority,
+    comparison_cohort: report.comparisonCohort || report.comparison_cohort || null,
     analysis_metadata: {
       analysis_id: analysisId,
       analysis_version: cleanText(first(report.analysisVersion, report.analysis_version)),

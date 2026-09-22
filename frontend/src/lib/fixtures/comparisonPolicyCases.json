@@ -1,0 +1,1754 @@
+[
+  {
+    "name": "same-generation complete cohort",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": true
+  },
+  {
+    "name": "health repertoire_health_v3",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v3",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "health repertoire_health_v99",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v99",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "health None",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": null,
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "decision report_decision_v6",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v6"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "decision report_decision_v99",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v99"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "decision None",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": null
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "different player",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "Other",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "different platform",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "lichess",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "missing cohort",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {}
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort windowMonths6",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 6,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort timeControlFilterblitz",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "blitz",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort analysisLimit200",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 200,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort selectionRulerandom",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "random",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort classificationVersion2",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 2,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort timeControls['blitz']",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "blitz"
+        ],
+        "gameIds": [
+          "b0",
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5",
+          "b6",
+          "b7",
+          "b8",
+          "b9",
+          "b10",
+          "b11",
+          "b12",
+          "b13",
+          "b14",
+          "b15",
+          "b16",
+          "b17",
+          "b18",
+          "b19"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort gameIds['b1', 'b2', 'b3', '",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "b1",
+          "b2",
+          "b3",
+          "b4",
+          "b5"
+        ]
+      }
+    },
+    "comparable": false
+  },
+  {
+    "name": "cohort gameIds['a0', 'a1', 'a2', '",
+    "previous": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 60,
+      "importedAt": "2026-01-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 60
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "current": {
+      "username": "FixturePlayer",
+      "platform": "chess.com",
+      "gamesAnalysed": 20,
+      "openingFitScore": 70,
+      "importedAt": "2026-02-01T00:00:00Z",
+      "repertoireHealth": {
+        "version": "repertoire_health_v4",
+        "score": 70
+      },
+      "reportDecision": {
+        "version": "report_decision_v7"
+      },
+      "comparisonCohort": {
+        "version": "report_comparison_v1",
+        "windowMonths": 3,
+        "timeControlFilter": "all",
+        "selectionRule": "newest_first",
+        "analysisLimit": 100,
+        "filterPolicyVersion": 2,
+        "classificationVersion": 1,
+        "timeControls": [
+          "rapid"
+        ],
+        "gameIds": [
+          "a0",
+          "a1",
+          "a2",
+          "a3",
+          "a4",
+          "a5",
+          "a6",
+          "a7",
+          "a8",
+          "a9",
+          "a10",
+          "a11",
+          "a12",
+          "a13",
+          "a14",
+          "a15",
+          "a16",
+          "a17",
+          "a18",
+          "a19"
+        ]
+      }
+    },
+    "comparable": false
+  }
+]

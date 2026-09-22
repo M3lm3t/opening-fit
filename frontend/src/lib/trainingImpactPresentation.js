@@ -28,6 +28,7 @@ function outcomeSource(report = {}, reportHistory = [], repertoireEntries = []) 
 }
 
 function applicationText(outcome, context) {
+  if (outcome.metric === "saved_line_adherence_v1") return outcome.explanation || "Saved-line adherence is observed; move quality is unassessed.";
   const later = count(outcome.laterGameCount);
   const correct = count(outcome.correctApplicationCount);
   const repeated = count(outcome.repeatedMistakeCount);

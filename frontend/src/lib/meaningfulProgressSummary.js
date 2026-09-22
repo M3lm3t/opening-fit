@@ -1,3 +1,4 @@
+import { openingContextIdentity, observedOpeningPerformance } from "./comparisonPolicy.js";
 import { compareReportSnapshots, REPORT_COMPARISON_RULES } from "./reportComparison.js";
 import { selectPreviousReportSnapshot } from "./reportComparisonPresentation.js";
 
@@ -8,18 +9,15 @@ function recommendationMap(snapshot = {}) {
   const decision = snapshot.report_decision || snapshot.reportDecision || {};
   return new Map(list(decision.recommendations).map((item) => {
     const opening = text(item.opening || item.openingName);
-    const role = text(item.repertoireRole || item.repertoire_role || item.role);
-    const id = text(item.recommendationId || item.recommendation_id || item.openingId || item.opening_id)
-      || `${opening.toLowerCase()}::${role.toLowerCase()}`;
-    const sample = item.sample || {};
+    const id = openingContextIdentity(item);
     return [id, {
       opening,
       verdict: text(item.verdict || item.decision).toLowerCase(),
-      games: Number(sample.games ?? item.games) || 0,
-      score: Number(sample.scoreRate ?? sample.score_rate ?? item.scoreRate ?? item.score_rate),
+      games: Number(item.sample?.games ?? item.games) || 0,
+      score: observedOpeningPerformance(item)?.scoreRate ?? null,
       confidence: text(item.confidence?.label || item.confidence || item.confidenceLabel),
     }];
-  }).filter(([, item]) => item.opening && item.verdict));
+  }).filter(([id, item]) => id && item.opening && item.verdict));
 }
 
 function confidenceIsUsable(label, games) {
@@ -33,7 +31,7 @@ function decisionChanges(previous, current) {
   const rows = [];
   now.forEach((currentItem, id) => {
     const old = before.get(id);
-    if (!old || old.verdict === currentItem.verdict) return;
+    if (!old || old.verdict === currentItem.verdict || currentItem.games < old.games) return;
     if (!confidenceIsUsable(old.confidence, old.games) || !confidenceIsUsable(currentItem.confidence, currentItem.games)) return;
     if (![["keep", "repair"], ["repair", "keep"]].some(([from, to]) => old.verdict === from && currentItem.verdict === to)) return;
     const additional = Math.max(0, currentItem.games - old.games);
@@ -44,9 +42,9 @@ function decisionChanges(previous, current) {
     ].filter(Boolean).join("; ");
     rows.push({
       key: `decision:${id}`,
-      category: currentItem.verdict === "keep" ? "RESOLVED" : "NEW ISSUE",
+      category: "VERDICT CHANGE",
       title: currentItem.opening,
-      text: `${old.verdict.toUpperCase()} to ${currentItem.verdict.toUpperCase()} after ${evidence}.`,
+      text: `${old.verdict.toUpperCase()} to ${currentItem.verdict.toUpperCase()} after ${evidence}. A changed verdict does not establish a corrected move error.`,
     });
   });
   return rows;
@@ -96,8 +94,8 @@ export function buildMeaningfulProgressSummary({ currentSnapshot = null, reportS
     text: `${item.frequency} supporting game${item.frequency === 1 ? "" : "s"} established this as a new repair signal.`,
   }));
   comparison.continuedWeaknesses.forEach((item) => rows.push({
-    key: `repeated:${item.key}`, category: "REPEATED", title: item.opening || item.title,
-    text: `${item.frequency} supporting game${item.frequency === 1 ? "" : "s"} still contain this canonical weakness.`,
+    key: `repeated:${item.key}`, category: "REVIEW EVIDENCE", title: item.opening || item.title,
+    text: item.evidence,
   }));
   comparison.repertoireChanges
     .filter((item) => item.type === "role establishment changed" && item.currentEstablished)

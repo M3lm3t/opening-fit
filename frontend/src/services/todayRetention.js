@@ -1,3 +1,4 @@
+import { comparisonEligibility } from "../lib/comparisonPolicy.js";
 function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
@@ -346,7 +347,7 @@ export function buildTodayHeader({ profile = null, data = {}, reportHistory = []
     .map((row) => ({ row, score: reportScore(row), time: getReportDate(row) }))
     .filter((row) => row.score !== null)
     .sort((a, b) => b.time - a.time);
-  const previousScore = sortedReports.find((row) => getReportPayload(row.row) !== data)?.score ?? null;
+  const previousScore = sortedReports.find((row) => comparisonEligibility(getReportPayload(row.row), data).comparable)?.score ?? null;
   const scoreDelta = score !== null && previousScore !== null ? score - previousScore : null;
   const streak = buildStreak(activity, date);
   const hasReport = getGameCount(data) > 0 || collectOpenings(data).length > 0;
@@ -362,9 +363,9 @@ export function buildTodayHeader({ profile = null, data = {}, reportHistory = []
     summary: hasReport
       ? scoreDelta === null
         ? score !== null
-          ? `Your opening score is ${score}. Analyse again after more games to track movement.`
+          ? `Your Repertoire Health is ${score}. Analyse again after more games to track movement.`
           : "Your report is ready. Complete one useful task today to keep momentum."
-        : `Your opening score is ${score}, ${scoreDelta >= 0 ? "up" : "down"} ${Math.abs(scoreDelta)} since your previous report.`
+        : `Your Repertoire Health is ${score}, ${scoreDelta >= 0 ? "up" : "down"} ${Math.abs(scoreDelta)} since your previous report.`
       : "Analyse your games and OpeningFit will turn the report into a daily plan.",
   };
 }

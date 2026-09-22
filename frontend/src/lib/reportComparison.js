@@ -1,5 +1,5 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
-import { compatibleEvidenceGeneration } from "./generationCompatibility.js";
+import { comparisonEligibility, openingContextIdentity, observedOpeningPerformance } from "./comparisonPolicy.js";
 
 export const REPORT_COMPARISON_RULES = Object.freeze({
   minimumReportGames: 5,
@@ -23,29 +23,8 @@ function text(value) {
   return cleaned || null;
 }
 
-function sameKnownValue(left, right) {
-  if (left === null || left === undefined || left === "" || right === null || right === undefined || right === "") return true;
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-
 export function reportComparisonCompatibility(previous = {}, current = {}) {
-  const reasons = [];
-  if (!compatibleEvidenceGeneration(previous, current)) reasons.push("The evidence generation version changed; these reports are not directly comparable.");
-  const previousPlatform = text(previous.source_platform)?.toLowerCase();
-  const currentPlatform = text(current.source_platform)?.toLowerCase();
-  const previousUsername = text(previous.source_username)?.toLowerCase();
-  const currentUsername = text(current.source_username)?.toLowerCase();
-  if (!sameKnownValue(previousPlatform, currentPlatform)) reasons.push("The source platform changed.");
-  if (!sameKnownValue(previousUsername, currentUsername)) reasons.push("The chess username changed.");
-  const beforeMetadata = previous.analysis_metadata || {};
-  const currentMetadata = current.analysis_metadata || {};
-  if (!sameKnownValue(beforeMetadata.analysis_time_format, currentMetadata.analysis_time_format)) reasons.push("The time-control filter changed.");
-  if (!sameKnownValue(beforeMetadata.import_months, currentMetadata.import_months)) reasons.push("The report window changed.");
-  if (!sameKnownValue(beforeMetadata.filters, currentMetadata.filters)) reasons.push("The report filters changed.");
-  const beforeControls = list(previous.time_controls_included).map(String).sort();
-  const currentControls = list(current.time_controls_included).map(String).sort();
-  if (beforeControls.length && currentControls.length && JSON.stringify(beforeControls) !== JSON.stringify(currentControls)) reasons.push("The included time controls changed.");
-  return { comparable: reasons.length === 0, reasons };
+  return comparisonEligibility(previous, current);
 }
 
 function canonicalOpening(name) {
@@ -57,7 +36,7 @@ function canonicalOpening(name) {
 }
 
 function openingSide(opening = {}) {
-  const value = String(opening.colour || opening.color || opening.side || opening.context || opening.section || opening.role || opening.slot || "").toLowerCase();
+  const value = String(opening.playerColour || opening.colour || opening.color || opening.side || opening.context || opening.section || opening.role || opening.slot || "").toLowerCase();
   if (value.includes("white") || value === "w") return "white";
   if (value.includes("black") || value === "b" || value.includes("vs_e4") || value.includes("vs_d4")) return "black";
   return "unknown";
@@ -72,7 +51,7 @@ function openingGames(opening = {}) {
 }
 
 function openingScore(opening = {}) {
-  return numberOrNull(opening.win_rate ?? opening.winRate ?? opening.score_rate ?? opening.scoreRate ?? opening.score);
+  return observedOpeningPerformance(opening)?.scoreRate ?? null;
 }
 
 function confidenceRank(value, games = 0) {
@@ -94,13 +73,17 @@ function statusForDelta(delta, threshold) {
 
 function openingMap(snapshot = {}) {
   const map = new Map();
+  const ambiguous = new Set();
   list(snapshot.opening_statistics).forEach((opening) => {
     const canonical = canonicalOpening(openingName(opening));
     const side = openingSide(opening);
-    if (!canonical.key) return;
-    const key = `${side}:${canonical.key}`;
+    const key = openingContextIdentity(opening);
+    if (!key) return;
     const candidate = {
       key,
+      canonicalContextId: opening.canonicalContextId || opening.canonical_context_id,
+      repertoireRole: opening.repertoireRole || opening.repertoire_role,
+      performance: observedOpeningPerformance(opening),
       opening: canonical.name,
       displayName: openingName(opening),
       side,
@@ -109,8 +92,10 @@ function openingMap(snapshot = {}) {
       confidence: text(opening.confidence?.label || opening.confidence),
     };
     const existing = map.get(key);
-    if (!existing || candidate.games > existing.games) map.set(key, candidate);
+    if (existing) ambiguous.add(key);
+    else map.set(key, candidate);
   });
+  ambiguous.forEach(key => map.delete(key));
   return map;
 }
 
@@ -122,13 +107,19 @@ function compareOpenings(previous, current, comparablePlatform) {
     const oldOpening = before.get(key);
     const newOpening = now.get(key);
     if (!oldOpening || !newOpening) return;
-    const enoughGames = oldOpening.games >= REPORT_COMPARISON_RULES.minimumOpeningGames && newOpening.games >= REPORT_COMPARISON_RULES.minimumOpeningGames;
+    const enoughGames = (oldOpening.performance?.knownResults || 0) >= REPORT_COMPARISON_RULES.minimumOpeningGames && (newOpening.performance?.knownResults || 0) >= REPORT_COMPARISON_RULES.minimumOpeningGames && newOpening.games >= oldOpening.games && oldOpening.performance.knownResults === oldOpening.games && newOpening.performance.knownResults === newOpening.games;
     const delta = oldOpening.score !== null && newOpening.score !== null ? newOpening.score - oldOpening.score : null;
     const status = comparablePlatform && enoughGames
       ? statusForDelta(delta, REPORT_COMPARISON_RULES.openingChangePoints)
       : "insufficient evidence";
     changes.push({
       opening: newOpening.opening,
+      metric: "opening_score_rate",
+      metricLabel: "Opening score (wins plus half of draws)",
+      canonicalContextId: newOpening.canonicalContextId,
+      repertoireRole: newOpening.repertoireRole,
+      previousWinRate: oldOpening.performance?.winRate ?? null,
+      currentWinRate: newOpening.performance?.winRate ?? null,
       previousDisplayName: oldOpening.displayName,
       currentDisplayName: newOpening.displayName,
       side: newOpening.side,
@@ -255,11 +246,6 @@ function rawWeaknesses(snapshot = {}) {
   return list(snapshot.training_priorities);
 }
 
-function hasWeaknessDataset(snapshot = {}) {
-  const metadata = snapshot.analysis_metadata || {};
-  return Array.isArray(snapshot.weaknesses) || Array.isArray(metadata.weaknesses) || Array.isArray(metadata.problem_lines);
-}
-
 function issueKey(issue = {}) {
   const id = text(issue.issue_id || issue.issueId || issue.id || issue.key);
   if (id) return `id:${id.toLowerCase()}`;
@@ -284,43 +270,15 @@ function issueRows(snapshot = {}) {
   }).filter((issue) => issue.key !== "text:");
 }
 
-function compareWeaknesses(previous = {}, current = {}, comparablePlatform) {
-  const before = new Map(issueRows(previous).map((issue) => [issue.key, issue]));
-  const now = new Map(issueRows(current).map((issue) => [issue.key, issue]));
-  const currentHasEvidence = (numberOrNull(current.total_games_analysed) || 0) >= REPORT_COMPARISON_RULES.minimumOpeningGames;
-  const resolvedWeaknesses = [];
-  const newWeaknesses = [];
-  const continuedWeaknesses = [];
-
-  before.forEach((oldIssue, key) => {
-    const currentIssue = now.get(key);
-    if (!currentIssue) {
-      if (comparablePlatform && hasWeaknessDataset(current) && currentHasEvidence && oldIssue.frequency >= REPORT_COMPARISON_RULES.minimumIssueGames) {
-        resolvedWeaknesses.push({ ...oldIssue, currentFrequency: 0, evidence: "The available data suggests this issue is no longer recurring." });
-      }
-      return;
-    }
-    const reduced = currentIssue.status?.toLowerCase() === "resolved" || (
-      oldIssue.frequency >= REPORT_COMPARISON_RULES.minimumIssueGames &&
-      currentIssue.frequency <= Math.max(1, Math.floor(oldIssue.frequency / 2)) &&
-      confidenceRank(currentIssue.confidence, currentIssue.frequency) >= 2
-    );
-    if (comparablePlatform && reduced) {
-      resolvedWeaknesses.push({ ...currentIssue, previousFrequency: oldIssue.frequency, evidence: "The available data suggests improvement." });
-    } else {
-      continuedWeaknesses.push({ ...currentIssue, previousFrequency: oldIssue.frequency });
-    }
-  });
-  now.forEach((currentIssue, key) => {
-    if (!before.has(key) && comparablePlatform && currentHasEvidence && currentIssue.frequency >= REPORT_COMPARISON_RULES.minimumIssueGames) {
-      newWeaknesses.push(currentIssue);
-    }
-  });
-  const sort = (a, b) => a.key.localeCompare(b.key);
+function compareWeaknesses(previous = {}, current = {}) {
+  const before = new Map(issueRows(previous).map(issue => [issue.key, issue]));
+  const now = new Map(issueRows(current).map(issue => [issue.key, issue]));
+  // Frequency and missing flags measure exposure, not correction of a chess error.
   return {
-    resolvedWeaknesses: resolvedWeaknesses.sort(sort),
-    newWeaknesses: newWeaknesses.sort(sort),
-    continuedWeaknesses: continuedWeaknesses.sort(sort),
+    resolvedWeaknesses: [],
+    newWeaknesses: [],
+    continuedWeaknesses: [...before].map(([key, issue]) => ({ ...issue, currentFrequency: now.get(key)?.frequency ?? null,
+      observation: now.has(key) ? "observed_again" : "not_observed", evidence: "Changed exposure alone cannot establish that this issue improved or resolved." })),
   };
 }
 
@@ -334,12 +292,12 @@ function buildTrainingProgress(previous, openingChanges, weaknesses) {
     side: change.side,
     status: change.status,
     message: change.status === "improved"
-      ? "Performance improved after this became a training focus."
+      ? "Observed opening score increased in a comparable sample; this does not establish a training effect."
       : change.status === "insufficient evidence"
         ? "There is not yet enough evidence to assess this training focus."
         : change.status === "declined"
           ? "The available data does not yet suggest improvement in this training focus."
-          : "There was no meaningful performance change after this became a training focus.",
+          : "There was no meaningful observed opening-score change in the comparable samples.",
   })).concat(weaknesses.resolvedWeaknesses.filter((issue) => issue.opening).map((issue) => ({
     opening: issue.opening,
     status: "improved",
@@ -348,7 +306,7 @@ function buildTrainingProgress(previous, openingChanges, weaknesses) {
 }
 
 function measuredTrainingProgress(current = {}) {
-  return list(current.training_outcomes).map((outcome) => ({
+  return list(current.training_outcomes).filter(outcome => outcome.metric === "saved_line_adherence_v1").map((outcome) => ({
     trainingFocusId: outcome.trainingFocusId,
     opening: text(current.training_outcome_context?.[outcome.trainingFocusId]?.openingName) || "Completed training focus",
     status: outcome.status,
@@ -374,13 +332,13 @@ function summaryHighlights(scoreStatus, scoreChange, previousScore, currentScore
     });
   }
   const meaningfulOpening = openingChanges.find((change) => change.status === "improved" || change.status === "declined");
-  if (meaningfulOpening) highlights.push({ type: "opening", status: meaningfulOpening.status, text: `${meaningfulOpening.opening} performance ${meaningfulOpening.status} in the available ${meaningfulOpening.side} sample.` });
+  if (meaningfulOpening) highlights.push({ type: "opening", status: meaningfulOpening.status, text: `${meaningfulOpening.opening} observed opening score ${meaningfulOpening.status} in the available ${meaningfulOpening.side} sample.` });
   const recommendation = repertoireChanges.find((change) => change.type === "recommendation changed");
   if (recommendation) highlights.push({ type: "repertoire", status: "changed", text: `${recommendation.slot.replaceAll("_", " ")} recommendation changed.` });
   if (weaknesses.resolvedWeaknesses.length) highlights.push({ type: "weakness", status: "improved", text: `${weaknesses.resolvedWeaknesses.length} recurring weakness signal${weaknesses.resolvedWeaknesses.length === 1 ? "" : "s"} improved.` });
   if (weaknesses.continuedWeaknesses.length) {
     const issue = weaknesses.continuedWeaknesses[0];
-    highlights.push({ type: "weakness", status: "stable", text: `${issue.opening || issue.title} remains your main repair area.` });
+    highlights.push({ type: "weakness", status: "stable", text: `${issue.opening || issue.title}: changed exposure alone does not show resolution.` });
   }
   if (weaknesses.newWeaknesses.length) {
     const issue = weaknesses.newWeaknesses[0];

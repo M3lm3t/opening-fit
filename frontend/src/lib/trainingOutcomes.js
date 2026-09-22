@@ -73,17 +73,13 @@ function positionObservation(game, focus) {
   return null;
 }
 
-function issueObservations(game = {}) {
-  const analysis = game.analysis && typeof game.analysis === "object" ? game.analysis : {};
-  return [game.moveAnalysis, game.move_analysis, game.openingMoveAnalysis, game.opening_move_analysis, analysis.moveAnalysis, analysis.move_analysis]
-    .find((rows) => Array.isArray(rows)) || [];
-}
-
 function resultScore(game = {}) {
   const raw = text(game.user_result || game.userResult || game.result || game.analysis?.result).toLowerCase();
-  if (["win", "won", "1", "1-0"].includes(raw)) return 1;
+  if (["win", "won", "1"].includes(raw)) return 1;
+  const colour = game.playerColour || game.userColour || game.user_color;
+  if (["1-0", "0-1"].includes(raw) && ["white", "black"].includes(colour)) return (raw === "1-0") === (colour === "white") ? 1 : 0;
   if (["draw", "drawn", "1/2-1/2", "0.5"].includes(raw)) return 0.5;
-  if (["loss", "lost", "0", "0-1"].includes(raw)) return 0;
+  if (["loss", "lost", "0"].includes(raw)) return 0;
   return null;
 }
 
@@ -102,9 +98,9 @@ function confidence(status, relevant, later) {
 function explanationFor(status, correct, repeated) {
   if (status === "not_encountered") return "The position has not appeared again yet.";
   if (status === "insufficient_data") return "There is not enough evidence to judge this.";
-  if (status === "improved") return `You applied this successfully in ${correct === 2 ? "two" : correct} later games.`;
+  if (status === "improved") return `You followed the saved line in ${correct === 2 ? "two" : correct} later games; move quality is unassessed.`;
   if (status === "partially_improved") return "You applied this in a later game, but more consistent evidence is needed.";
-  return `The same issue occurred again in ${repeated === 3 ? "three" : repeated} games.`;
+  return `The original legal move repeated in ${repeated === 3 ? "three" : repeated} games; this does not establish a move error.`;
 }
 
 export function completedTrainingFocuses(plans = []) {
@@ -131,7 +127,7 @@ export function evaluateTrainingOutcome(focus = {}, gameRows = []) {
     return completedAt !== null && playedAt !== null && playedAt > completedAt && openingId && gameOpening(game) === openingId;
   });
   const laterGames = [...new Map(eligible.map((game, index) => [text(game.game_id || game.gameId || game.id || game.url) || pgnText(game) || `game-${index}`, game])).values()];
-  const accepted = new Set(list(focus.acceptedMoves || focus.accepted_moves || focus.expectedMoves || focus.expected_moves).slice(0, 1).concat(focus.recommendedMove || focus.recommended_move || []).map(cleanSan).filter(Boolean));
+  const accepted = new Set(list(focus.acceptedMoves || focus.accepted_moves || focus.expectedMoves || focus.expected_moves).concat(focus.recommendedMove || focus.recommended_move || []).map(cleanSan).filter(Boolean));
   const baselineMistake = cleanSan(focus.playedMove || focus.played_move);
   let relevantPositionCount = 0;
   let correctApplicationCount = 0;
@@ -145,11 +141,7 @@ export function evaluateTrainingOutcome(focus = {}, gameRows = []) {
       if (baselineMistake && played === baselineMistake) repeatedMistakeCount += 1;
       return;
     }
-    const matchingIssue = issueObservations(game).find((row) => text(row.issueType || row.issue_type) === text(focus.issueType));
-    if (matchingIssue && focus.issueType) {
-      relevantPositionCount += 1;
-      repeatedMistakeCount += 1;
-    }
+
   });
 
   const resultValues = laterGames.map(resultScore).filter((value) => value !== null);
@@ -170,15 +162,18 @@ export function evaluateTrainingOutcome(focus = {}, gameRows = []) {
   return {
     trainingFocusId: text(focus.trainingFocusId || focus.id),
     status,
+    metric: "saved_line_adherence_v1",
+    moveQuality: "unassessed",
     laterGameCount: laterGames.length,
     relevantPositionCount,
     correctApplicationCount,
-    repeatedMistakeCount,
+    repeatedOriginalMoveCount: repeatedMistakeCount,
+    repeatedMistakeCount: 0,
     beforeMetric: metric(focus.beforeMetric ?? focus.before_metric),
     afterMetric: {
       applicationPercent: applicationRate,
       consistencyPercent: applicationRate,
-      repeatedMistakePercent: relevantPositionCount >= TRAINING_OUTCOME_THRESHOLDS.minimumRelevantPositions ? Math.round(repeatedMistakeCount * 100 / relevantPositionCount) : null,
+      repeatedOriginalMovePercent: relevantPositionCount >= TRAINING_OUTCOME_THRESHOLDS.minimumRelevantPositions ? Math.round(repeatedMistakeCount * 100 / relevantPositionCount) : null,
       openingResultPercent: resultScorePercent,
       openingResultGameCount: resultScorePercent === null ? 0 : resultValues.length,
     },

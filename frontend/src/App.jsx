@@ -1,3 +1,4 @@
+import { comparisonEligibility } from "./lib/comparisonPolicy.js";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
 import OpeningFitRetentionSystems from "./components/OpeningFitRetentionSystems.jsx";
@@ -4675,9 +4676,10 @@ function getProgressFromReportRow(row) {
   if (!row) return null;
   const summary = row.summary || row.snapshot || {};
   const progress = summary.openingFitProgress || summary.opening_fit_progress || row.coach_progress?.openingFitProgress;
-  if (progress) return progress;
+  if (progress) return { ...progress, comparisonSource: row };
 
   return {
+    comparisonSource: row,
     username: summary.username || row.username || "Unknown player",
     platform: summary.platform || row.platform || "unknown",
     gamesAnalysed: Number(summary.games || row.report?.gamesImported || row.report?.total_games || 0) || 0,
@@ -4702,7 +4704,7 @@ function findPreviousProgressSnapshot(current, reportHistory = []) {
       time: Date.parse(row?.summary?.reportDate || row?.created_at || row?.updated_at || ""),
     }))
     .filter(({ progress }) => {
-      if (!progress) return false;
+      if (!progress || !comparisonEligibility(progress.comparisonSource, current.comparisonSource).comparable) return false;
       const samePlayer =
         String(progress.username || "").toLowerCase() === String(current.username || "").toLowerCase() &&
         String(progress.platform || "").toLowerCase() === String(current.platform || "").toLowerCase();
@@ -4738,7 +4740,7 @@ function describeProgressChange(current, previous) {
   }
 
   if (Number.isFinite(scoreDelta) && scoreDelta !== 0) {
-    return `Repertoire confidence ${scoreDelta > 0 ? "improved" : "moved"} by ${Math.abs(scoreDelta)} point${Math.abs(scoreDelta) === 1 ? "" : "s"} since last time.`;
+    return `Repertoire Health ${scoreDelta > 0 ? "increased" : "decreased"} by ${Math.abs(scoreDelta)} point${Math.abs(scoreDelta) === 1 ? "" : "s"} since last time.`;
   }
 
   if (gamesDelta > 0) {
@@ -4763,6 +4765,7 @@ function buildOpeningFitProgressSnapshot(data = {}, fitData = null, reportHistor
   const gamesNeeded = Math.max(0, 10 - gamesAnalysed);
 
   const current = {
+    comparisonSource: { username: data.username || data.playerName, platform: data.platform || data.importPlatform, importedAt: data.importedAt || data.imported_at, repertoireHealth: data.repertoireHealth, reportDecision: { version: data.reportDecision?.version }, comparisonCohort: data.comparisonCohort },
     username: data?.username || data?.playerName || data?.player_name || "Unknown player",
     platform: data?.platform || data?.importPlatform || data?.import_platform || "unknown",
     gamesAnalysed,
@@ -8885,16 +8888,8 @@ function getDashboardDeltaSummary(progress, reportHistory = []) {
     currentScore !== null && previousScore !== null
       ? currentScore - previousScore
       : null;
-  const gamesDelta =
-    previous && Number.isFinite(Number(progress?.gamesAnalysed)) && Number.isFinite(Number(previous?.gamesAnalysed))
-      ? Number(progress.gamesAnalysed) - Number(previous.gamesAnalysed)
-      : null;
-  const stabilityDelta =
-    scoreDelta !== null
-      ? Math.round(scoreDelta / 2)
-      : gamesDelta !== null
-        ? Math.max(0, Math.min(12, gamesDelta * 2))
-        : null;
+  // A health delta or game count cannot establish a stability delta.
+  const stabilityDelta = null;
 
   return {
     scoreDelta,

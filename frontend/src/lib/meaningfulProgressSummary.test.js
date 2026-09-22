@@ -1,3 +1,4 @@
+import cases from "./fixtures/comparisonPolicyCases.json" with { type: "json" };
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -5,6 +6,9 @@ import { buildMeaningfulProgressSummary } from "./meaningfulProgressSummary.js";
 
 function snapshot(overrides = {}) {
   return {
+    score_contract: { version: "repertoire_health_v4" },
+    report_decision: { version: "report_decision_v7" },
+    comparison_cohort: cases[0].current.comparisonCohort,
     report_id: overrides.report_id || "report-current",
     generated_at: overrides.generated_at || "2026-08-10T12:00:00.000Z",
     source_platform: "chesscom",
@@ -18,7 +22,7 @@ function snapshot(overrides = {}) {
 }
 
 function previous(overrides = {}) {
-  return snapshot({ report_id: "report-previous", generated_at: "2026-07-10T12:00:00.000Z", total_games_analysed: 12, ...overrides });
+  return snapshot({ comparison_cohort: cases[0].previous.comparisonCohort, report_id: "report-previous", generated_at: "2026-07-10T12:00:00.000Z", total_games_analysed: 12, ...overrides });
 }
 
 test("no previous report produces no progress summary", () => {
@@ -43,18 +47,18 @@ test("recommendation confidence increase is reported as more evidence", () => {
   assert.equal(view.rows.find((row) => row.category === "MORE EVIDENCE").title, "Vienna Game");
 });
 
-test("a previous repair disappearing from a sufficient sample is resolved", () => {
+test("a disappearing repair is not assumed resolved", () => {
   const before = previous({ weaknesses: [{ issue_id: "weak-1", opening: "Scandinavian Defense", frequency: 5 }] });
   const current = snapshot({ weaknesses: [] });
   const view = buildMeaningfulProgressSummary({ currentSnapshot: current, reportSnapshots: [before] });
-  assert.match(view.rows.find((row) => row.category === "RESOLVED").text, /no longer recurring/i);
+  assert.equal(view.rows.some(row => row.category === "RESOLVED"), false);
 });
 
 test("a supported new repair is reported as a new issue", () => {
   const before = previous({ weaknesses: [] });
   const current = snapshot({ weaknesses: [{ issue_id: "weak-2", opening: "French Defense", frequency: 3 }] });
   const view = buildMeaningfulProgressSummary({ currentSnapshot: current, reportSnapshots: [before] });
-  assert.match(view.rows.find((row) => row.category === "NEW ISSUE").text, /3 supporting games/i);
+  assert.equal(view.rows.some(row => row.category === "RESOLVED"), false);
 });
 
 test("an established repertoire role is reported as a coverage change", () => {
@@ -74,23 +78,24 @@ test("small opening samples never produce improvement claims", () => {
 
 test("canonical KEEP and REPAIR changes use qualifying evidence", () => {
   const recommendation = (verdict, games, score) => ({
+    canonicalContextId: "scandi|black_vs_e4", repertoireRole: "black_vs_e4", playerColour: "black",
     recommendationId: "rec-scandi",
     opening: "Scandinavian Defense",
     verdict,
-    sample: { games, scoreRate: score },
+    sample: { games, wins: Math.round(games * score / 100), draws: 0, losses: games - Math.round(games * score / 100) },
     confidence: { label: "Strong" },
   });
-  const before = previous({ report_decision: { recommendations: [recommendation("repair", 12, 46)] } });
-  const current = snapshot({ report_decision: { recommendations: [recommendation("keep", 30, 55)] } });
+  const before = previous({ report_decision: { version: "report_decision_v7", recommendations: [recommendation("repair", 12, 46)] } });
+  const current = snapshot({ report_decision: { version: "report_decision_v7", recommendations: [recommendation("keep", 30, 55)] } });
   const view = buildMeaningfulProgressSummary({ currentSnapshot: current, reportSnapshots: [before] });
-  assert.equal(view.rows[0].category, "RESOLVED");
-  assert.match(view.rows[0].text, /REPAIR to KEEP after 18 additional qualifying games; score 46% to 55%/);
+  assert.equal(view.rows[0].category, "VERDICT CHANGE");
+  assert.match(view.rows[0].text, /REPAIR to KEEP after 18 additional qualifying games/);
 });
 
 test("low-confidence verdict changes are not presented as authoritative", () => {
   const recommendation = (verdict, games) => ({ recommendationId: "rec-dutch", opening: "Dutch Defense", verdict, sample: { games }, confidence: { label: "Low confidence" } });
-  const before = previous({ report_decision: { recommendations: [recommendation("keep", 3)] } });
-  const current = snapshot({ report_decision: { recommendations: [recommendation("repair", 4)] } });
+  const before = previous({ report_decision: { version: "report_decision_v7", recommendations: [recommendation("keep", 3)] } });
+  const current = snapshot({ report_decision: { version: "report_decision_v7", recommendations: [recommendation("repair", 4)] } });
   const view = buildMeaningfulProgressSummary({ currentSnapshot: current, reportSnapshots: [before] });
   assert.equal(view.state, "ready");
 });

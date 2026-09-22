@@ -72,7 +72,7 @@ test("changed username prevents comparison even on the same platform", () => {
   const current = { ...comparisonFixtures.scoreIncrease.current, source_platform: "chesscom", source_username: "player-two" };
   const result = compareReportSnapshots(previous, current);
   assert.equal(result.comparisonState, "reports_not_comparable");
-  assert.match(result.compatibilityReasons.join(" "), /username changed/i);
+  assert.match(result.compatibilityReasons.join(" "), /player identity/i);
   assert.deepEqual(result.summaryHighlights, []);
 });
 
@@ -81,8 +81,8 @@ test("changed report window or filters prevent comparison", () => {
   const current = { ...comparisonFixtures.scoreIncrease.current, analysis_metadata: { import_months: 12, filters: { rated: false } } };
   const result = compareReportSnapshots(previous, current);
   assert.equal(result.comparisonState, "reports_not_comparable");
-  assert.match(result.compatibilityReasons.join(" "), /window changed/i);
-  assert.match(result.compatibilityReasons.join(" "), /filters changed/i);
+  assert.match(result.compatibilityReasons.join(" "), /import_months/i);
+  assert.match(result.compatibilityReasons.join(" "), /filters/i);
 });
 
 test("a smaller current sample never produces an improvement claim", () => {
@@ -116,7 +116,7 @@ test("repertoire membership and recommendation-confidence changes are explicit",
     recommendation_confidence: { white: { label: "Low confidence" } },
   };
   const current = {
-    ...previous,
+    ...comparisonFixtures.scoreIncrease.current,
     active_repertoire: { items: [{ name: "Italian Game", colour: "white" }, { name: "Slav Defense", colour: "black" }] },
     recommendation_confidence: { white: { label: "High confidence" } },
   };
@@ -138,8 +138,9 @@ test("structured weakness IDs survive renamed copy and training wording avoids c
     weaknesses: [{ issue_id: "issue-1", title: "New wording", opening: "Giuoco Piano", frequency: 1, confidence: "Medium" }],
   };
   const result = compareReportSnapshots(previous, current);
-  assert.equal(result.resolvedWeaknesses[0].issueId, "issue-1");
-  assert.match(result.trainingProgress[0].message, /after this became a training focus/i);
+  assert.deepEqual(result.resolvedWeaknesses, []);
+  assert.equal(result.continuedWeaknesses[0].issueId, "issue-1");
+  assert.match(result.trainingProgress[0].message, /does not establish a training effect/i);
   assert.doesNotMatch(result.trainingProgress[0].message, /caused/i);
 });
 
@@ -154,6 +155,7 @@ test("measured training outcomes replace inferred training claims", () => {
     ...comparisonFixtures.scoreIncrease.current,
     training_outcomes: [{
       trainingFocusId: "focus-1",
+      metric: "saved_line_adherence_v1",
       status: "not_encountered",
       laterGameCount: 4,
       relevantPositionCount: 0,

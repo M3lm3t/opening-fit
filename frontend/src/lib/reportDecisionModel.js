@@ -1,3 +1,4 @@
+import { comparisonEligibility } from "./comparisonPolicy.js";
 import { analysisConfidence, buildOpeningVerdictPresentation, evidenceBasedReason, fitEvidence, openingFitScore, performanceSummary } from "./fitTrustModel.js";
 import { normaliseReportDecision } from "./recommendationEvidence.js";
 import { coachVerdict, formatRecommendationConfidence, trainingActionCopy } from "./reportCoachCopy.js";
@@ -275,21 +276,7 @@ export function buildRepertoireMapModel(data = {}) {
 }
 
 function comparableHistory(data = {}, reportHistory = []) {
-  const currentGames = Number(data.gamesAnalysed ?? data.gamesAnalyzed ?? data.gamesImported ?? data.total_games ?? 0) || 0;
-  const currentPlatform = text(data.platform || data.importPlatform).toLowerCase();
-  const currentUsername = text(data.username || data.playerName).toLowerCase();
-  const currentTime = Date.parse(data.importedAt || data.imported_at || data.lastUpdated || data.last_updated || "");
-  return list(reportHistory).find((row) => {
-    const candidate = row?.normalized_snapshot || row?.snapshot || row;
-    const games = Number(candidate?.total_games_analysed ?? candidate?.summary?.games ?? candidate?.report?.gamesAnalysed ?? 0) || 0;
-    const platform = text(candidate?.source_platform || candidate?.report?.platform).toLowerCase();
-    const username = text(candidate?.source_username || candidate?.report?.username).toLowerCase();
-    const time = Date.parse(candidate?.generated_at || candidate?.created_at || candidate?.report?.importedAt || "");
-    if (Math.min(currentGames, games) < 5) return false;
-    if (currentPlatform && platform && !currentPlatform.includes(platform) && !platform.includes(currentPlatform)) return false;
-    if (currentUsername && username && currentUsername !== username) return false;
-    return Number.isFinite(currentTime) && Number.isFinite(time) && time < currentTime;
-  }) || null;
+  return list(reportHistory).find(row => comparisonEligibility(row, data).comparable) || null;
 }
 
 function canonicalOpening(source, fallbackType) {
@@ -354,10 +341,7 @@ export function buildReportDecisionModel(data = {}, fitData = {}, reportHistory 
     : reportPresentation.reportConfidenceLabel;
   const previousRow = comparableHistory(data, reportHistory);
   const previous = previousRow?.openingfit_score ?? previousRow?.normalized_snapshot?.openingfit_score ?? previousRow?.snapshot?.openingfit_score ?? previousRow?.summary?.openingFitProgress?.score ?? previousRow?.summary?.opening_fit_score ?? null;
-  const currentScoreVersion = String(healthContract?.version || healthContract?.formulaVersion || "openingfit_score_v1");
-  const previousScoreContract = previousRow?.score_contract || previousRow?.normalized_snapshot?.score_contract || previousRow?.snapshot?.score_contract || {};
-  const previousScoreVersion = String(previousScoreContract?.version || previousScoreContract?.formulaVersion || previousScoreContract?.formula_version || "openingfit_score_v1");
-  const comparisonAllowed = Boolean(serverDecision?.baseline?.comparisonClaimsAllowed || previousRow) && currentScoreVersion === previousScoreVersion;
+  const comparisonAllowed = Boolean(previousRow);
   const trend = comparisonAllowed && scoreValue !== null && previous !== null && previous !== undefined && previous !== "" && Number.isFinite(Number(previous))
     ? scoreValue - Number(previous)
     : null;

@@ -62,7 +62,7 @@ test("incompatible reports explain why and omit comparative detail", () => {
     reportSnapshots: [dated({ ...comparisonFixtures.scoreIncrease.previous, source_platform: "chesscom" }, "2026-06-01T10:00:00Z")],
   });
   assert.equal(view.state, "not-comparable");
-  assert.match(view.message, /platform changed/i);
+  assert.match(view.message, /platform identity/i);
   assert.deepEqual(view.primaryHighlights, []);
   assert.deepEqual(view.details, []);
 });

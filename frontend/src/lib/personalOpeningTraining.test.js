@@ -53,11 +53,11 @@ test("legacy reports fail closed without adding an entitlement gate", () => {
   assert.doesNotMatch(component, /canUseFeature|OPENINGFIT_FEATURES|premium/i);
 });
 
-test("later games distinguish trained move, acceptable move, repeated mistake and absence", () => {
+test("later games distinguish trained move, acceptable move, repeated legal move and absence", () => {
   const item = buildPersonalTrainingItems({ report, ownerId: "user-1" }).items[0];
   assert.equal(compareTrainedPosition(item, { pgn: "1. e4 e5 2. Nf3 Nc6 3. Nxe5" }).outcome, "trained_move");
   assert.equal(compareTrainedPosition(item, { pgn: "1. e4 e5 2. Nf3 Nc6 3. Bc4" }).outcome, "acceptable_alternative");
-  assert.equal(compareTrainedPosition(item, { pgn: "1. e4 e5 2. Nf3 Nc6 3. d3" }).outcome, "repeated_original_mistake");
+  assert.equal(compareTrainedPosition(item, { pgn: "1. e4 e5 2. Nf3 Nc6 3. d3" }).outcome, "repeated_original_move");
   assert.equal(compareTrainedPosition(item, { pgn: "1. d4 d5" }).outcome, "left_known_position");
 });
 

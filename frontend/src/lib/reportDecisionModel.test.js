@@ -1,3 +1,4 @@
+import cases from "./fixtures/comparisonPolicyCases.json" with { type: "json" };
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildReportDecisionModel, openingContext, openingPerspective } from "./reportDecisionModel.js";
@@ -93,9 +94,9 @@ test("one-game canonical report remains insufficient and baseline", () => {
 });
 
 test("a genuine earlier comparable report enables, but a baseline suppresses, comparison", () => {
-  const current = { ...full, importedAt: "2026-07-23T12:00:00Z" };
+  const current = { ...full, ...cases[0].current, openingFitScore: 62, repertoireHealth: { version: "repertoire_health_v4", score: 62 } };
   const baseline = buildReportDecisionModel(current, { overallScore: 62 }, []);
-  const later = buildReportDecisionModel(current, { overallScore: 62 }, [{ source_platform: "chess.com", source_username: full.username, generated_at: "2026-06-23T12:00:00Z", total_games_analysed: 20, openingfit_score: 55 }]);
+  const later = buildReportDecisionModel(current, { overallScore: 62 }, [{ ...cases[0].previous, openingfit_score: 55 }]);
   assert.equal(baseline.health.trend, null);
   assert.equal(baseline.baseline.status, "baseline");
   assert.equal(later.health.trend, 7);

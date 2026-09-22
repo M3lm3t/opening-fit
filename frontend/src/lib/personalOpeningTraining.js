@@ -176,7 +176,7 @@ export function evaluatePersonalTrainingMove(item, attempted) {
   const played = moveAt(item.startingFen, attempted);
   if (!played) return { accepted: false, trustworthy: true, reason: "illegal_move" };
   const accepted = list(item.acceptedMoveUcis).includes(played.uci);
-  return { accepted, trustworthy: true, san: played.san, alternative: accepted && played.uci !== item.expectedMoveUci, resultingFen: played.fen };
+  return { accepted, trustworthy: true, reason: accepted ? "saved_line_match" : "saved_line_deviation", moveQuality: "unassessed", san: played.san, alternative: accepted && played.uci !== item.expectedMoveUci, resultingFen: played.fen };
 }
 
 export function compareTrainedPosition(item, game = {}) {
@@ -189,7 +189,7 @@ export function compareTrainedPosition(item, game = {}) {
         if ((replay.turn() === "w" ? "white" : "black") !== item.playerColour) return { outcome: "untrusted", trustworthy: false };
         const played = replay.move(move); const uci = `${played.from}${played.to}${played.promotion || ""}`;
         if (list(item.acceptedMoveUcis).includes(uci)) return { outcome: uci === item.expectedMoveUci ? "trained_move" : "acceptable_alternative", trustworthy: true, playedMove: played.san };
-        if (item.originalMove && cleanSan(played.san) === cleanSan(item.originalMove)) return { outcome: "repeated_original_mistake", trustworthy: true, playedMove: played.san };
+        if (item.originalMove && cleanSan(played.san) === cleanSan(item.originalMove)) return { outcome: "repeated_original_move", trustworthy: true, playedMove: played.san };
         return { outcome: "other_move", trustworthy: true, playedMove: played.san };
       }
       replay.move(move);
@@ -209,16 +209,16 @@ export function evaluatePersonalTrainingOutcomes(items = [], games = []) {
     const observations = laterGames.map((game) => ({ gameId: text(game.id || game.gameId || game.game_id || game.url) || null, ...compareTrainedPosition(item, game) }));
     const trustworthy = observations.filter((row) => row.trustworthy && row.outcome !== "left_known_position");
     const accepted = trustworthy.filter((row) => ["trained_move", "acceptable_alternative"].includes(row.outcome));
-    const repeated = trustworthy.filter((row) => row.outcome === "repeated_original_mistake");
+    const repeated = trustworthy.filter((row) => row.outcome === "repeated_original_move");
     const status = trustworthy.length < 2 ? "insufficient_data"
       : accepted.length >= 2 && repeated.length === 0 ? "improved"
         : repeated.length >= 2 ? "not_improved" : "partially_improved";
     return {
       trainingFocusId: item.trainingSubjectId, itemId: item.itemId, diagnosisId: item.diagnosisId, openingId: item.openingId, opening: item.openingName,
-      status, relevantPositionCount: trustworthy.length, correctApplicationCount: accepted.length, repeatedMistakeCount: repeated.length,
+      status, metric: "saved_line_adherence_v1", moveQuality: "unassessed", relevantPositionCount: trustworthy.length, correctApplicationCount: accepted.length, repeatedOriginalMoveCount: repeated.length, repeatedMistakeCount: 0,
       observations, confidence: trustworthy.length >= 3 ? "high" : trustworthy.length >= 2 ? "medium" : "low",
-      message: status === "improved" ? `The trained or accepted move was played in ${accepted.length} trustworthy later games.`
-        : status === "not_improved" ? `The original mistake repeated in ${repeated.length} trustworthy later games.`
+      message: status === "improved" ? `The saved-line move was played in ${accepted.length} later games; this measures line adherence, not move quality.`
+        : status === "not_improved" ? `The original legal move repeated in ${repeated.length} later games; this is a saved-line deviation, not a validated move error.`
           : "More trustworthy later-game encounters are needed before claiming improvement.",
     };
   });

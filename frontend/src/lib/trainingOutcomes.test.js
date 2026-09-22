@@ -29,7 +29,7 @@ test("improved requires two supported applications and enough later opening game
   const outcome = evaluateTrainingOutcome(focus, [game("a"), game("b"), game("c", "Nf6")]);
   assert.equal(outcome.status, "improved");
   assert.equal(outcome.correctApplicationCount, 2);
-  assert.match(outcome.explanation, /successfully in two later games/i);
+  assert.match(outcome.explanation, /saved line in two later games/i);
 });
 
 test("partially improved records mixed but positive application", () => {
@@ -37,11 +37,11 @@ test("partially improved records mixed but positive application", () => {
   assert.equal(outcome.status, "partially_improved");
 });
 
-test("not improved requires the same supported mistake to recur twice", () => {
+test("not improved requires the same original legal move to recur twice", () => {
   const outcome = evaluateTrainingOutcome(focus, [game("a", "Qf6"), game("b", "Qf6"), game("c", "Nf6")]);
   assert.equal(outcome.status, "not_improved");
-  assert.equal(outcome.repeatedMistakeCount, 2);
-  assert.match(outcome.explanation, /same issue occurred again/i);
+  assert.equal(outcome.repeatedOriginalMoveCount, 2);
+  assert.match(outcome.explanation, /does not establish a move error/i);
 });
 
 test("not encountered is distinct from failure", () => {
@@ -78,4 +78,19 @@ test("completed focuses use task completion and fall back to plan completion for
   const focuses = completedTrainingFocuses([{ completedAt, targetMetric: { openingId: "Italian Game" }, tasks: [{ id: "done", status: "completed" }, { id: "todo", status: "pending" }] }]);
   assert.equal(focuses.length, 1);
   assert.equal(focuses[0].completedAt, completedAt);
+});
+
+test("multiple saved legal continuations remain acceptable without move-quality claims", () => {
+  const outcome = evaluateTrainingOutcome({ ...focus, acceptedMoves: ["Nc6", "Nf6"] }, [game("a", "Nf6"), game("b", "Nf6"), game("c")]);
+  assert.equal(outcome.correctApplicationCount, 3);
+  assert.equal(outcome.metric, "saved_line_adherence_v1");
+  assert.equal(outcome.moveQuality, "unassessed");
+  assert.equal(outcome.repeatedMistakeCount, 0);
+});
+
+test("a named issue without a matching position is not a validated move error", () => {
+  const rows = ["a", "b", "c"].map(id => ({ ...game(id), pgn: "", moveAnalysis: [{ issueType: "development" }] }));
+  const outcome = evaluateTrainingOutcome({ ...focus, issueType: "development" }, rows);
+  assert.equal(outcome.relevantPositionCount, 0);
+  assert.equal(outcome.status, "not_encountered");
 });

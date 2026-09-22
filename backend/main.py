@@ -10,6 +10,7 @@ from analysis.engine_analysis import (
     build_engine_summary,
 )
 from analysis.game_diagnostics import build_diagnostic_summary
+from analysis.comparison_policy import build_comparison_cohort, comparison_eligibility, opening_context_identity, observed_opening_performance
 from analysis.opening_fit_metrics import build_opening_fit_metrics, merge_opening_fit_metrics
 from analysis.opening_coach_insights import build_opening_coach_insights
 from analysis.opening_training_opportunities import extract_opening_training_opportunities
@@ -593,239 +594,46 @@ def report_score_formula_version(report: Optional[Dict[str, Any]]) -> str:
 
 
 def build_report_progress_comparison(current: Dict[str, Any], previous: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    if not reports_are_comparable(current, previous):
-        return {
-            "enabled": False,
-            "available": False,
-            "status": "baseline",
-            "items": [],
-            "summary": "This is a baseline report; comparison claims require an earlier comparable report.",
-        }
-
-    items: List[Dict[str, Any]] = []
-    current_openings = report_opening_map(current)
-    previous_openings = report_opening_map(previous)
-
-    current_fit = numeric_report_value(current, "openingFitScore", "opening_fit_score")
-    previous_fit = numeric_report_value(previous, "openingFitScore", "opening_fit_score")
-    current_fit_version = report_score_formula_version(current) or "openingfit_score_v1"
-    previous_fit_version = report_score_formula_version(previous) or "openingfit_score_v1"
-    if current_fit is not None and previous_fit is not None and current_fit_version == previous_fit_version:
-        direction = change_direction(current_fit, previous_fit, 1)
+    eligibility = comparison_eligibility(previous, current)
+    if not eligibility["comparable"]:
+        return {"enabled": True, "available": False, "status": "baseline", "items": [],
+                "summary": "Comparison withheld: compatible calculation, identity and cohort evidence are required.", "eligibility": eligibility}
+    items = []
+    before = numeric_report_value(previous, "openingFitScore", "opening_fit_score")
+    after = numeric_report_value(current, "openingFitScore", "opening_fit_score")
+    if before is not None and after is not None and change_direction(after, before, 1) != "stable":
+        items.append({"type": "fit_score", "metric": "repertoire_health", "status": change_direction(after, before, 1),
+                      "title": "Repertoire Health changed", "copy": f"Repertoire Health changed from {before} to {after} across comparable report samples.", "previous": before, "current": after})
+    def rows(report):
+        decision = report.get("reportDecision") or report.get("report_decision") or {}
+        return decision.get("recommendations") or report.get("best_openings") or []
+    def unique_contexts(report):
+        values, duplicates = {}, set()
+        for row in rows(report):
+            key = opening_context_identity(row)
+            if not key:
+                continue
+            if key in values:
+                duplicates.add(key)
+            values[key] = row
+        return {key: row for key, row in values.items() if key not in duplicates}
+    old = unique_contexts(previous)
+    for key, row in unique_contexts(current).items():
+        earlier = old.get(key)
+        if not earlier:
+            continue
+        a, b = observed_opening_performance(earlier), observed_opening_performance(row)
+        if not a or not b or min(a["knownResults"], b["knownResults"]) < 5 or b["games"] < a["games"] or a["knownResults"] != a["games"] or b["knownResults"] != b["games"]:
+            continue
+        direction = change_direction(b["scoreRate"], a["scoreRate"])
         if direction != "stable":
-            verb = "improved" if direction == "improved" else "dropped"
-            items.append(
-                {
-                    "type": "fit_score",
-                    "status": direction,
-                    "title": f"Repertoire Health {verb}",
-                    "copy": f"Your Repertoire Health {verb} from {round(previous_fit)} to {round(current_fit)}.",
-                    "previous": previous_fit,
-                    "current": current_fit,
-                }
-            )
-
-    current_top = list(current_openings.values())[:3]
-    previous_top = list(previous_openings.values())[:3]
-    current_top_names = {normalise_opening_key(str(item.get("name") or "")) for item in current_top}
-    previous_top_names = {normalise_opening_key(str(item.get("name") or "")) for item in previous_top}
-    added_top = [item for item in current_top if normalise_opening_key(str(item.get("name") or "")) not in previous_top_names]
-    dropped_top = [item for item in previous_top if normalise_opening_key(str(item.get("name") or "")) not in current_top_names]
-    if added_top:
-        name = str(added_top[0].get("name") or "A new opening")
-        games = int(added_top[0].get("games", 0) or 0)
-        items.append(
-            {
-                "type": "top_openings",
-                "status": "changed",
-                "title": f"{name} is now a top opening",
-                "copy": f"{name} entered your top opening group with {games} game{'' if games == 1 else 's'} in this report.",
-                "opening": name,
-            }
-        )
-    if dropped_top:
-        name = str(dropped_top[0].get("name") or "A previous opening")
-        items.append(
-            {
-                "type": "top_openings",
-                "status": "changed",
-                "title": f"{name} is less prominent now",
-                "copy": f"{name} dropped out of your top opening group since the previous report.",
-                "opening": name,
-            }
-        )
-
-    for key, current_item in current_openings.items():
-        previous_item = previous_openings.get(key)
-        if not previous_item:
-            continue
-        name = str(current_item.get("name") or "This opening")
-        current_score = numeric_report_value(current_item, "winRate", "win_rate", "scorePct", "score")
-        previous_score = numeric_report_value(previous_item, "winRate", "win_rate", "scorePct", "score")
-        if current_score is not None and previous_score is not None:
-            direction = change_direction(current_score, previous_score)
-            if direction != "stable":
-                verb = "improved" if direction == "improved" else "dropped"
-                items.append(
-                    {
-                        "type": "opening_score",
-                        "status": direction,
-                        "title": f"{name} score {verb}",
-                        "copy": f"Since your last report, your {name} score {verb} from {round(previous_score, 1)}% to {round(current_score, 1)}%.",
-                        "opening": name,
-                        "previous": previous_score,
-                        "current": current_score,
-                    }
-                )
-
-        current_confidence = str(current_item.get("confidence") or current_item.get("confidenceLabel") or "").strip()
-        previous_confidence = str(previous_item.get("confidence") or previous_item.get("confidenceLabel") or "").strip()
-        if current_confidence and previous_confidence and current_confidence != previous_confidence:
-            items.append(
-                {
-                    "type": "confidence",
-                    "status": "changed",
-                    "title": f"{name} confidence changed",
-                    "copy": f"{name} moved from {previous_confidence} to {current_confidence}.",
-                    "opening": name,
-                    "previous": previous_confidence,
-                    "current": current_confidence,
-                }
-            )
-
-    previous_gaps = report_gap_map(previous)
-    current_gaps = report_gap_map(current)
-    unresolved_statuses = {"No clear plan", "Too little data", "Needs work"}
-    for key, current_gap in current_gaps.items():
-        previous_gap = previous_gaps.get(key)
-        if not previous_gap:
-            continue
-        current_status = current_gap.get("status")
-        previous_status = previous_gap.get("status")
-        label = current_gap.get("label") or key
-        if current_status in unresolved_statuses and previous_status in unresolved_statuses:
-            items.append(
-                {
-                    "type": "repertoire_gap",
-                    "status": "unresolved",
-                    "title": f"{label} still needs work",
-                    "copy": f"Your {label} gap is still unresolved.",
-                    "area": label,
-                    "previous": previous_status,
-                    "current": current_status,
-                }
-            )
-        elif current_status == "Covered" and previous_status in unresolved_statuses:
-            items.append(
-                {
-                    "type": "repertoire_gap",
-                    "status": "resolved",
-                    "title": f"{label} improved",
-                    "copy": f"{label} moved from {previous_status} to Covered.",
-                    "area": label,
-                    "previous": previous_status,
-                    "current": current_status,
-                }
-            )
-
-    previous_lines = report_problem_line_map(previous)
-    current_lines = report_problem_line_map(current)
-    for key, current_line in current_lines.items():
-        previous_line = previous_lines.get(key)
-        if previous_line:
-            opening = current_line.get("opening") or current_line.get("name") or "This line"
-            items.append(
-                {
-                    "type": "problem_line",
-                    "status": "repeated",
-                    "title": f"{opening} problem line repeated",
-                    "copy": current_line.get("summary") or f"{opening} is still appearing as a problem line.",
-                    "opening": opening,
-                }
-            )
-            continue
-        opening = current_line.get("opening") or current_line.get("name") or "This line"
-        items.append(
-            {
-                "type": "problem_line",
-                "status": "new",
-                "title": f"New problem line: {opening}",
-                "copy": current_line.get("summary") or f"{opening} newly appears as a problem line.",
-                "opening": opening,
-            }
-        )
-
-    resolved_lines = [
-        line for key, line in previous_lines.items()
-        if key not in current_lines
-    ]
-    if resolved_lines:
-        line = resolved_lines[0]
-        opening = line.get("opening") or line.get("name") or "A previous line"
-        items.append(
-            {
-                "type": "problem_line",
-                "status": "resolved",
-                "title": f"{opening} line no longer flagged",
-                "copy": f"{opening} is no longer showing as a repeated problem line.",
-                "opening": opening,
-            }
-        )
-
-    current_coherence = numeric_report_value(current.get("repertoireCoherence") or current.get("repertoire_coherence") or {}, "score")
-    previous_coherence = numeric_report_value(previous.get("repertoireCoherence") or previous.get("repertoire_coherence") or {}, "score")
-    if current_coherence is not None and previous_coherence is not None:
-        direction = change_direction(current_coherence, previous_coherence, 1)
-        if direction != "stable":
-            verb = "improved" if direction == "improved" else "dropped"
-            items.append(
-                {
-                    "type": "coherence",
-                    "status": direction,
-                    "title": f"Repertoire coherence {verb}",
-                    "copy": f"Your repertoire coherence score {verb} from {round(previous_coherence)} to {round(current_coherence)}.",
-                    "previous": previous_coherence,
-                    "current": current_coherence,
-                }
-            )
-
-    previous_tasks = report_study_task_map(previous)
-    current_tasks = report_study_task_map(current)
-    improved_tasks = [
-        task for key, task in previous_tasks.items()
-        if key and key not in current_tasks
-    ]
-    if improved_tasks:
-        task = improved_tasks[0]
-        items.append(
-            {
-                "type": "study_action",
-                "status": "improved",
-                "title": "One study task may be improving",
-                "copy": f"'{task.get('title')}' is no longer in the current study queue.",
-            }
-        )
-
-    if not items:
-        items.append(
-            {
-                "type": "stable",
-                "status": "stable",
-                "title": "Report is mostly stable",
-                "copy": "Your main openings, gaps, and study priorities are broadly similar to the previous report.",
-            }
-        )
-
-    priority = {"improved": 0, "resolved": 0, "dropped": 1, "unresolved": 1, "changed": 2, "repeated": 2, "new": 2, "stable": 3}
-    items = sorted(items, key=lambda item: priority.get(str(item.get("status")), 4))[:6]
-    return {
-        "enabled": True,
-        "available": True,
-        "summary": f"Compared with your previous saved report from {previous.get('importedAt') or previous.get('lastUpdated') or 'the last import'}.",
-        "items": items,
-        "previousImportedAt": previous.get("importedAt") or previous.get("lastUpdated"),
-        "currentImportedAt": current.get("importedAt") or current.get("lastUpdated"),
-    }
+            name = row.get("openingName") or row.get("name")
+            items.append({"type": "opening_score", "metric": "opening_score_rate", "status": direction, "opening": name,
+                          "canonicalContextId": row.get("canonicalContextId"), "repertoireRole": row.get("repertoireRole"),
+                          "title": f"{name} observed opening score changed", "copy": f"Opening score (wins plus half of draws) changed from {a['scoreRate']:.1f}% to {b['scoreRate']:.1f}%. This does not establish opening quality or training causation.",
+                          "previous": a["scoreRate"], "current": b["scoreRate"], "previousWinRate": a["winRate"], "currentWinRate": b["winRate"]})
+    return {"enabled": True, "available": True, "status": "comparable", "items": items,
+            "summary": "Observed changes across compatible report samples; no causal claim is made.", "eligibility": eligibility}
 
 
 def log_analytics_event(event_name: str, data: Optional[Dict[str, Any]] = None):
@@ -9630,6 +9438,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     result["opening_coach_insights"] = opening_coach_insights
     result["openingCoachInsights"] = opening_coach_insights
 
+    result["comparisonCohort"] = build_comparison_cohort(opening_game_samples, months, time_control, result.get("gameCounts") or {})
     report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
     result["report_decision"] = report_decision
     result["reportDecision"] = report_decision
@@ -10411,6 +10220,7 @@ def build_lichess_analysis(
     result["opening_coach_insights"] = opening_coach_insights
     result["openingCoachInsights"] = opening_coach_insights
 
+    result["comparisonCohort"] = build_comparison_cohort(opening_game_samples, months, (count_context or {}).get("timeControl"), result.get("gameCounts") or {})
     report_decision = build_report_decision(result, openings=best_openings, previous_report=previous_report)
     result["report_decision"] = report_decision
     result["reportDecision"] = report_decision

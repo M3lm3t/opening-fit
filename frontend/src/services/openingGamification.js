@@ -178,8 +178,9 @@ export function buildOpeningGamificationSnapshot(data = {}, fitData = null, prev
   const openingXp = openings.map((opening) => {
     const previousRow = previousRows.get(opening.name.toLowerCase()) || {};
     const gameDelta = Math.max(0, opening.games - safeNumber(previousRow.games, 0));
-    const previousScore = previousRow.score === undefined || previousRow.score === null || previousRow.score === "" ? null : safeNumber(previousRow.score, null);
-    const scoreDelta = opening.score !== null && previousScore !== null ? opening.score - previousScore : 0;
+    // XP history has no calculation/cohort/context provenance. Preserve earned XP
+    // without inventing new improvement awards from incomparable scores.
+    const scoreDelta = 0;
     const improvementXp = Math.max(0, scoreDelta) * 18;
     const earned = alreadyProcessed
       ? 0

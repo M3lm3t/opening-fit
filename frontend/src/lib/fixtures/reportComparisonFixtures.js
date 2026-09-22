@@ -1,7 +1,11 @@
-const opening = (name, side, games, score) => ({ name, colour: side, games, win_rate: score, confidence: { label: games >= 8 ? "High confidence" : games >= 3 ? "Medium confidence" : "Low confidence", sample_size: games } });
+import cases from "./comparisonPolicyCases.json" with { type: "json" };
+const opening = (name, side, games, score) => ({ name, colour: side, playerColour: side, repertoire_role: side === "white" ? "white" : "black_vs_e4", canonical_context_id: side === "white" ? "italian|white" : "caro|black_vs_e4", games, wins: Math.round(games * score / 100), draws: 0, losses: games - Math.round(games * score / 100), win_rate: score, confidence: { label: games >= 8 ? "High confidence" : games >= 3 ? "Medium confidence" : "Low confidence", sample_size: games } });
 
 export const basePreviousReport = {
   report_schema_version: 2,
+  report_decision: cases[0].previous.reportDecision,
+  comparison_cohort: cases[0].previous.comparisonCohort,
+  generated_at: cases[0].previous.importedAt,
   score_contract: { version: "repertoire_health_v3" },
   source_platform: "chesscom",
   source_username: "FixturePlayer",
@@ -18,10 +22,12 @@ export const comparisonFixtures = {
   firstEver: { previous: null, current: { ...basePreviousReport, new_games_since_previous: null } },
   scoreIncrease: { previous: basePreviousReport, current: { ...basePreviousReport, openingfit_score: 68, new_games_since_previous: 8 } },
   scoreDecrease: { previous: basePreviousReport, current: { ...basePreviousReport, openingfit_score: 53 } },
-  noMeaningfulChange: { previous: basePreviousReport, current: { ...basePreviousReport, openingfit_score: 61, opening_statistics: [opening("Italian Game", "white", 12, 53), opening("Caro-Kann Defense", "black", 9, 53)] } },
+  noMeaningfulChange: { previous: basePreviousReport, current: { ...basePreviousReport, openingfit_score: 61, opening_statistics: [opening("Italian Game", "white", 12, 53), opening("Caro-Kann Defense", "black", 10, 50)] } },
   renamedOpening: { previous: basePreviousReport, current: { ...basePreviousReport, opening_statistics: [opening("Giuoco Piano", "white", 12, 58), opening("Caro-Kann Defense", "black", 9, 55)] } },
   smallSample: { previous: { ...basePreviousReport, opening_statistics: [opening("Italian Game", "white", 2, 20)] }, current: { ...basePreviousReport, opening_statistics: [opening("Giuoco Piano", "white", 3, 80)] } },
   changedPlatform: { previous: basePreviousReport, current: { ...basePreviousReport, source_platform: "lichess", openingfit_score: 75 } },
   missingOldFields: { previous: { report_schema_version: 2, source_platform: "chesscom", opening_statistics: [] }, current: basePreviousReport },
   newRecommendation: { previous: basePreviousReport, current: { ...basePreviousReport, recommendations: { ...basePreviousReport.recommendations, white: "Queen's Gambit" } } },
 };
+
+Object.values(comparisonFixtures).forEach(fixture => { if (fixture.previous) fixture.current = { ...fixture.current, generated_at: cases[0].current.importedAt, comparison_cohort: cases[0].current.comparisonCohort }; });
