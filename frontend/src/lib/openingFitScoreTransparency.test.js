@@ -6,7 +6,7 @@ const breakdown = { stability: 78, whitePerformance: 64, blackPerformance: 58, c
 const model = { header: { games: 30 }, health: { score: 68, confidence: "High confidence" } };
 
 test("score exposes real weighted formula inputs and separate report coverage", () => {
-  const view = buildOpeningFitScoreTransparency({ model, report: { openingFitScoreBreakdown: breakdown } });
+  const view = buildOpeningFitScoreTransparency({ model, report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 68 }, openingFitScoreBreakdown: breakdown } });
   assert.equal(view.currentScore, 68);
   assert.equal(view.coverage, "Broad report coverage");
   assert.equal(view.provisional, false);
@@ -19,7 +19,7 @@ test("score exposes real weighted formula inputs and separate report coverage", 
 test("a medium score explains why one supported role can coexist with no weakness", () => {
   const view = buildOpeningFitScoreTransparency({
     model: { header: { games: 12 }, health: { score: 63 }, authoritative: { establishedStrength: { opening: "Vienna Game" }, primaryProblem: null } },
-    report: { openingFitScoreBreakdown: breakdown },
+    report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 63 }, openingFitScoreBreakdown: breakdown },
   });
   assert.match(view.weaknessContext, /neutral finding.*core repertoire role/i);
   assert.equal(view.developmentState.label, "Developing repertoire");
@@ -37,7 +37,7 @@ test("score-state bands describe development without changing stored values", ()
 test("63 with an identifiable weakness names the repair context without changing the score", () => {
   const view = buildOpeningFitScoreTransparency({
     model: { header: { games: 28 }, health: { score: 63 }, authoritative: { primaryProblem: { opening: "French Defence" }, establishedStrength: { opening: "Ruy Lopez" } } },
-    report: { openingFitScoreBreakdown: { ...breakdown, weaknessControl: 46 } },
+    report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 63 }, openingFitScoreBreakdown: { ...breakdown, weaknessControl: 46 } },
   });
   assert.equal(view.currentScore, 63);
   assert.equal(view.developmentState.label, "Developing repertoire");
@@ -48,14 +48,14 @@ test("63 with an identifiable weakness names the repair context without changing
 test("high score and moderate low-sample states keep confidence separate from development", () => {
   const strong = buildOpeningFitScoreTransparency({
     model: { header: { games: 60 }, health: { score: 88, confidence: "Broad report coverage" } },
-    report: { openingFitScoreBreakdown: { stability: 91, whitePerformance: 87, blackPerformance: 86, confidence: 95, weaknessControl: 90, recentConsistency: 82 } },
+    report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 88 }, openingFitScoreBreakdown: { stability: 91, whitePerformance: 87, blackPerformance: 86, confidence: 95, weaknessControl: 90, recentConsistency: 82 } },
   });
   assert.equal(strong.developmentState.label, "Strong repertoire");
   assert.equal(strong.statusLabel, "Broad report coverage");
 
   const lowSample = buildOpeningFitScoreTransparency({
     model: { header: { games: 4 }, health: { score: 63, confidence: "Low confidence" } },
-    report: { openingFitScoreBreakdown: { ...breakdown, confidence: 18 } },
+    report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 63 }, openingFitScoreBreakdown: { ...breakdown, confidence: 18 } },
   });
   assert.equal(lowSample.developmentState.label, "Developing repertoire");
   assert.equal(lowSample.statusLabel, "Provisional coverage indicator");
@@ -63,7 +63,7 @@ test("high score and moderate low-sample states keep confidence separate from de
 });
 
 test("fewer than the minimum games visibly marks the score provisional", () => {
-  const view = buildOpeningFitScoreTransparency({ model: { header: { games: 3 }, health: { score: 42, confidence: "Low confidence" } }, report: { openingFitScoreBreakdown: { ...breakdown, confidence: 20 } } });
+  const view = buildOpeningFitScoreTransparency({ model: { header: { games: 3 }, health: { score: 42, confidence: "Low confidence" } }, report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 42 }, openingFitScoreBreakdown: { ...breakdown, confidence: 20 } } });
   assert.equal(view.provisional, true);
   assert.equal(view.statusLabel, "Provisional coverage indicator");
   assert.match(view.smallSamples, new RegExp(`Fewer than ${OPENINGFIT_SCORE_MINIMUM_GAMES}`));
@@ -73,14 +73,14 @@ test("missing component data does not invent a breakdown", () => {
   const view = buildOpeningFitScoreTransparency({ model, report: {} });
   assert.equal(view.hasComponentData, false);
   assert.deepEqual(view.components, []);
-  assert.match(view.affects, /older report.*not a compatible component breakdown/i);
+  assert.match(view.affects, /no component breakdown supported/i);
 });
 
 test("previous-score comparison identifies the largest weighted component change", () => {
   const view = buildOpeningFitScoreTransparency({
     model,
-    report: { openingFitScoreBreakdown: breakdown },
-    previousReport: { openingfit_score: 62, score_components: { ...breakdown, stability: 50, whitePerformance: 63 } },
+    report: { openingFitScoreContract: { version: "openingfit_score_v1", score: 68 }, openingFitScoreBreakdown: breakdown },
+    previousReport: { score_contract: { version: "openingfit_score_v1", score: 62 }, openingfit_score: 62, score_components: { ...breakdown, stability: 50, whitePerformance: 63 } },
   });
   assert.equal(view.previousScore, 62);
   assert.match(view.reasonForChange, /familiarity.*increased from 50 to 78/i);
@@ -135,7 +135,7 @@ test("legacy scores are retained but not compared across methodology versions", 
     previousReport: { openingfit_score: 61, score_contract: { formulaVersion: "openingfit_score_v1" } },
   });
   assert.equal(view.comparableMethodology, false);
-  assert.match(view.reasonForChange, /not compared numerically/i);
+  assert.match(view.reasonForChange, /No improvement or decline/i);
 });
 
 test("Repertoire Health consumes authoritative effective weights and limiting factors", () => {

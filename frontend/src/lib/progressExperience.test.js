@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { buildReturningProgress, compareCompletedReports, orderedCompletedReports } from "./progressExperience.js";
-const report = (date, fit, issueGames = 0) => ({ created_at: date, report: { openingFitScore: fit, best_openings: [{ name: "Italian", games: 10, fitScore: fit, confidence: "High" }], weak_lines: issueGames ? [{ name: "Italian trap", games: issueGames, confidence: "High" }] : [] } });
+const report = (date, fit, issueGames = 0) => ({ created_at: date, report: { repertoireHealth: { version: "repertoire_health_v3", score: fit }, openingFitScore: fit, best_openings: [{ name: "Italian", games: 10, fitScore: fit, confidence: "High" }], weak_lines: issueGames ? [{ name: "Italian trap", games: issueGames, confidence: "High" }] : [] } });
 test("anonymous and first authenticated users remain first-time", () => { assert.equal(buildReturningProgress({}).isReturning, false); assert.equal(buildReturningProgress({ user: { id: "u" } }).isReturning, false); });
 test("one completed report creates returning state without comparison", () => { const model = buildReturningProgress({ user: { id: "u" }, reportHistory: [report("2026-01-01", 60)] }); assert.equal(model.isReturning, true); assert.equal(model.comparison.available, false); });
 test("multiple reports compare fit without implying causation", () => { const comparison = compareCompletedReports([report("2026-02-01", 70), report("2026-01-01", 60)]); assert.equal(comparison.health.delta, 10); assert.equal(comparison.changes[0].fitDelta, 10); });

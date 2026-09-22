@@ -2,6 +2,7 @@ const opening = (name, side, games, score) => ({ name, colour: side, games, win_
 
 export const basePreviousReport = {
   report_schema_version: 2,
+  score_contract: { version: "repertoire_health_v3" },
   source_platform: "chesscom",
   source_username: "FixturePlayer",
   openingfit_score: 60,

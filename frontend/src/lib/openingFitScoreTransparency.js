@@ -1,3 +1,5 @@
+import { SUPPORTED_HEALTH_VERSIONS, compatibleEvidenceGeneration } from "./generationCompatibility.js";
+
 export const OPENINGFIT_SCORE_MINIMUM_GAMES = 5;
 
 // Retained only to explain reports saved under the original mixed methodology.
@@ -115,8 +117,10 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   const games = integer(model.header?.games ?? report.gamesAnalysed ?? report.gamesImported ?? report.total_games) || 0;
   const currentBreakdown = breakdown(report);
   const previousBreakdown = breakdown(previousReport || {});
-  const formulaVersion = text(contract.version || contract.formulaVersion) || "openingfit_score_v1";
-  const previousFormulaVersion = text(previousContract.version || previousContract.formulaVersion) || "openingfit_score_v1";
+  const formulaVersion = text(contract.version || contract.formulaVersion) || "unknown";
+  const previousFormulaVersion = text(previousContract.version || previousContract.formulaVersion) || "unknown";
+  const supported = SUPPORTED_HEALTH_VERSIONS.includes(formulaVersion);
+  const comparable = compatibleEvidenceGeneration(previousReport, report) && contract.comparisonEligibility?.eligible !== false;
   const isHealthContract = ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion);
   const components = isHealthContract && Array.isArray(contract.components)
     ? contract.components.map((component) => ({
@@ -137,7 +141,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
         unresolvedRecurringProblems: "Whether the three user-played roles contain an unresolved evidence-backed repair target or a sufficient but mixed signal.",
       })[component.key] || text(component.explanation) || "A documented input to repertoire coverage.",
     })).filter((component) => component.available && component.value !== null && component.weight !== null)
-    : OPENINGFIT_SCORE_FORMULA.flatMap((component) => {
+    : (formulaVersion === "openingfit_score_v1" ? OPENINGFIT_SCORE_FORMULA : []).flatMap((component) => {
       const value = componentValue(currentBreakdown, component);
       return value === null ? [] : [{ key: component.key, title: component.title, value, exactValue: value, weight: component.weight, contribution: value * component.weight / 100, explanation: component.explanation }];
     });
@@ -164,20 +168,23 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
         : "Score still forming",
     statusLabel: provisional ? "Provisional coverage indicator" : coverage,
     components, hasComponentData: components.length > 0,
-    reasonForChange: reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),
+    reasonForChange: !supported ? "The calculation version is missing or unsupported. The stored value is preserved, but its method and changes cannot be verified."
+      : previousScore !== null && !comparable ? "These reports do not have compatible, supported calculation versions. No improvement or decline is inferred."
+      : reasonForChange(currentScore, previousScore, currentBreakdown, previousBreakdown, formulaVersion, previousFormulaVersion, contract, previousContract),
     scale: { minimum: 0, maximum: 100 }, formulaVersion, previousFormulaVersion,
-    comparableMethodology: previousScore === null || (formulaVersion === previousFormulaVersion && contract.comparisonEligibility?.eligible !== false),
-    developmentState: openingFitDevelopmentState(currentScore), contributors,
+    comparableMethodology: supported && (previousScore === null || comparable),
+    developmentState: supported ? openingFitDevelopmentState(currentScore) : { key: "unknown", label: "Calculation unavailable" }, contributors,
     meaning: isHealthContract
       ? text(contract.meaning) || "Repertoire Health describes the condition and completeness of the three core repertoire roles. It is not a chess rating, opening-quality grade, or engine evaluation."
-      : "This legacy score mixed repertoire stability, results, evidence and weakness signals. It is retained for historical reports and is not a chess rating or engine judgement.",
+      : supported ? "This legacy score mixed repertoire stability, results, evidence and weakness signals. It is retained for historical reports and is not a chess rating or engine judgement."
+      : "The calculation version is missing or unsupported by this client. This is the stored score; its methodology cannot be verified here.",
     weaknessContext: text(contract.weaknessExplanation) || weaknessContext(model, repairStatus),
-    explanation: healthExplanation(contract, contributors, repairStatus),
+    explanation: supported ? healthExplanation(contract, contributors, repairStatus) : "No calculation or performance conclusion is inferred from an unrecognised method.",
     limitingFactors: Array.isArray(contract.limitingFactors) ? contract.limitingFactors : contributors.slice(0, 2),
     evidenceConfidence: contract.confidence && typeof contract.confidence === "object" ? contract.confidence : null,
-    affects: components.length ? "The calculation uses only the components and weights shown below." : "This older report contains the final score but not a compatible component breakdown.",
-    doesNotAffect: ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion) ? "Chess rating, opponent openings faced by the player, and recent experiments do not fill or lower main repertoire health." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
-    whyChange: ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion)
+    affects: components.length ? "The calculation uses only the components and weights shown below." : "The stored score has no component breakdown supported by this client.",
+    doesNotAffect: !supported ? "The inputs to this calculation are unknown." : ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion) ? "Chess rating, opponent openings faced by the player, and recent experiments do not fill or lower main repertoire health." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
+    whyChange: !supported ? "Changes cannot be interpreted without a supported calculation version." : ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion)
       ? "It rises when user-played roles become complete, concentrated, strongly evidenced, and free of unresolved recurring problems."
       : formulaVersion === "repertoire_coverage_v2"
         ? "It rises only when correctly attributed games establish or strengthen White, Black against 1.e4, and Black against 1.d4 evidence."

@@ -1,5 +1,6 @@
 import { OPENING_EVIDENCE_THRESHOLDS } from "./fitTrustModel.js";
 import { countNoun, formatResultCounts } from "./reportGameCounts.js";
+import { decisionVersionStatus } from "./generationCompatibility.js";
 
 export const RECOMMENDATION_EVIDENCE_THRESHOLDS = Object.freeze({
   minimum: OPENING_EVIDENCE_THRESHOLDS.minimum,
@@ -173,6 +174,13 @@ export function buildFilteredReportDecision(openings = [], totalGames = 0) {
 }
 
 export function normaliseReportDecision(decision = {}, report = null) {
+  if (decisionVersionStatus(decision) === "unsupported") {
+    const reason = "This client cannot interpret the saved decision version. Your report is preserved; open it in an updated client before using its recommendations.";
+    const action = { type: "review_report_version", label: "Open this report in an updated client", reason, opening: null, recommendationId: null };
+    return { ...decision, versionSupport: "unsupported", recommendations: [], establishedStrength: null, primaryProblem: null, keep: null, repair: null, experiment: null,
+      primaryAction: action, nextTrainingAction: action, trainingPriority: null, repertoireRoles: [], roleDecisions: [], findings: [],
+      baseline: { status: "baseline", hasComparablePrevious: false, comparisonClaimsAllowed: false } };
+  }
   if (!decision || typeof decision !== "object") {
     if (!report || typeof report !== "object") return null;
     const action = {
@@ -240,6 +248,7 @@ export function normaliseReportDecision(decision = {}, report = null) {
   return {
     ...decision,
     schemaVersion: decision.schemaVersion || 1,
+    versionSupport: decisionVersionStatus(decision),
     recommendations,
     establishedStrength,
     primaryProblem,
