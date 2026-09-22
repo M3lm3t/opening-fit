@@ -85,7 +85,7 @@ function reasonForChange(currentScore, previousScore, current, previous, current
   if (previousScore === null) return "This is your baseline coverage indicator; a later report using the same methodology can explain what changed.";
   if (currentVersion !== previousVersion) return `The saved score uses ${previousVersion}; it is not compared numerically with the current ${currentVersion} method.`;
   if (currentScore === previousScore) return "The rounded coverage indicator is unchanged from the previous report.";
-  if (["repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(currentVersion)) {
+  if (["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(currentVersion)) {
     const earlier = new Map((previousContract.components || []).map((component) => [component.key, component]));
     const changes = (currentContract.components || []).flatMap((component) => {
       const before = earlier.get(component.key);
@@ -117,7 +117,7 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
   const previousBreakdown = breakdown(previousReport || {});
   const formulaVersion = text(contract.version || contract.formulaVersion) || "openingfit_score_v1";
   const previousFormulaVersion = text(previousContract.version || previousContract.formulaVersion) || "openingfit_score_v1";
-  const isHealthContract = ["repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion);
+  const isHealthContract = ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v2", "repertoire_coverage_v3"].includes(formulaVersion);
   const components = isHealthContract && Array.isArray(contract.components)
     ? contract.components.map((component) => ({
       key: component.key,
@@ -176,8 +176,8 @@ export function buildOpeningFitScoreTransparency({ model = {}, report = {}, prev
     limitingFactors: Array.isArray(contract.limitingFactors) ? contract.limitingFactors : contributors.slice(0, 2),
     evidenceConfidence: contract.confidence && typeof contract.confidence === "object" ? contract.confidence : null,
     affects: components.length ? "The calculation uses only the components and weights shown below." : "This older report contains the final score but not a compatible component breakdown.",
-    doesNotAffect: ["repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion) ? "Chess rating, opponent openings faced by the player, and recent experiments do not fill or lower main repertoire health." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
-    whyChange: ["repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion)
+    doesNotAffect: ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion) ? "Chess rating, opponent openings faced by the player, and recent experiments do not fill or lower main repertoire health." : formulaVersion === "repertoire_coverage_v2" ? "Recent win rate, chess rating and weakness status do not directly change this coverage score." : "Official ratings do not directly determine the legacy score.",
+    whyChange: ["repertoire_health_v4", "repertoire_health_v3", "repertoire_health_v2", "repertoire_coverage_v3"].includes(formulaVersion)
       ? "It rises when user-played roles become complete, concentrated, strongly evidenced, and free of unresolved recurring problems."
       : formulaVersion === "repertoire_coverage_v2"
         ? "It rises only when correctly attributed games establish or strengthen White, Black against 1.e4, and Black against 1.d4 evidence."

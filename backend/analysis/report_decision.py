@@ -24,8 +24,8 @@ from analysis.evidence_hierarchy import build_evidence_hierarchy
 MIN_OPENING_EVIDENCE = MINIMUM_OPENING_GAMES
 MEDIUM_CONFIDENCE_GAMES = MODERATE_CONFIDENCE_GAMES
 MIN_COMPARABLE_REPORT_GAMES = 5
-REPERTOIRE_HEALTH_VERSION = "repertoire_health_v3"
-OPENING_SUITABILITY_VERSION = "opening_suitability_v1"
+REPERTOIRE_HEALTH_VERSION = "repertoire_health_v4"
+OPENING_SUITABILITY_VERSION = "opening_suitability_v2"
 OBSERVED_PERFORMANCE_VERSION = "observed_performance_v1"
 EVIDENCE_CONFIDENCE_VERSION = "evidence_confidence_v1"
 OPENING_DIAGNOSIS_VERSION = "opening_diagnosis_v1"
@@ -207,6 +207,15 @@ def _opening_suitability_contract(item: Mapping[str, Any], *, fit_score: Optiona
 
 def reports_are_comparable(current: Mapping[str, Any], previous: Optional[Mapping[str, Any]]) -> bool:
     if not previous:
+        return False
+    def version(report):
+        decision = report.get("reportDecision") or report.get("report_decision") or {}
+        contract = (decision.get("repertoireHealth") or report.get("repertoireHealth") or report.get("repertoire_health")
+                    or report.get("repertoireCoverageScore") or report.get("repertoire_coverage_score")
+                    or report.get("openingFitScoreContract") or report.get("opening_fit_score_contract") or report.get("score_contract") or {})
+        return contract.get("version") or contract.get("formulaVersion") or contract.get("formula_version")
+    current_version, previous_version = version(current), version(previous)
+    if REPERTOIRE_HEALTH_VERSION in {current_version, previous_version} and current_version != previous_version:
         return False
     current_platform = str(current.get("platform") or current.get("importPlatform") or "").lower()
     previous_platform = str(previous.get("platform") or previous.get("importPlatform") or "").lower()
@@ -625,6 +634,7 @@ def _canonical_recommendation(report: Mapping[str, Any], item: Mapping[str, Any]
         "decisionId": f"opening-decision:{canonical_context_id}" if canonical_context_id else f"opening-decision:{recommendation_id}",
         "canonicalContextId": canonical_context_id or None,
         "canonicalAggregateId": canonical_aggregate_id or (recommendation_id if canonical_context_id else None),
+        "canonicalOpeningId": item.get("canonicalOpeningId") or _slug(opening_name),
         "verdict": verdict,
         "openingId": _slug(opening_name),
         "openingName": opening_name,
@@ -896,6 +906,15 @@ def _time_controls(report: Mapping[str, Any]) -> list[str]:
     return [str(value).strip() for value in values if str(value).strip()]
 
 
+def effective_membership(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Current membership changes selection, never historical observations."""
+    history = row.get("repertoireHistory") or row.get("history") or row
+    preference = history.get("userPreference") or "automatic"
+    automatic = history.get("classification") or history.get("historyClassification") or row.get("repertoireHistoryClassification")
+    classification = {"main": "MAIN_REPERTOIRE", "experimenting": "EXPERIMENT", "ignore": "IGNORED"}.get(preference, automatic or history.get("effectiveClassification"))
+    return {"effectiveClassification": classification, "mainRepertoireEligible": classification not in {"EXPERIMENT", "IGNORED"}}
+
+
 def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Mapping[str, Any], repertoire_history: Optional[Mapping[str, Any]] = None) -> list[dict[str, Any]]:
     controls = _time_controls(report)
     history_rows = repertoire_history.get("openings", []) if isinstance(repertoire_history, Mapping) else []
@@ -950,7 +969,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
         opening_breakdown = sorted(
             opening_groups.values(),
             key=lambda item: (
-                history_rank.get(str(item.get("effectiveClassification") or item.get("historyClassification")), 4) if history_available else 0,
+                history_rank.get(str(effective_membership(item)["effectiveClassification"]), 4) if history_available or item.get("userPreference") == "main" else 0,
                 -int(item["games"]), str(item["openingName"]).lower(),
             ),
         )
@@ -959,10 +978,12 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
             if item.get("repertoireOwned")
             and item.get("repertoireRole") == spec["role"]
             and bool((item.get("validation") or {}).get("valid", True))
+            and effective_membership(item)["mainRepertoireEligible"]
         ]
         candidate = sorted(candidates, key=lambda item: (-int(_number((item.get("sample") or {}).get("games")) or 0), str(item.get("openingName") or "").lower()))[0] if candidates else None
-        if opening_breakdown:
-            leading = opening_breakdown[0]
+        eligible_breakdown = [item for item in opening_breakdown if effective_membership(item)["mainRepertoireEligible"]]
+        if eligible_breakdown:
+            leading = eligible_breakdown[0]
             opening = str(leading["openingName"]).strip()
             current = int(leading["games"])
             sample_ids = list(leading["gameIds"])
@@ -982,7 +1003,7 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 if int(_number((item.get("sample") or {}).get("games")) or 0) > 0
             ]
         else:
-            current, opening, sample_ids, opening_breakdown, candidate = 0, "", [], [], None
+            current, opening, sample_ids, candidate = 0, "", [], None
         attributed = sum(int(item["games"]) for item in opening_breakdown)
         attributed_openings = len(opening_breakdown)
         additional = max(0, MIN_OPENING_EVIDENCE - current)
@@ -1013,6 +1034,8 @@ def build_repertoire_roles(recommendations: list[Mapping[str, Any]], report: Map
                 reason_code = "split_across_openings"
             elif current > 0:
                 reason_code = "below_evidence_threshold" if current < MIN_OPENING_EVIDENCE else "verdict_or_confidence_unsupported"
+            elif opening_breakdown and not eligible_breakdown:
+                reason_code = "excluded_by_repertoire_membership"
             elif matching_role_games:
                 reason_code = "opening_unclassified"
             elif unresolved_role_games:
@@ -1101,7 +1124,7 @@ def build_repertoire_coverage_score(
         breakdown = [item for item in funnel.get("openingBreakdown", []) if isinstance(item, Mapping)]
         scored_breakdown = [
             item for item in breakdown
-            if str(item.get("effectiveClassification") or item.get("historyClassification") or "") not in {"EXPERIMENT", "IGNORED"}
+            if effective_membership(item)["mainRepertoireEligible"]
         ]
         all_role_games = sum(max(0, int(_number(item.get("games")) or 0)) for item in breakdown)
         role_games = sum(max(0, int(_number(item.get("games")) or 0)) for item in scored_breakdown)
@@ -1992,12 +2015,7 @@ def build_report_decision(
     for row in repertoire_history.get("openings", []):
         preference = preferences.get((str(row.get("repertoireRole") or ""), str(row.get("canonicalOpeningId") or "")), "automatic")
         row["userPreference"] = preference
-        row["effectiveClassification"] = (
-            "MAIN_REPERTOIRE" if preference == "main"
-            else "EXPERIMENT" if preference == "experimenting"
-            else "IGNORED" if preference == "ignore"
-            else row.get("classification")
-        )
+        row.update(effective_membership(row))
     history_index = {
         (str(row.get("repertoireRole") or ""), _opening_key(row.get("opening"))): row
         for row in repertoire_history.get("openings", []) if isinstance(row, Mapping)
@@ -2007,16 +2025,15 @@ def build_report_decision(
     ]))
     recommendations = [{
         **item,
+        "userPreference": preferences.get((str(item.get("repertoireRole") or ""), str(item.get("canonicalOpeningId") or "")), "automatic"),
         "repertoireHistoryClassification": (history_index.get((str(item.get("repertoireRole") or ""), _opening_key(item.get("openingName")))) or {}).get("classification"),
         "repertoireHistory": history_index.get((str(item.get("repertoireRole") or ""), _opening_key(item.get("openingName")))),
     } for item in recommendations]
+    recommendations = [{**item, **effective_membership(item)} for item in recommendations]
     owned = [
         item for item in recommendations
         if item["repertoireOwned"] and item["validation"]["valid"]
-        and not (
-            repertoire_history.get("historyAvailable")
-            and item.get("repertoireHistoryClassification") == "EXPERIMENT"
-        )
+        and item["mainRepertoireEligible"]
     ]
     strengths = [item for item in owned if item["verdict"] == "keep"]
     problems = [item for item in owned if item["verdict"] == "repair"]
@@ -2199,7 +2216,7 @@ def build_report_decision(
     })
 
     total_games = int(_number(report.get("gamesAnalysed") or report.get("gamesImported") or report.get("total_games")) or 0)
-    comparable = reports_are_comparable(report, previous_report)
+    comparable = reports_are_comparable({**report, "reportDecision": {}, "report_decision": {}, "repertoireHealth": {"version": REPERTOIRE_HEALTH_VERSION}}, previous_report)
     coverage = _report_coverage(total_games)
     training_priority = _training_priority(action, recommendations, report)
     opening_diagnosis = training_priority.get("openingDiagnosis")
@@ -2251,7 +2268,7 @@ def build_report_decision(
         }]
     decision = {
         "schemaVersion": 6,
-        "version": "report_decision_v6",
+        "version": "report_decision_v7",
         "decisionId": action_id,
         "sourceReportId": source_report_id,
         "generatedAt": report.get("importedAt") or report.get("imported_at") or report.get("lastUpdated") or report.get("last_updated"),

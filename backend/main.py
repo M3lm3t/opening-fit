@@ -9321,7 +9321,7 @@ def import_chesscom_logic(username: str, months: int = 3, time_control: str = "c
     engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
     style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
     opening_fit_metrics = build_opening_fit_metrics(recent_games)
-    top_openings = merge_opening_fit_metrics(top_openings, opening_fit_metrics)
+    # Name-level historical totals have no canonical context: do not attach role metrics.
     best_openings = build_opening_scores(context_opening_results)
     best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
     report_mode_data = detect_report_mode(
@@ -10066,7 +10066,7 @@ def build_lichess_analysis(
     engine_summary = build_engine_summary(recent_games, username=username, is_premium=False)
     style_fingerprint = apply_engine_adjustments_to_style_fingerprint(style_fingerprint, engine_summary)
     opening_fit_metrics = build_opening_fit_metrics(recent_games)
-    top_openings = merge_opening_fit_metrics(top_openings, opening_fit_metrics)
+    # Name-level historical totals have no canonical context: do not attach role metrics.
     best_openings = merge_opening_fit_metrics(best_openings, opening_fit_metrics)
     rating_context = rating_context_from_profile(player_profile)
     profile_current_rating = numeric_rating(rating_context.get("currentRating") or rating_context.get("current_rating"))

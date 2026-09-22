@@ -1,4 +1,5 @@
 import { findOpeningLine, normaliseOpeningKey } from "../data/openings.ts";
+import { compatibleEvidenceGeneration } from "./generationCompatibility.js";
 
 export const REPORT_COMPARISON_RULES = Object.freeze({
   minimumReportGames: 5,
@@ -29,6 +30,7 @@ function sameKnownValue(left, right) {
 
 export function reportComparisonCompatibility(previous = {}, current = {}) {
   const reasons = [];
+  if (!compatibleEvidenceGeneration(previous, current)) reasons.push("The evidence generation version changed; these reports are not directly comparable.");
   const previousPlatform = text(previous.source_platform)?.toLowerCase();
   const currentPlatform = text(current.source_platform)?.toLowerCase();
   const previousUsername = text(previous.source_username)?.toLowerCase();

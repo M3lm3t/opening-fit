@@ -19,7 +19,7 @@ def test_opening_fit_metrics_classifies_repeated_weak_line():
         {"pgn": pgn, "opening": "Italian Game", "colour": "white", "result": "draw", "time_class": "rapid"},
     ]
 
-    metrics = build_opening_fit_metrics(games)
+    metrics = build_opening_fit_metrics(attributed(games))
     opening = metrics["openings"][0]
 
     assert opening["games_played"] == 3
@@ -55,7 +55,7 @@ def test_plan_clarity_distinguishes_repeatable_setup_from_random_branching():
         ]
     ]
 
-    metrics = build_opening_fit_metrics(clear_games + scattered_games)
+    metrics = build_opening_fit_metrics(attributed(clear_games + scattered_games))
     by_name = {item["name"]: item for item in metrics["openings"]}
 
     assert by_name["Vienna Game"]["planClarityStatus"] == "Clear plan"
@@ -143,3 +143,11 @@ def test_plan_clarity_changes_existing_opening_recommendation_fit():
     assert clear_vienna["fitScore"] > unclear_vienna["fitScore"]
     assert clear_vienna["planClarityStatus"] == "Clear plan"
     assert unclear_vienna["planClarityStatus"] == "Unclear plan"
+
+
+def attributed(games):
+    # Explicit classified-game fixture: names/colour alone cannot establish ownership.
+    return [{**game, "gameId": str(index), "openingFamily": game["opening"],
+             "playerColour": game["colour"], "playerResult": game["result"],
+             "playerRole": "white_repertoire" if game["colour"] == "white" else "black_vs_e4",
+             "relationship": "played_by_user"} for index, game in enumerate(games)]

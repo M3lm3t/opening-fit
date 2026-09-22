@@ -4,6 +4,8 @@ import re
 from collections import Counter, defaultdict
 from typing import Any, Dict, List
 
+from .classified_game import opening_context_key, record_is_used_for_opening_stats
+
 
 def _moves_for_game(game: Dict[str, Any]) -> List[str]:
     moves = game.get("moves")
@@ -40,10 +42,10 @@ def _structure_key(moves: List[str], plies: int) -> str:
     return " ".join(str(move).rstrip("+#?!") for move in moves[:plies] if move)
 
 
-def _result_score(stats: Dict[str, int]) -> float:
-    games = int(stats.get("games", 0) or 0)
+def _result_score(stats: Dict[str, int]) -> float | None:
+    games = sum(int(stats.get(key, 0) or 0) for key in ("wins", "draws", "losses"))
     if not games:
-        return 0
+        return None
     wins = int(stats.get("wins", 0) or 0)
     draws = int(stats.get("draws", 0) or 0)
     return ((wins + 0.5 * draws) / games) * 100
@@ -77,11 +79,12 @@ def _summary_row(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
     games = int(row["games"] or 0)
     wins = int(row["wins"] or 0)
     losses = int(row["losses"] or 0)
-    win_rate = round((wins / games) * 100, 1) if games else 0
-    loss_rate = round((losses / games) * 100, 1) if games else 0
-    early_loss_rate = round((row["early_losses"] / games) * 100, 1) if games else 0
+    known = wins + losses + int(row["draws"] or 0)
+    win_rate = round((wins / known) * 100, 1) if known else None
+    loss_rate = round((losses / known) * 100, 1) if known else None
+    early_loss_rate = round((row["early_losses"] / known) * 100, 1) if known else 0
     avg_length = round(sum(row["lengths"]) / len(row["lengths"]), 1) if row["lengths"] else 0
-    classification = _classify(games, win_rate, loss_rate, early_loss_rate)
+    classification = _classify(known, win_rate or 0, loss_rate or 0, early_loss_rate)
     plan_clarity = _plan_clarity(name, row)
 
     return {
@@ -92,6 +95,12 @@ def _summary_row(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
         "wins": wins,
         "draws": int(row["draws"] or 0),
         "losses": losses,
+        "knownResults": known,
+        "unknownResults": games - known,
+        "scoreRate": round((wins + .5 * row["draws"]) / known * 100, 1) if known else None,
+        "supportingGameIds": sorted(row["game_results"]),
+        "supportingGameResults": dict(sorted(row["game_results"].items())),
+        **row["identity"],
         "win_rate": win_rate,
         "winRate": win_rate,
         "loss_rate": loss_rate,
@@ -104,7 +113,7 @@ def _summary_row(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
         "resultByTimeControl": dict(row["by_time_control"]),
         "early_loss_rate": early_loss_rate,
         "earlyLossRate": early_loss_rate,
-        "confidence": _confidence(games),
+        "confidence": _confidence(known),
         "fit_classification": classification,
         "fitClassification": classification,
         **plan_clarity,
@@ -114,6 +123,8 @@ def _summary_row(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
 def _blank_row() -> Dict[str, Any]:
     return {
         "games": 0,
+        "identity": {},
+        "game_results": {},
         "wins": 0,
         "draws": 0,
         "losses": 0,
@@ -139,8 +150,9 @@ def _add_result(stats: Dict[str, int], result: str) -> None:
 
 
 def _add_game(row: Dict[str, Any], game: Dict[str, Any], moves: List[str], fullmoves: int) -> None:
-    result = str(game.get("result") or "unknown").lower()
-    colour = str(game.get("colour") or game.get("color") or "unknown").lower()
+    result = str(game.get("playerResult", game.get("result")) or "unknown").lower()
+    colour = str(game.get("playerColour") or "unknown").lower()
+    row["game_results"][str(game["gameId"])] = result if result in {"win", "draw", "loss"} else "unknown"
     time_control = str(game.get("time_class") or game.get("timeClass") or "unknown").lower()
 
     row["games"] += 1
@@ -205,7 +217,10 @@ def _plan_clarity(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
             structure_games = int(stats.get("games", 0) or 0)
             if structure_games < 2:
                 continue
-            score = round(_result_score(stats), 1)
+            observed = _result_score(stats)
+            if observed is None:
+                continue
+            score = round(observed, 1)
             repeated.append({"sequence": sequence, "games": structure_games, "score": score})
             repeated_scores.append(score)
 
@@ -267,33 +282,68 @@ def _plan_clarity(name: str, row: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-def build_opening_fit_metrics(games: List[Dict[str, Any]]) -> Dict[str, Any]:
-    by_opening: Dict[str, Dict[str, Any]] = defaultdict(_blank_row)
-    by_variation: Dict[str, Dict[str, Any]] = defaultdict(_blank_row)
+def _valid_context(game: Dict[str, Any]) -> bool:
+    if not record_is_used_for_opening_stats(game) or game.get("roleAttributionTrusted") is False:
+        return False
+    colour, role = game.get("playerColour"), game.get("playerRole")
+    if role not in ({"white_repertoire"} if colour == "white" else {"black_vs_e4", "black_vs_d4", "black_other"}):
+        return False
+    if game.get("canonicalContextId"):
+        expected = ":".join((str(game.get("canonicalOpeningId") or ""), colour, game["relationship"], role))
+        return game["canonicalContextId"] == expected
+    return True
 
+
+def build_opening_fit_metrics(games: List[Dict[str, Any]]) -> Dict[str, Any]:
+    by_opening = defaultdict(_blank_row)
+    by_variation = defaultdict(_blank_row)
+    records = defaultdict(list)
+    excluded = Counter()
     for game in games or []:
-        if not isinstance(game, dict):
+        if isinstance(game, dict) and game.get("gameId"):
+            records[str(game["gameId"])].append(game)
+        else:
+            excluded["missing_game_identity"] += 1
+
+    for game_id, copies in sorted(records.items()):
+        contexts = {opening_context_key(game) for game in copies}
+        if len(contexts) != 1:
+            excluded["ambiguous_attribution"] += 1
             continue
+        # Conflicting duplicates cannot establish context or performance. Never
+        # let input order decide which observation becomes evidence.
+        if not all(_valid_context(game) for game in copies):
+            excluded["missing_or_excluded_context"] += 1
+            continue
+        signatures = {(str(game.get("playerResult", game.get("result")) or "unknown"), tuple(_moves_for_game(game)), str(game.get("time_class") or game.get("timeClass") or "unknown")) for game in copies}
+        if len(signatures) != 1:
+            excluded["conflicting_game_evidence"] += 1
+            continue
+        game = min(copies, key=lambda item: str(item.get("openingFamily") or ""))
         moves = _moves_for_game(game)
         fullmoves = _fullmoves(game)
         if not moves or fullmoves < 2:
             continue
 
-        opening = str(game.get("opening") or game.get("name") or "Unknown Opening")
-        variation = _variation(game, moves)
-        _add_game(by_opening[opening], game, moves, fullmoves)
-        _add_game(by_variation[variation], game, moves, fullmoves)
+        opening = str(game["openingFamily"])
+        context = opening_context_key(game)
+        variation = " ".join(moves[:8])
+        identity = {key: game[key] for key in ("canonicalContextId", "canonicalOpeningId", "openingFamily", "playerColour", "playerRole", "relationship") if key in game}
+        for row in (by_opening[context], by_variation[(context, variation)]):
+            if not row["identity"] or opening < row["identity"]["openingFamily"]:
+                row["identity"] = identity
+            _add_game(row, game, moves, fullmoves)
 
-    opening_rows = [_summary_row(name, row) for name, row in by_opening.items()]
-    variation_rows = [_summary_row(name, row) for name, row in by_variation.items()]
+    opening_rows = [_summary_row(row["identity"]["openingFamily"], row) for row in by_opening.values()]
+    variation_rows = [_summary_row(f'{row["identity"]["openingFamily"]}: {sequence}', row) for (_, sequence), row in by_variation.items()]
     weak_lines = [
         row
         for row in variation_rows
         if row["games"] >= 3 and row["losses"] >= 2 and row["loss_rate"] >= 50
     ]
 
-    opening_rows.sort(key=lambda item: (item["games"], item["win_rate"]), reverse=True)
-    variation_rows.sort(key=lambda item: (item["games"], item["loss_rate"]), reverse=True)
+    opening_rows.sort(key=lambda item: (item["games"], item["win_rate"] or 0, opening_context_key(item)), reverse=True)
+    variation_rows.sort(key=lambda item: (item["games"], item["loss_rate"] or 0, item["name"]), reverse=True)
     weak_lines.sort(key=lambda item: (item["loss_rate"], item["losses"], item["games"]), reverse=True)
 
     return {
@@ -301,17 +351,23 @@ def build_opening_fit_metrics(games: List[Dict[str, Any]]) -> Dict[str, Any]:
         "variations": variation_rows,
         "weak_lines": weak_lines[:8],
         "weakLines": weak_lines[:8],
-        "method": "deterministic_opening_fit_metrics_v1",
+        "method": "deterministic_opening_fit_metrics_v2",
+        "excludedEvidence": dict(excluded),
     }
 
 
 def merge_opening_fit_metrics(openings: List[Dict[str, Any]], metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
-    by_name = {str(item.get("name") or ""): item for item in metrics.get("openings", [])}
+    by_context = defaultdict(list)
+    for item in metrics.get("openings", []):
+        by_context[opening_context_key(item)].append(item)
     merged = []
 
     for opening in openings or []:
-        name = str(opening.get("name") or "")
-        metric = by_name.get(name)
+        matches = by_context.get(opening_context_key(opening), [])
+        metric = matches[0] if len(matches) == 1 else None
+        # A partial move-bearing subset must not overwrite the full aggregate.
+        if metric and set(opening.get("supportingGameIds") or []) != set(metric["supportingGameIds"]):
+            metric = None
         merged.append({**opening, **metric} if metric else opening)
 
     return merged

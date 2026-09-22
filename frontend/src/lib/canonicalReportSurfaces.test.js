@@ -10,6 +10,7 @@ import { reportExclusionSummary } from "./reportGameCounts.js";
 import { buildCoachSummary } from "../services/retentionJourney.js";
 import { buildTrainingRecommendations } from "../services/trainingRecommendations.js";
 import { buildWeeklyOpeningSession } from "../services/weeklyOpeningSession.js";
+import { buildShareReportModel } from "./shareReportPresentation.js";
 
 function recommendation({ id, opening, role, repertoireRole, verdict = "keep", games = 5, findingType = "stable_strength" }) {
   const confidenceLevel = games >= 25 ? "high_sample" : games >= 10 ? "moderate" : games >= 4 ? "low" : "insufficient";
@@ -255,4 +256,22 @@ test("Evidence table source is the canonical recommendation collection", () => {
   assert.match(app, /Array\.isArray\(canonicalRows\) && canonicalRows\.length/);
   assert.match(app, /repair: "Repair"/);
   assert.match(app, /"insufficient-data": "Not enough evidence"/);
+});
+
+
+test("Stage 6A report, share and training preserve authoritative decision identity", () => {
+  const report = canonicalReport();
+  report.reportDecision.version = "report_decision_v7";
+  const before = JSON.stringify(report);
+  const model = buildReportDecisionModel(report);
+  const share = buildShareReportModel(report);
+  const training = buildTrainingRecommendations(report);
+  const weekly = buildWeeklyOpeningSession(report);
+  assert.equal(share.trainingPriority.decisionId, model.trainingPriority.decisionId);
+  assert.equal(share.trainingPriority.repertoireRole, model.trainingPriority.repertoireRole);
+  assert.equal(share.trainingPriority.evidenceCount, model.trainingPriority.evidenceCount);
+  assert.equal(training.primary.trainingTarget.decisionId, model.decisionId);
+  assert.equal(weekly.trainingPriority.decisionId, model.decisionId);
+  assert.deepEqual(share.nextAction, model.nextTrainingAction);
+  assert.equal(JSON.stringify(report), before);
 });

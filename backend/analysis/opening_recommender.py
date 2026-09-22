@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any, Dict, List, Optional
+import math
 
 try:
     from analysis.opening_recommendation_catalog import (
@@ -70,17 +71,18 @@ def score_for_opening_stats(stats: Dict[str, Any]) -> Optional[float]:
     if games <= 0:
         return None
 
-    if stats.get("score") is not None:
-        score = float(stats.get("score") or 0)
-        return score * 100 if score <= 1 else score
-
     wins = int(stats.get("wins", 0) or 0)
     draws = int(stats.get("draws", 0) or 0)
-    return ((wins + 0.5 * draws) / games) * 100
+    losses = int(stats.get("losses", 0) or 0)
+    known = wins + draws + losses
+    if min(wins, draws, losses) < 0 or not 0 < known <= games:
+        return None
+    return ((wins + 0.5 * draws) / known) * 100
 
 
 def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, Any]]:
     flattened: Dict[str, Dict[str, Any]] = {}
+    batches: Dict[str, list] = {}
 
     def add_item(item: Any):
         if not isinstance(item, dict):
@@ -89,7 +91,10 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
         if not name:
             return
         role = repertoire_role_for_stats(item)
+        if item.get("relationship") in {"faced", "faced_by_user"}:
+            return
         key = role_stats_key(role, name)
+        batches.setdefault(key, []).append(item)
         existing = flattened.get(key, {"name": name, "games": 0, "wins": 0, "draws": 0, "losses": 0, "repertoireRole": role})
         previous_games = int(existing.get("games", 0) or 0)
         item_games = int(item.get("games", 0) or item.get("games_played", 0) or item.get("gamesPlayed", 0) or 0)
@@ -99,6 +104,11 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
         existing["losses"] = int(existing.get("losses", 0) or 0) + int(item.get("losses", 0) or 0)
         existing["context"] = item.get("context") or item.get("repertoireContext") or existing.get("context")
         existing["score"] = score_for_opening_stats(existing)
+        known = existing["wins"] + existing["draws"] + existing["losses"]
+        existing["knownResults"] = known
+        existing["unknownResults"] = max(0, existing["games"] - known)
+        existing["winRate"] = existing["wins"] / known * 100 if known and existing["score"] is not None else None
+        existing["scoreRate"] = existing["score"]
 
         clarity_score = item.get("planClarityScore", item.get("plan_clarity_score"))
         if clarity_score is not None:
@@ -153,6 +163,36 @@ def flatten_current_openings(current_opening_stats: Any) -> Dict[str, Dict[str, 
         for item in current_opening_stats:
             add_item(item)
 
+    for key, items in batches.items():
+        row = flattened[key]
+        identified = [item for item in items if item.get("supportingGameIds")]
+        if identified:
+            ids = sorted({str(game_id) for item in identified for game_id in item["supportingGameIds"]})
+            row["supportingGameIds"] = ids
+            # Only per-game results can reconcile overlapping aggregate batches.
+            # Missing mappings remain explicitly unknown, never apportioned wins.
+            results = {}
+            for game_id in ids:
+                values = {
+                    (item.get("supportingGameResults") or {}).get(game_id, "unknown")
+                    for item in identified if game_id in item["supportingGameIds"]
+                }
+                results[game_id] = next(iter(values)) if len(values) == 1 else "unknown"
+            mapped = all(isinstance(item.get("supportingGameResults"), dict) for item in identified)
+            overlap = sum(len(set(item["supportingGameIds"])) for item in identified) > len(ids)
+            duplicate_counts = any(int(item.get("games", item.get("gamesPlayed", item.get("games_played", 0))) or 0) != len(set(item["supportingGameIds"])) for item in identified)
+            if mapped or overlap or duplicate_counts:
+                unidentified = [item for item in items if not item.get("supportingGameIds")]
+                row["games"] = len(ids) + sum(int(item.get("games", item.get("gamesPlayed", item.get("games_played", 0))) or 0) for item in unidentified)
+                for plural, result in (("wins", "win"), ("draws", "draw"), ("losses", "loss")):
+                    row[plural] = sum(value == result for value in results.values()) + sum(int(item.get(plural) or 0) for item in unidentified)
+                row["supportingGameResults"] = results
+                row["performanceEvidenceStatus"] = "reconciled" if mapped else "overlap_without_results"
+        known = row["wins"] + row["draws"] + row["losses"]
+        row["knownResults"] = known
+        row["unknownResults"] = max(0, row["games"] - known)
+        row["score"] = row["scoreRate"] = score_for_opening_stats(row)
+        row["winRate"] = row["wins"] / known * 100 if known and row["score"] is not None else None
     return flattened
 
 
@@ -160,18 +200,34 @@ def catalog_by_name() -> Dict[str, OpeningCatalogItem]:
     return {normalise_name(item["name"]): item for item in OPENING_RECOMMENDATION_CATALOG}
 
 
+def trait_input(traits: Dict[str, Any], name: str) -> tuple[float, str]:
+    """Keep the contract's neutral fallback, but never confuse it with evidence."""
+    value = traits.get(name)
+    if value is None:
+        return 50.0, "missing"
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return 50.0, "invalid"
+    if not math.isfinite(value) or not 0 <= value <= 100:
+        return 50.0, "invalid"
+    return float(value), "observed"
+
+
+def trait_value(traits: Dict[str, Any], name: str) -> float:
+    return trait_input(traits, name)[0]
+
+
 def trait_fit_score(item: OpeningCatalogItem, traits: Dict[str, Any]) -> float:
     weighted_total = 0.0
     weight_total = 0.0
 
     for trait, weight in item.get("fit_weights", {}).items():
-        trait_value = float(traits.get(trait, 50) or 50)
+        value = trait_value(traits, trait)
 
         if weight >= 0:
-            weighted_total += trait_value * weight
+            weighted_total += value * weight
             weight_total += abs(weight)
         else:
-            weighted_total += (100 - trait_value) * abs(weight)
+            weighted_total += (100 - value) * abs(weight)
             weight_total += abs(weight)
 
     return weighted_total / weight_total if weight_total else 50
@@ -193,7 +249,7 @@ def theory_penalty(item: OpeningCatalogItem, rating: Optional[int], traits: Dict
     if item.get("theory_load") != "high" or rating is None:
         return 0
 
-    stability = float(traits.get("opening_phase_stability", 50) or 50)
+    stability = trait_value(traits, "opening_phase_stability")
     if rating < 1100:
         return 16 if stability < 72 else 8
     if rating < 1500:
@@ -450,17 +506,17 @@ def recommendation_verdict(
 def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: str) -> str:
     tags = set(item.get("style_tags", []))
     reasons = []
-    if "open" in tags and traits.get("open_position_preference", 50) >= 60:
+    if "open" in tags and trait_value(traits, "open_position_preference") >= 60:
         reasons.append("open central positions")
-    if "tactical" in tags and traits.get("tactical_tendency", 50) >= 60:
+    if "tactical" in tags and trait_value(traits, "tactical_tendency") >= 60:
         reasons.append("tactical play")
-    if "gambit" in tags and traits.get("gambit_comfort", 50) >= 58:
+    if "gambit" in tags and trait_value(traits, "gambit_comfort") >= 58:
         reasons.append("initiative and gambit comfort")
-    if "solid" in tags and traits.get("positional_tendency", 50) >= 55:
+    if "solid" in tags and trait_value(traits, "positional_tendency") >= 55:
         reasons.append("solid structured positions")
-    if "closed" in tags and traits.get("closed_position_comfort", 50) >= 55:
+    if "closed" in tags and trait_value(traits, "closed_position_comfort") >= 55:
         reasons.append("closed-position comfort")
-    if "development" in tags and traits.get("development_speed", 50) >= 58:
+    if "development" in tags and trait_value(traits, "development_speed") >= 58:
         reasons.append("fast development")
 
     if not reasons:
@@ -483,7 +539,7 @@ def watch_out_for_item(item: OpeningCatalogItem, traits: Dict[str, Any]) -> List
     watch = []
     if item.get("theory_load") == "high":
         watch.append("Theory load is high, so keep the first repertoire version narrow.")
-    if item.get("tactical_risk") == "high" and traits.get("king_safety_risk", 50) >= 55:
+    if item.get("tactical_risk") == "high" and trait_value(traits, "king_safety_risk") >= 55:
         watch.append("Your king safety habits need to stay disciplined in this opening.")
     if "gambit" in item.get("style_tags", []):
         watch.append("Do not rely on surprise value only; learn the common decline lines.")
@@ -531,6 +587,7 @@ def build_recommendation(
         "alternative_role": repertoire_role,
         "repertoireSlot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
         "repertoire_slot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
+        "traitInputStatus": {name: trait_input(traits, name)[1] for name in item.get("fit_weights", {})},
         "fit_score": fit_score,
         "fitScore": fit_score,
         "confidence": confidence["label"],

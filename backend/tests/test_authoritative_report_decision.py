@@ -331,7 +331,7 @@ def test_repertoire_health_is_versioned_reproducible_and_weights_reconcile():
     health = payload["repertoireHealth"]
     available = [row for row in health["components"] if row["available"]]
 
-    assert health["version"] == health["formulaVersion"] == "repertoire_health_v3"
+    assert health["version"] == health["formulaVersion"] == "repertoire_health_v4"
     assert health["score"] == pytest.approx(sum(row["contribution"] for row in available), abs=1e-5)
     assert sum(row["baseWeight"] for row in health["components"]) == 100
     assert sum(row["effectiveWeight"] for row in available) == pytest.approx(100, abs=1e-5)

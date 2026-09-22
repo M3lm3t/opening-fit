@@ -1,3 +1,5 @@
+import { compatibleEvidenceGeneration } from "./generationCompatibility.js";
+
 const arr = (value) => Array.isArray(value) ? value : [];
 const num = (value) => { if (value === undefined || value === null || value === "") return null; const parsed = Number(String(value).replace("%", "")); return Number.isFinite(parsed) ? Math.round(parsed) : null; };
 const payload = (row = {}) => row.report || row.last_report || row.analysis || row.data || row.snapshot?.report || row.snapshot || row;
@@ -26,6 +28,7 @@ function health(report = {}) { return num(report.openingFitScore ?? report.openi
 export function compareCompletedReports(history = [], activity = []) {
   const reports = orderedCompletedReports(history); if (reports.length < 2) return { available: false, changes: [], resolved: [], newIssues: [], repertoireChanges: [], trainingCompleted: 0 };
   const currentRow = reports[0], previousRow = reports[1], current = payload(currentRow), previous = payload(previousRow);
+  if (!compatibleEvidenceGeneration(previous, current)) return { available: false, reason: "Evidence generation version changed", changes: [], resolved: [], newIssues: [], repertoireChanges: [], trainingCompleted: 0 };
   const currentByName = new Map(reportOpenings(current).map((row) => [openingName(row).toLowerCase(), row]));
   const previousByName = new Map(reportOpenings(previous).map((row) => [openingName(row).toLowerCase(), row]));
   const changes = [];
