@@ -394,6 +394,8 @@ def build_style_fingerprint(games: List[Dict[str, Any]], username: Optional[str]
             "secondaryStyle": "Needs More Games",
             "confidence": "low",
             "traits": dict(LOW_SAMPLE_TRAITS),
+            "traitInputStatus": {key: "defaulted" for key in LOW_SAMPLE_TRAITS},
+            "traitProvenanceVersion": 1,
             "evidence": [
                 "OpeningFit needs at least a few usable games before making a strong style read.",
                 "The current fingerprint is a neutral baseline rather than a verdict.",
@@ -466,6 +468,23 @@ def build_style_fingerprint(games: List[Dict[str, Any]], username: Optional[str]
         + min(100, game_count * 4) * 0.10
     )
 
+    # Preserve numeric heuristics, but expose where missing cohorts supplied
+    # neutral/default terms rather than measured personal preferences.
+    dependencies = {
+        "tactical_tendency": ["open_position", "short_game"],
+        "positional_tendency": ["closed_position", "long_game"],
+        "open_position_preference": ["open_position"],
+        "closed_position_comfort": ["closed_position"],
+        "gambit_comfort": ["gambit_signal"],
+        "simplified_position_comfort": ["queen_trade_early"],
+        "endgame_conversion": ["long_game"], "long_game_success": ["long_game"],
+        "short_game_success": ["short_game"],
+    }
+    trait_status = {key: "heuristic" for key in traits}
+    for key, flags in dependencies.items():
+        if any(not any(game[flag] for game in parsed_games) for flag in flags):
+            trait_status[key] = "defaulted" if key in {"endgame_conversion", "long_game_success", "short_game_success"} else "partial"
+
     primary = primary_style_for_traits(traits)
     secondary = secondary_style_for_traits(traits, primary)
 
@@ -476,6 +495,8 @@ def build_style_fingerprint(games: List[Dict[str, Any]], username: Optional[str]
         "secondaryStyle": secondary,
         "confidence": confidence_for_count(game_count),
         "traits": traits,
+        "traitInputStatus": trait_status,
+        "traitProvenanceVersion": 1,
         "evidence": evidence_for_traits(parsed_games, traits),
         "sample_size": game_count,
         "sampleSize": game_count,

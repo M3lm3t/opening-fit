@@ -1,3 +1,4 @@
+import { traitPresentation, suitabilityReason } from "../lib/suitabilityPresentation.js";
 import { useMemo, useState } from "react";
 import InfoHint from "./InfoHint";
 import { OPENING_COPY, getOpeningRecommendationReason } from "./openingCopy";
@@ -45,12 +46,6 @@ function asArray(value) {
   return Array.isArray(value) ? value : [];
 }
 
-function clamp(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 50;
-  return Math.max(0, Math.min(100, Math.round(number)));
-}
-
 function normalizeName(name) {
   return String(name || "")
     .toLowerCase()
@@ -95,24 +90,7 @@ function getStyleFingerprint(data) {
   const direct = data?.styleFingerprint || data?.style_fingerprint;
   if (direct?.traits) return direct;
 
-  const profile = data?.styleProfile || data?.style_profile || {};
-  const primary = profile.primary || profile.primaryStyle || "Balanced Practical Player";
-  const summary = String(profile.summary || "").toLowerCase();
-  const attacking = /attack|active|tactical/.test(summary) || (profile.labels || []).some((label) => /attack|tactical/i.test(label));
-
-  return {
-    primaryStyle: attacking ? "Tactical Attacker" : primary,
-    secondaryStyle: /risk|gambit|cost/.test(summary) ? "Practical Improver" : "Practical Improver",
-    sampleSize: data?.gamesImported || data?.totalGames || data?.games_imported || 0,
-    traits: {
-      open_position_preference: attacking ? 72 : 54,
-      tactical_tendency: attacking ? 76 : 54,
-      gambit_comfort: /gambit/.test(summary) ? 42 : 50,
-      king_safety_risk: /risk|cost|queen/.test(summary) ? 58 : 45,
-      endgame_conversion: 50,
-      development_speed: attacking ? 68 : 54,
-    },
-  };
+  return { primaryStyle: "Style evidence unavailable", secondaryStyle: "Analyse more games", sampleSize: 0, traits: {} };
 }
 
 function getRecommendedGroups(data) {
@@ -293,59 +271,17 @@ function buildRepertoireSections(data) {
   ].filter((section) => section.items.length);
 }
 
-function traitValue(traits, key, invert = false) {
-  if (key === "theory_tolerance") {
-    return clamp(100 - Number(traits.king_safety_risk ?? 50));
-  }
-  const value = clamp(traits[key]);
-  return invert ? clamp(100 - value) : value;
-}
-
 function styleHeadline(fingerprint) {
   const primary = fingerprint.primaryStyle || fingerprint.primary_style || "Developing Player";
   const secondary = fingerprint.secondaryStyle || fingerprint.secondary_style || "Practical Improver";
   return `${primary} / ${secondary}`;
 }
 
-function styleCoachCopy(fingerprint) {
-  const traits = fingerprint.traits || {};
-  const open = traitValue(traits, "open_position_preference");
-  const tactical = traitValue(traits, "tactical_tendency");
-  const kingSafety = traitValue(traits, "king_safety_risk", true);
-
-  if (open >= 62 && tactical >= 62) {
-    return "Your wins point toward open centres, forcing development, and positions where activity matters quickly.";
-  }
-  if (kingSafety < 45) {
-    return "Your next opening gain is practical: castle on time, keep the centre under control, then choose active plans.";
-  }
-  return "Your games point toward a repertoire built around repeatable plans, not memorising every branch.";
+function styleCoachCopy() {
+  return "These are heuristic estimates from available game signals. Missing or defaulted traits are not measured preferences.";
 }
 
-function coachReason(item, traits) {
-  const tags = new Set(asArray(item.style_tags || item.styleTags).map((tag) => String(tag).toLowerCase()));
-  const reason = item.reason || "";
-  const open = traitValue(traits, "open_position_preference");
-  const tactical = traitValue(traits, "tactical_tendency");
-  const development = traitValue(traits, "development_speed");
-  const kingSafetyRisk = clamp(traits.king_safety_risk);
-
-  if (tags.has("open") && tags.has("tactical") && open >= 58 && tactical >= 58) {
-    return `This fits because your wins often come from open centres and forcing development, not slow manoeuvring positions.`;
-  }
-  if (tags.has("development") && development >= 58) {
-    return `This fits because your better games show fast piece development, so you get clear plans before the middlegame gets messy.`;
-  }
-  if (tags.has("gambit")) {
-    return kingSafetyRisk >= 55
-      ? `This is tempting, but only if you keep the first version narrow because your king safety still needs discipline.`
-      : `This fits your initiative streak, especially when you use the gambit to speed development rather than chase tricks.`;
-  }
-  if (tags.has("solid") || tags.has("system")) {
-    return "This gives you a repeatable structure, useful when consistency matters more than adding theory.";
-  }
-  return reason || `This is here because your recent games give it enough style overlap to study without rebuilding everything.`;
-}
+function coachReason(item) { return suitabilityReason(item); }
 
 function watchOut(item) {
   const watch = asArray(item.watch_out || item.watchOut);
@@ -356,13 +292,8 @@ function watchOut(item) {
   return ["Review your first uncomfortable position after move 8 and keep the study version narrow."];
 }
 
-function styleFingerprintTooltip(fingerprint) {
-  const traits = fingerprint.traits || {};
-  const sample = fingerprint.sampleSize || fingerprint.sample_size || "your current";
-  const tactical = clamp(traits.tactical_tendency);
-  const theory = clamp(traits.theory_tolerance);
-  const kingSafety = clamp(traits.king_safety_risk);
-  return `This explains the recommendation bias. OpeningFit read ${sample} games and saw tactical tendency ${tactical}/100, theory tolerance ${theory}/100, and king-safety risk ${kingSafety}/100. Use it to understand why some openings are suggested even if they are not the trendiest choices.`;
+function styleFingerprintTooltip() {
+  return "Style estimates use deterministic game heuristics. Unavailable or defaulted inputs are withheld; older stored estimates may lack provenance. No score proves personal suitability.";
 }
 
 function firstLines(name) {
@@ -397,8 +328,8 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
     tone === "delay" ||
     verdictLabel === "Avoid for now" ||
     ["Poor results", "Too little data", "Style mismatch", "Repertoire overload", "Needs repair", "Not urgent"].includes(reasonLabel);
-  const displayReasonLabel = useMappedReason ? mappedReason.title : reasonLabel;
-  const displayReason = useMappedReason ? mappedReason.message : shortReason;
+  const displayReasonLabel = games === 0 ? "Catalogue suggestion" : useMappedReason ? mappedReason.title : reasonLabel;
+  const displayReason = games === 0 ? suitabilityReason(item) : useMappedReason ? mappedReason.message : shortReason;
   const displayAction = useMappedReason ? mappedReason.nextStep : nextAction;
   const presentation = buildOpeningVerdictPresentation({ ...item, games, confidence, verdict: verdictLabel });
   const lines = firstLines(name);
@@ -493,7 +424,7 @@ function RecommendationCard({ item, label, tone, traits, playerProfile, alternat
             type="button"
             onClick={() => onPractice(item)}
           >
-            Train This Line
+            Review or practise
           </button>
         ) : null}
         <button
@@ -577,14 +508,16 @@ export default function RecommendedOpeningFit({ data, onPractice }) {
 
       <div className="styleTraitGrid">
         {TRAIT_CONFIG.map(([key, label, invert]) => {
-          const value = traitValue(traits, key, invert);
+          const trait = traitPresentation(fingerprint, key, invert);
+          const value = trait.value;
           return (
             <div className="styleTraitBar" key={key}>
               <div>
                 <span>{label}</span>
-                <strong>{value}</strong>
+                <strong>{value ?? "Unavailable"}</strong>
               </div>
-              <progress value={value} max="100" aria-label={`${label} ${value} out of 100`} />
+              <small>{trait.label}</small>
+              {value !== null ? <progress value={value} max="100" aria-label={`${label}: ${trait.label}, ${value} out of 100`} /> : null}
             </div>
           );
         })}

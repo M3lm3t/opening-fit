@@ -194,6 +194,8 @@ def _opening_suitability_contract(item: Mapping[str, Any], *, fit_score: Optiona
         evidence_sources.append("deterministic style/repertoire inputs")
     return {
         "version": OPENING_SUITABILITY_VERSION,
+        "traitInputStatus": dict(item.get("traitInputStatus") or {}),
+        "traitProvenanceVersion": item.get("traitProvenanceVersion"),
         "score": score,
         "evidenceSources": evidence_sources,
         "currentlyPlayed": played_available,

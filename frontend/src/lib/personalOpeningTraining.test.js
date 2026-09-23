@@ -5,7 +5,7 @@ import { buildCoachingSessionContent, buildPersonalTrainingItems, compareTrained
 
 const FEN = "r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 4 3";
 const source = { diagnosisId: "diagnosis:1", positionFen: FEN, repertoireRole: "white", playerColour: "white", recommendedMoves: ["Nxe5", "Bc4"], supportingGameIds: ["g1"], opening: "King's Pawn", canonicalOpeningId: "kings-pawn", confidence: "high" };
-const report = { analysisId: "report-1", reportDecision: { version: "v6" }, recurringOpeningHabits: [{ ...source, habitId: "h1", habitType: "RECURRING_MISTAKE", playedMove: "d3", occurrenceCount: 4 }] };
+const report = { analysis_game_index: [{ gameId: "g1", playerColour: "white", moves: ["e4", "e5", "Nf3", "Nc6"] }], analysisId: "report-1", reportDecision: { version: "v6" }, recurringOpeningHabits: [{ ...source, habitId: "h1", habitType: "RECURRING_MISTAKE", playedMove: "d3", occurrenceCount: 4 }] };
 
 test("builds a stable personal item with canonical identities and legal alternatives", () => {
   const first = buildPersonalTrainingItems({ report, ownerId: "user-1", now: "2026-08-19T09:00:00Z" });
@@ -40,8 +40,8 @@ test("restores only the matching owner state", () => {
 test("session evidence hierarchy distinguishes source, pack and general setup fallbacks", () => {
   const item = buildPersonalTrainingItems({ report, ownerId: "user-1" }).items[0];
   assert.equal(buildCoachingSessionContent({ item }).provenance, "verified_source_position");
-  assert.equal(buildCoachingSessionContent({ item: { ...item, sourceGameId: null, continuation: ["Nf6"] } }).provenance, "recognised_opening_pack_line");
-  const general = buildCoachingSessionContent({ report: { analysisId: "report-general", reportDecision: { trainingPriority: { priorityId: "d-general", taskId: "task-general", repertoireRole: "black_vs_e4", openingName: "Caro-Kann Defence", rationale: "Challenge the centre before completing development." } } } });
+  assert.equal(buildCoachingSessionContent({ item: { ...item, positionSource: "recognised_opening_pack_line", sourceGameId: null, continuation: ["Nf6"] } }).provenance, "recognised_opening_pack_line");
+  const general = buildCoachingSessionContent({ report: { analysisId: "report-general", reportDecision: { trainingPriority: { subjectType: "role_gap", priorityId: "d-general", taskId: "task-general", repertoireRole: "black_vs_e4", openingName: "Caro-Kann Defence", rationale: "Challenge the centre before completing development." } } } });
   assert.equal(general.provenance, "general_setup"); assert.equal(general.interactive, false); assert.deepEqual(general.choices, []); assert.equal(general.orientation, "black");
   assert.equal(buildCoachingSessionContent({ report: {} }).available, false);
 });

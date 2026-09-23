@@ -5,6 +5,14 @@ export const PERSONAL_TRAINING_STORAGE_KEY = "openingFit:personalOpeningTraining
 export const TRAINING_MODES = Object.freeze(["learn", "recall", "continue", "review_mistake", "retest"]);
 export const COACHING_SESSION_STEPS = Object.freeze(["recall", "decision", "reveal", "rehearse", "commit"]);
 
+export function personalTrainingReviewRoute(selectedOpening = null) {
+  return { view: "report", reportAction: {
+    actionType: "review_supporting_games", destinationRoute: "/report", destinationSection: "evidence",
+    openingName: typeof selectedOpening === "string" ? selectedOpening : selectedOpening?.name || selectedOpening?.openingName || selectedOpening?.opening || null,
+    repertoireRole: selectedOpening?.repertoireRole || selectedOpening?.repertoire_role || null,
+  } };
+}
+
 const list = (value) => Array.isArray(value) ? value.filter(Boolean) : [];
 const text = (value) => String(value ?? "").trim();
 const cleanSan = (value) => text(value).replace(/[!?+#]+$/g, "").replaceAll("0-0-0", "O-O-O").replaceAll("0-0", "O-O");
@@ -79,14 +87,49 @@ export function validatePersonalTrainingSource(source = {}) {
   return { valid: reasons.length === 0, reasons: [...new Set(reasons)], legalMoves: legal, playerColour, role, fen };
 }
 
-export function buildPersonalTrainingItems({ report = {}, ownerId, now = new Date() } = {}) {
+function matchesSelectedOpening(source, selected) {
+  if (!selected) return true;
+  const key = value => text(value).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const wanted = typeof selected === "string" ? selected : selected.name || selected.openingName || selected.opening;
+  const actual = source.openingName || source.opening || source.priority?.openingName;
+  const role = selected.repertoireRole || selected.repertoire_role;
+  return Boolean(wanted && key(wanted) === key(actual) && (!role || role === (source.repertoireRole || source.repertoire_role)));
+}
+
+function retainedPositionSource(source, report, validation) {
+  const reference = source.authoritativeContinuation || source.authoritative_continuation;
+  if (["active_repertoire_line", "opening_reference_line"].includes(reference?.source) && moveAt(validation.fen, reference.move)) return "reference";
+  const ids = new Set(list(source.supportingGameIds || source.supporting_game_ids).map(text));
+  const games = list(report.analysis_game_index || report.analysisGameIndex || report.opening_games || report.openingGames);
+  for (const game of games) {
+    if (!ids.has(text(game.gameId || game.game_id || game.id || game.url))) continue;
+    if ((game.playerColour || game.colour || game.color) !== validation.playerColour) continue;
+    try {
+      const parsed = new Chess();
+      let moves = game.moves;
+      if (game.pgn) { parsed.loadPgn(game.pgn); moves = parsed.history(); }
+      if (!Array.isArray(moves)) continue;
+      const board = new Chess();
+      for (const move of moves) {
+        board.move(move);
+        if (normalFen(board.fen()) === normalFen(validation.fen)) return text(game.gameId || game.game_id || game.id || game.url);
+      }
+    } catch { /* Unrecoverable games cannot source a drill. */ }
+  }
+  return null;
+}
+
+export function buildPersonalTrainingItems({ report = {}, ownerId, selectedOpening = null, now = new Date() } = {}) {
   const reportId = text(report.analysisId || report.analysis_id || report.reportId || report.report_id || report.id);
   const reportVersion = text(report.reportDecision?.version || report.report_decision?.version || report.schemaVersion || report.schema_version);
   const diagnostics = [];
   const seenPositions = new Map();
   const items = [];
   for (const source of diagnosisSources(report)) {
+    if (!matchesSelectedOpening(source, selectedOpening)) continue;
     const validation = validatePersonalTrainingSource(source);
+    const retainedSource = validation.valid ? retainedPositionSource(source, report, validation) : null;
+    if (!retainedSource) { validation.valid = false; validation.reasons.push("missing_recoverable_position_source"); }
     const diagnosisId = text(source.diagnosisId || source.diagnosis_id);
     if (!validation.valid || !reportId || !ownerId) {
       diagnostics.push({ diagnosisId: diagnosisId || null, reasons: [...validation.reasons, ...(!reportId ? ["missing_source_report"] : []), ...(!ownerId ? ["missing_owner"] : [])], recoveryAction: "Reanalyse complete games with trusted opening attribution." });
@@ -108,7 +151,8 @@ export function buildPersonalTrainingItems({ report = {}, ownerId, now = new Dat
       diagnosisId, decisionId: text(source.priority?.decisionId) || null, trainingSubjectId,
       openingId: openingId || null, openingName: text(source.opening || source.openingName || source.priority?.openingName) || "Opening position",
       positionId, repertoireRole: validation.role, playerColour: validation.playerColour,
-      sourceGameIds: list(source.supportingGameIds || source.supporting_game_ids).map(text), sourceGameId: text(list(source.supportingGameIds || source.supporting_game_ids)[0]) || null,
+      sourceGameIds: list(source.supportingGameIds || source.supporting_game_ids).map(text), sourceGameId: retainedSource === "reference" ? null : retainedSource,
+      positionSource: retainedSource === "reference" ? "recognised_opening_pack_line" : "verified_source_position",
       startingFen: validation.fen, expectedMove: moves[0].san, expectedMoveUci: moves[0].uci,
       acceptedMoves: moves.map((move) => move.san), acceptedMoveUcis: moves.map((move) => move.uci),
       continuation: list(source.continuation || source.shortContinuation || source.short_continuation).slice(0, 5),
@@ -126,9 +170,10 @@ export function buildPersonalTrainingItems({ report = {}, ownerId, now = new Dat
   return { items, diagnostics };
 }
 
-export function buildCoachingSessionContent({ item = null, report = {} } = {}) {
+export function buildCoachingSessionContent({ item = null, report = {}, selectedOpening = null } = {}) {
   if (item) {
-    const provenance = item.sourceGameId ? "verified_source_position" : item.continuation?.length ? "recognised_opening_pack_line" : "verified_position";
+    const provenance = item.positionSource;
+    if (!matchesSelectedOpening(item, selectedOpening) || !provenance) return { available: false, provenance: "none", recoveryAction: "No sourced drill is available for this opening. Review the supporting games instead." };
     return {
       available: true, provenance, item, interactive: true, orientation: item.playerColour,
       prompt: `What is your plan in this ${item.openingName} position?`,
@@ -143,12 +188,12 @@ export function buildCoachingSessionContent({ item = null, report = {} } = {}) {
   const openingName = text(priority?.openingName || priority?.opening_name);
   const diagnosisId = text(priority?.diagnosisId || priority?.diagnosis_id || priority?.priorityId || priority?.priority_id);
   const explanation = text(priority?.rationale || priority?.explanation || priority?.nextAction || priority?.next_action);
-  if (role && openingName && diagnosisId && explanation) return {
+  if (role && openingName && diagnosisId && explanation && priority?.subjectType === "role_gap" && !selectedOpening) return {
     available: true, provenance: "general_setup", interactive: false, orientation: colourForRole(role) || "white",
     prompt: `What is your practical plan in the ${openingName}?`, choices: [], reveal: explanation,
     draft: explanation, item: { itemId: text(priority.taskId || priority.task_id || `general:${diagnosisId}`), sourceReportId: text(report.analysisId || report.analysis_id || report.reportId || report.report_id) || null, diagnosisId, decisionId: text(priority.decisionId || priority.decision_id) || null, trainingSubjectId: text(priority.taskId || priority.task_id) || null, openingId: text(priority.openingId || priority.opening_id || priority.canonicalOpeningId || priority.canonical_opening_id) || null, openingName, repertoireRole: role, playerColour: colourForRole(role), evidence: { confidence: text(priority.confidenceStatus || priority.confidence_status || "unknown"), occurrences: Number(priority.evidenceCount || priority.evidence_count || 0), source: "canonical_training_priority" }, state: { sessionStep: "recall" } },
   };
-  return { available: false, provenance: "none", recoveryAction: report?.analysisId || report?.analysis_id ? "Review the source games in your report or analyse new games to build a safe task." : "Import games to build a supported coaching task." };
+  return { available: false, provenance: "none", recoveryAction: report?.analysisId || report?.analysis_id ? "No sourced drill is available. Review the supporting games in Evidence and choose a position to study." : "Import games to build a supported coaching task." };
 }
 
 export function reviewTrainingItem(item, { correct, assistanceUsed = false, now = new Date() } = {}) {
@@ -230,4 +275,13 @@ export function mergeTrainingState(generated = [], stored = [], ownerId) {
     const prior = saved.get(item.itemId);
     return prior ? { ...item, state: prior.state, reviewSchedule: prior.reviewSchedule, createdAt: prior.createdAt, updatedAt: prior.updatedAt } : item;
   });
+}
+
+export function retainTrainingHistory(generated = [], stored = [], nextItem, ownerId) {
+  // Ineligible historical tasks must not become playable, but saving a current
+  // task must not erase their attempts, completion or original source contract.
+  const retained = new Map(list(stored).filter(item => item.ownerId === ownerId).map(item => [item.itemId, item]));
+  list(generated).filter(item => item.ownerId === ownerId).forEach(item => retained.set(item.itemId, item));
+  retained.set(nextItem.itemId, { ...nextItem, ownerId });
+  return [...retained.values()];
 }

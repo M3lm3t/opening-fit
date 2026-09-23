@@ -11,6 +11,7 @@ import {
   dueTrainingSession,
   evaluatePersonalTrainingMove,
   mergeTrainingState,
+  retainTrainingHistory,
 } from "../lib/personalOpeningTraining.js";
 import { recordMeaningfulCoachingActivity, saveCoachingResponsePlan } from "../services/coachingStateService.js";
 import "./PersonalOpeningTrainer.css";
@@ -20,20 +21,20 @@ const writeLocal = (value) => { try { localStorage.setItem(PERSONAL_TRAINING_STO
 const anonymousOwner = () => { const state = readLocal(); if (state.anonymousOwnerId) return state.anonymousOwnerId; const id = `anonymous:${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`; writeLocal({ ...state, anonymousOwnerId: id }); return id; };
 const STEP_LABELS = { recall: "Recall", decision: "Decision", reveal: "Reveal", rehearse: "Rehearse", commit: "Commit" };
 
-export default function PersonalOpeningTrainer({ report, onAnalyse, onReport }) {
+export default function PersonalOpeningTrainer({ report, selectedOpening = null, onAnalyse, onReport }) {
   const { user, settings, saveSettings } = useAuth();
   const ownerId = useMemo(() => user?.id || anonymousOwner(), [user?.id]);
   const cloudState = user?.id ? settings?.preferences?.personalOpeningTraining : null;
   const stored = useMemo(() => user?.id ? cloudState?.items || [] : readLocal().items || [], [cloudState?.items, user?.id]);
-  const generated = useMemo(() => buildPersonalTrainingItems({ report: report || {}, ownerId }), [ownerId, report]);
+  const generated = useMemo(() => buildPersonalTrainingItems({ report: report || {}, ownerId, selectedOpening }), [ownerId, report, selectedOpening]);
   const initialItems = useMemo(() => mergeTrainingState(generated.items, stored, ownerId), [generated.items, ownerId, stored]);
   const due = useMemo(() => dueTrainingSession(initialItems, { limit: 1 }).items[0] || null, [initialItems]);
   const content = useMemo(() => {
-    const next = buildCoachingSessionContent({ item: due, report: report || {} });
+    const next = buildCoachingSessionContent({ item: due, report: report || {}, selectedOpening });
     if (due || !next.item) return next;
     const prior = stored.find((row) => row.ownerId === ownerId && row.itemId === next.item.itemId);
     return prior ? { ...next, item: { ...next.item, state: prior.state, createdAt: prior.createdAt, updatedAt: prior.updatedAt } } : next;
-  }, [due, ownerId, report, stored]);
+  }, [due, ownerId, report, selectedOpening, stored]);
   const [item, setItem] = useState(content.item || null);
   const [step, setStep] = useState(content.item?.state?.sessionStep || "recall");
   const [position, setPosition] = useState(content.item?.startingFen || "");
@@ -54,7 +55,7 @@ export default function PersonalOpeningTrainer({ report, onAnalyse, onReport }) 
   const persistItem = async (nextItem) => {
     if (!nextItem) return;
     setItem(nextItem);
-    const nextItems = initialItems.some((row) => row.itemId === nextItem.itemId) ? initialItems.map((row) => row.itemId === nextItem.itemId ? nextItem : row) : [nextItem, ...initialItems];
+    const nextItems = retainTrainingHistory(initialItems, stored, nextItem, ownerId);
     const payload = { version: 2, ownerId, items: nextItems, activeItemId: nextItem.itemId, updatedAt: new Date().toISOString() };
     if (user?.id) await saveSettings?.({ preferences: { personalOpeningTraining: payload } });
     else writeLocal({ ...readLocal(), ...payload });
@@ -71,8 +72,9 @@ export default function PersonalOpeningTrainer({ report, onAnalyse, onReport }) 
     if (!item?.startingFen || !["decision", "rehearse"].includes(step)) return;
     const result = evaluatePersonalTrainingMove(item, { from, to, promotion: "q" });
     if (!result.trustworthy || result.reason === "illegal_move") { setFeedback("That move is not legal in this position."); return; }
-    setPosition(result.resultingFen); setSelected(null);
-    if (!result.accepted) { setFeedback(`${result.san} is legal, but it is not one of the supported responses for this task.`); return; }
+    setSelected(null);
+    if (!result.accepted) { setPosition(item.startingFen); setFeedback(`${result.san} is a legal alternative outside the saved line; its move quality is unassessed. Try recalling the saved continuation from the original position.`); return; }
+    setPosition(result.resultingFen);
     setFeedback(result.alternative ? `${result.san} is also a supported continuation.` : `${result.san} matches the supported response.`);
     const nextItem = { ...item, state: { ...item.state, sessionStep: step, decisionCompleted: true, rehearsalCompleted: step === "rehearse" || item.state?.rehearsalCompleted }, updatedAt: new Date().toISOString() };
     await persistItem(nextItem);

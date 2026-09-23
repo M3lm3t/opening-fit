@@ -1,3 +1,4 @@
+import { personalTrainingReviewRoute } from "./lib/personalOpeningTraining.js";
 import { comparisonEligibility } from "./lib/comparisonPolicy.js";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
 import OpeningFitProgressionDashboard from "./components/OpeningFitProgressionDashboard.jsx";
@@ -17213,7 +17214,7 @@ export default function App() {
                   <ReportOpeningFilters filters={reportFilters} onFiltersChange={setReportFilters} data={reportData} />
 
                   <div id="opening-practice">
-                    <PersonalOpeningTrainer report={reportData} onReport={() => handleAppNavigate("report")} onAnalyse={() => handleAppNavigate("analyse")} />
+                    <PersonalOpeningTrainer report={reportData} selectedOpening={practiceOpening} onReport={() => handleAppNavigate(personalTrainingReviewRoute(practiceOpening))} onAnalyse={() => handleAppNavigate("analyse")} />
                     <ContinueTrainingCard
                       data={reportData}
                       fitData={fitData}

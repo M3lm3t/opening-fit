@@ -445,7 +445,7 @@ def recommendation_verdict(
             "label": "Avoid for now",
             "reason_label": "Poor results",
             "short_reason": "Your results are below the level needed for a main opening.",
-            "next_action": "Review the first recurring mistake before trusting this line again.",
+            "next_action": "Review the supporting games before changing this line.",
         }
 
     if high_load and upgrade in {"experiment", "new_recommendation"}:
@@ -469,7 +469,7 @@ def recommendation_verdict(
             "label": "Improve",
             "reason_label": "Needs repair",
             "short_reason": "The opening is playable, but the result pattern needs work.",
-            "next_action": "Train one repeated branch before adding new theory.",
+            "next_action": "Review one repeated branch in your games before adding new theory.",
         }
 
     if upgrade == "keep":
@@ -504,35 +504,10 @@ def recommendation_verdict(
 
 
 def reason_for_item(item: OpeningCatalogItem, traits: Dict[str, Any], upgrade: str) -> str:
-    tags = set(item.get("style_tags", []))
-    reasons = []
-    if "open" in tags and trait_value(traits, "open_position_preference") >= 60:
-        reasons.append("open central positions")
-    if "tactical" in tags and trait_value(traits, "tactical_tendency") >= 60:
-        reasons.append("tactical play")
-    if "gambit" in tags and trait_value(traits, "gambit_comfort") >= 58:
-        reasons.append("initiative and gambit comfort")
-    if "solid" in tags and trait_value(traits, "positional_tendency") >= 55:
-        reasons.append("solid structured positions")
-    if "closed" in tags and trait_value(traits, "closed_position_comfort") >= 55:
-        reasons.append("closed-position comfort")
-    if "development" in tags and trait_value(traits, "development_speed") >= 58:
-        reasons.append("fast development")
-
-    if not reasons:
-        reasons.append(item.get("typical_position_type", "your current style profile"))
-
-    prefix = {
-        "keep": "This already looks like a useful fit:",
-        "fix": "This is close to your style but needs cleaner execution:",
-        "replace": "This appears risky for your current results:",
-        "experiment": "This is a low-sample style experiment because your games point toward",
-        "new_recommendation": "This is a low-sample style experiment because your games point toward",
-    }.get(upgrade, "This opening matches")
-
+    description = item.get("typical_position_type") or "the catalogue's opening characteristics"
     if upgrade in {"experiment", "new_recommendation"}:
-        return f"{prefix} {', '.join(reasons[:2])}."
-    return f"{prefix} it matches {', '.join(reasons[:2])}."
+        return f"A heuristic catalogue suggestion to explore {description}; this opening is not personally proven by your games."
+    return f"A heuristic estimate based on available repertoire inputs and {description}; it is not a measured preference or proof of opening quality."
 
 
 def watch_out_for_item(item: OpeningCatalogItem, traits: Dict[str, Any]) -> List[str]:
@@ -587,7 +562,8 @@ def build_recommendation(
         "alternative_role": repertoire_role,
         "repertoireSlot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
         "repertoire_slot": repertoire_role if repertoire_role != RepertoireRole.UNRESOLVED.value else None,
-        "traitInputStatus": {name: trait_input(traits, name)[1] for name in item.get("fit_weights", {})},
+        "traitInputStatus": {name: (style_fingerprint.get("traitInputStatus") or {}).get(name, trait_input(traits, name)[1]) for name in item.get("fit_weights", {})},
+        "traitProvenanceVersion": 1,
         "fit_score": fit_score,
         "fitScore": fit_score,
         "confidence": confidence["label"],
