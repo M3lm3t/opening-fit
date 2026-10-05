@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "./reportRollout.js";
 export const TRAINING_PREFERENCES_STORAGE_KEY = "openingFit:trainingPreferences:v1";
 
 export const TRAINING_GOALS = Object.freeze([
@@ -35,7 +36,7 @@ export function hasCompleteTrainingPreferences(value) {
   return Boolean(prefs.mainGoal && prefs.playFrequency && prefs.weeklyMinutes);
 }
 
-export function readLocalTrainingPreferences(storage = globalThis.localStorage) {
+export function readLocalTrainingPreferences(storage = reportLocalStorage) {
   try {
     return normaliseTrainingPreferences(JSON.parse(storage?.getItem(TRAINING_PREFERENCES_STORAGE_KEY) || "{}"));
   } catch {
@@ -43,7 +44,7 @@ export function readLocalTrainingPreferences(storage = globalThis.localStorage) 
   }
 }
 
-export function writeLocalTrainingPreferences(value, storage = globalThis.localStorage) {
+export function writeLocalTrainingPreferences(value, storage = reportLocalStorage) {
   const preferences = normaliseTrainingPreferences(value);
   try {
     storage?.setItem(TRAINING_PREFERENCES_STORAGE_KEY, JSON.stringify(preferences));

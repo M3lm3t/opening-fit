@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useMemo } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { buildTrainingRecommendations } from "../services/trainingRecommendations";
@@ -9,7 +10,7 @@ const TODAY_TRAINING_KEY = "openingFit:trainingProgress";
 
 function readLocalJson(key) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(key) || "{}");
+    const parsed = JSON.parse(reportLocalStorage.getItem(key) || "{}");
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};

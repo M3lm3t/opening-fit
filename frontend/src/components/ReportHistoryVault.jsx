@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { comparisonEligibility } from "../lib/comparisonPolicy.js";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
@@ -166,7 +167,7 @@ function createReportSnapshot(data, fitData = null) {
 
 function readHistory() {
   try {
-    const raw = localStorage.getItem(HISTORY_KEY);
+    const raw = reportLocalStorage.getItem(HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -175,7 +176,7 @@ function readHistory() {
 }
 
 function writeHistory(items) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(items));
+  reportLocalStorage.setItem(HISTORY_KEY, JSON.stringify(items));
 }
 
 function normalizeHistoryItem(item) {

@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
 import "./OpeningProgressTracker.css";
@@ -14,7 +15,7 @@ function getUsername(data) {
     data?.username ||
     data?.player ||
     data?.handle ||
-    localStorage.getItem("openingFit:lastUsername") ||
+    reportLocalStorage.getItem("openingFit:lastUsername") ||
     "guest"
   );
 }
@@ -23,7 +24,7 @@ function getPlatform(data) {
   return (
     data?.platform ||
     data?.source ||
-    localStorage.getItem("openingFit:lastPlatform") ||
+    reportLocalStorage.getItem("openingFit:lastPlatform") ||
     "unknown"
   );
 }
@@ -203,7 +204,7 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
     let cancelled = false;
 
     try {
-      const saved = JSON.parse(localStorage.getItem(key) || "[]");
+      const saved = JSON.parse(reportLocalStorage.getItem(key) || "[]");
       setHistory(Array.isArray(saved) ? saved : []);
     } catch {
       setHistory([]);
@@ -220,7 +221,7 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
           if (Array.isArray(cloudHistory)) {
             setHistory(cloudHistory);
             try {
-              localStorage.setItem(key, JSON.stringify(cloudHistory));
+              reportLocalStorage.setItem(key, JSON.stringify(cloudHistory));
             } catch {
               // Ignore browser storage failures.
             }
@@ -271,7 +272,7 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
     setHistory(next);
 
     try {
-      localStorage.setItem(key, JSON.stringify(next));
+      reportLocalStorage.setItem(key, JSON.stringify(next));
     } catch {
       // Local progress should never break the app.
     }
@@ -296,9 +297,9 @@ export default function OpeningProgressTracker({ data, user = null, compact = fa
   const clearHistory = () => {
     setHistory([]);
     try {
-      localStorage.removeItem(key);
+      reportLocalStorage.removeItem(key);
     } catch {
-      // Ignore localStorage failures.
+      // Ignore reportLocalStorage failures.
     }
 
     if (user?.id) {

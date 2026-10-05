@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, Check, CheckCircle2, ChevronRight, Clock3, CloudOff, Play, RotateCcw, Target } from "lucide-react";
 import { useAuth } from "../context/AuthDataProvider.jsx";
@@ -34,7 +35,7 @@ function cacheKey(userId) {
 
 function readCache(userId) {
   try {
-    const value = JSON.parse(localStorage.getItem(cacheKey(userId)) || "null");
+    const value = JSON.parse(reportLocalStorage.getItem(cacheKey(userId)) || "null");
     if (!value) return { plan: null, pendingTaskIds: [] };
     const entry = value.plan ? { plan: value.plan, pendingTaskIds: Array.isArray(value.pendingTaskIds) ? value.pendingTaskIds : [] } : { plan: value, pendingTaskIds: [] };
     if (entry.plan?.weekStart && entry.plan.weekStart !== weeklyPlanWindow().weekStart) return { plan: null, pendingTaskIds: [] };
@@ -46,7 +47,7 @@ function readCache(userId) {
 
 function writeCache(userId, plan, pendingTaskIds = []) {
   try {
-    localStorage.setItem(cacheKey(userId), JSON.stringify({ plan, pendingTaskIds: [...new Set(pendingTaskIds)] }));
+    reportLocalStorage.setItem(cacheKey(userId), JSON.stringify({ plan, pendingTaskIds: [...new Set(pendingTaskIds)] }));
   } catch {
     // The live plan remains usable when private storage is unavailable.
   }

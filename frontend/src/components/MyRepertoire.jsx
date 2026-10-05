@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { REPERTOIRE_STORAGE_KEY } from "../lib/repertoireWorkspace.js";
@@ -19,7 +20,7 @@ import {
 import "./MyRepertoire.css";
 
 function readLocalWorkspace() {
-  try { return JSON.parse(localStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; }
+  try { return JSON.parse(reportLocalStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; }
 }
 
 const INTENTIONS = ["Keep", "Explore", "Replace later"];
@@ -130,7 +131,7 @@ export default function MyRepertoire({ data, reportHistory = [], onAnalyse, onPr
       const existingState = openingFitUserState.find((row) => row?.coach_progress?.repertoireWorkspace) || openingFitUserState[0] || null;
       const result = await initialiseRepertoireFromReport(user.id, data, { existingState });
       if (result?.storage === "legacy-cloud") {
-        localStorage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify(result.workspace));
+        reportLocalStorage.setItem(REPERTOIRE_STORAGE_KEY, JSON.stringify(result.workspace));
         setLocalWorkspace(result.workspace);
         setLoadError("");
         await refreshUserData?.();

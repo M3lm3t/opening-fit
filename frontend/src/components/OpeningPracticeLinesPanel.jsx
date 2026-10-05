@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { X } from "lucide-react";
@@ -255,7 +256,7 @@ function buildPracticeState(moves, moveCount, practiceSide, stopOnUserTurn = fal
 
 function loadLocalTrainingProgress() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(TRAINING_PROGRESS_KEY) || "{}");
+    const parsed = JSON.parse(reportLocalStorage.getItem(TRAINING_PROGRESS_KEY) || "{}");
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -264,7 +265,7 @@ function loadLocalTrainingProgress() {
 
 function saveLocalTrainingProgress(progress) {
   try {
-    localStorage.setItem(TRAINING_PROGRESS_KEY, JSON.stringify(progress));
+    reportLocalStorage.setItem(TRAINING_PROGRESS_KEY, JSON.stringify(progress));
   } catch {
     // Practice should keep working even when browser storage is unavailable.
   }
@@ -885,7 +886,7 @@ function StandardOpeningPracticeLinesPanel({
     window.dispatchEvent(new CustomEvent(TRAINING_TASK_COMPLETED_EVENT, { detail: { opening: activeOpeningName, line: selectedLine.name, result: trainingOutcome({ attempts: Math.max(1, attempts), revealed }) } }));
     const result = trainingOutcome({ attempts: Math.max(1, attempts), revealed });
     void trackProductEvent(result === "repeated_failure" ? "training_task_failed" : "training_task_completed", { authenticated: Boolean(user?.id), resultCategory: result, source: "practice_board", openingCategory: practiceSide });
-    try { localStorage.removeItem(TRAINING_SESSION_KEY); } catch { /* Session completion still works without storage. */ }
+    try { reportLocalStorage.removeItem(TRAINING_SESSION_KEY); } catch { /* Session completion still works without storage. */ }
   }
 
   function toggleFilter(filter) {

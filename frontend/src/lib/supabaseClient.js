@@ -1,4 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
+import { isolatedReportClient } from "./reportRollout.js";
+import { buildApiUrl } from "./apiBase.js";
 
 const viteEnv = import.meta.env || {};
 const supabaseUrl = String(viteEnv.VITE_SUPABASE_URL || "").trim();
@@ -147,7 +149,7 @@ if (debugSupabase) {
   });
 }
 
-export const supabase = isSupabaseConfigured
+const rawSupabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
@@ -158,6 +160,20 @@ export const supabase = isSupabaseConfigured
       },
     })
   : null;
+
+export const supabase = isolatedReportClient(rawSupabase, {
+  async request(payload) {
+    const { data } = await rawSupabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (!token) return { data: null, error: { code: "401", message: "Sign in to read or save reports." } };
+    const response = await fetch(buildApiUrl("/api/v2/report-store/query"), {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(payload),
+    });
+    const result = await response.json();
+    return response.ok ? result : { data: null, error: { code: String(response.status), message: result.detail || "Report storage unavailable." } };
+  },
+});
 
 export async function diagnoseSupabase() {
   if (!debugSupabase || !supabase) return null;

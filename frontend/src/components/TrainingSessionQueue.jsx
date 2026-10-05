@@ -1,10 +1,11 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import { REPERTOIRE_STORAGE_KEY } from "../lib/repertoireWorkspace";
 import { TRAINING_SESSION_KEY, TRAINING_TASK_COMPLETED_EVENT, buildFiniteSession, buildTrainingQueue } from "../lib/trainingQueue";
 import { trackProductEvent } from "../lib/productAnalytics";
 
 const OUTCOMES_KEY = "openingFit:trainingOutcomes:v1";
-const read = (key, fallback) => { try { return JSON.parse(localStorage.getItem(key) || "null") || fallback; } catch { return fallback; } };
+const read = (key, fallback) => { try { return JSON.parse(reportLocalStorage.getItem(key) || "null") || fallback; } catch { return fallback; } };
 
 export default function TrainingSessionQueue({ data, selectedTarget, onStart, onReport, onAnalyse }) {
   const [outcomes, setOutcomes] = useState(() => read(OUTCOMES_KEY, []));
@@ -19,7 +20,7 @@ export default function TrainingSessionQueue({ data, selectedTarget, onStart, on
   const [completed, setCompleted] = useState(() => read(TRAINING_SESSION_KEY, {}).completed || 0);
 
   useEffect(() => {
-    localStorage.setItem(TRAINING_SESSION_KEY, JSON.stringify({ id: session.id, completed, currentTask: Math.min(completed, Math.max(0, session.tasks.length - 1)), updatedAt: new Date().toISOString() }));
+    reportLocalStorage.setItem(TRAINING_SESSION_KEY, JSON.stringify({ id: session.id, completed, currentTask: Math.min(completed, Math.max(0, session.tasks.length - 1)), updatedAt: new Date().toISOString() }));
   }, [completed, session]);
   useEffect(() => { if (session.tasks.length && completed >= session.tasks.length) void trackProductEvent("training_session_completed", { resultCategory: "completed", source: "personalised_queue" }, { onceKey: session.id }); }, [completed, session]);
   useEffect(() => {
@@ -28,7 +29,7 @@ export default function TrainingSessionQueue({ data, selectedTarget, onStart, on
       if (!task) return;
       const result = { taskId: task.id, opening: task.title, result: event.detail?.result || "completed", completedAt: new Date().toISOString() };
       const next = [result, ...outcomes].slice(0, 100);
-      localStorage.setItem(OUTCOMES_KEY, JSON.stringify(next)); setOutcomes(next); setCompleted((value) => Math.min(session.tasks.length, value + 1));
+      reportLocalStorage.setItem(OUTCOMES_KEY, JSON.stringify(next)); setOutcomes(next); setCompleted((value) => Math.min(session.tasks.length, value + 1));
     };
     window.addEventListener(TRAINING_TASK_COMPLETED_EVENT, handleCompletion);
     return () => window.removeEventListener(TRAINING_TASK_COMPLETED_EVENT, handleCompletion);

@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "openingFit:progressHistory";
@@ -124,7 +125,7 @@ function createSnapshot(data) {
 
 function loadHistory() {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = reportLocalStorage.getItem(STORAGE_KEY);
     const parsed = stored ? JSON.parse(stored) : [];
     return Array.isArray(parsed) ? parsed : [];
   } catch {
@@ -133,7 +134,7 @@ function loadHistory() {
 }
 
 function saveHistory(history) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 12)));
+  reportLocalStorage.setItem(STORAGE_KEY, JSON.stringify(history.slice(0, 12)));
 }
 
 function formatDate(value) {

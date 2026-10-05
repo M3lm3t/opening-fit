@@ -1,5 +1,7 @@
 # Stage 6 rollout proposal — disabled pending a separate contract decision
 
+Local implementation is now prepared in [stage6-isolation-implementation.md](stage6-isolation-implementation.md), with creation still disabled. The text below records the original findings/proposal; it is not a claim that those controls remain unimplemented. The implementation note contains current validation, deliberately bounded report-only scope, rollback and remaining release steps. No production action has been taken.
+
 The Stage 6 branch is local-only. **Do not deploy its backend to the existing production endpoints.** No feature gate or client negotiation currently makes that deployment safe.
 
 ## Verified boundary

@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "./lib/reportRollout.js";
 import { personalTrainingReviewRoute } from "./lib/personalOpeningTraining.js";
 import { comparisonEligibility } from "./lib/comparisonPolicy.js";
 import OpeningFitStudyPlanner from "./components/OpeningFitStudyPlanner.jsx";
@@ -3542,7 +3543,7 @@ function loadStoredReportFilters() {
   if (typeof window === "undefined") return DEFAULT_REPORT_FILTERS;
 
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(REPORT_FILTERS_KEY) || "null");
+    const parsed = JSON.parse(reportLocalStorage.getItem(REPORT_FILTERS_KEY) || "null");
     return normalizeReportFilters(parsed || DEFAULT_REPORT_FILTERS);
   } catch {
     return DEFAULT_REPORT_FILTERS;
@@ -5907,9 +5908,9 @@ function AnalysisNextStepsPanel({ data, fitData, onPractice, onViewChange }) {
     };
 
     try {
-      const current = JSON.parse(localStorage.getItem("openingFit:savedRecommendations") || "[]");
+      const current = JSON.parse(reportLocalStorage.getItem("openingFit:savedRecommendations") || "[]");
       const next = [payload, ...(Array.isArray(current) ? current : [])].slice(0, 20);
-      localStorage.setItem("openingFit:savedRecommendations", JSON.stringify(next));
+      reportLocalStorage.setItem("openingFit:savedRecommendations", JSON.stringify(next));
 
       if (user?.id && recordActivity) {
         await saveRecommendationHistory?.(buildRecommendationHistorySnapshot(data, fitData));
@@ -8043,7 +8044,7 @@ function readLocalProfileHistory() {
   const keys = ["openingFit:reportHistory:v1", REPORT_HISTORY_KEY];
   return keys.flatMap((key) => {
     try {
-      const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+      const parsed = JSON.parse(reportLocalStorage.getItem(key) || "[]");
       return Array.isArray(parsed) ? parsed : [];
     } catch {
       return [];
@@ -9313,7 +9314,7 @@ function ReturnUserDashboard({
 function readLocalJson(key, fallback) {
   if (typeof window === "undefined") return fallback;
   try {
-    const parsed = JSON.parse(localStorage.getItem(key) || "null");
+    const parsed = JSON.parse(reportLocalStorage.getItem(key) || "null");
     return parsed ?? fallback;
   } catch {
     return fallback;
@@ -9339,7 +9340,7 @@ function getProfileTrainingCompletedCount(openingFitUserState = []) {
 }
 
 function getProfileBoardThemeLabel() {
-  const key = typeof window !== "undefined" ? localStorage.getItem("openingFit:boardTheme") : "";
+  const key = typeof window !== "undefined" ? reportLocalStorage.getItem("openingFit:boardTheme") : "";
   const labels = {
     classic: "Classic",
     tournament: "Tournament",
@@ -10268,7 +10269,7 @@ function ReportDecisionCards({ model, onPractice, onEvidence, onRepertoire, onFe
   if (!model.decisions.length) return null;
   const sendToRepertoire = (decision, type) => {
     const section = ({ black_e4: "blackE4", black_d4: "blackD4", black_other: "other", unresolved: "other" })[decision.contextKey] || decision.contextKey;
-    try { localStorage.setItem(REPERTOIRE_PENDING_KEY, JSON.stringify({ type, item: { section, sectionLabel: decision.context, name: decision.opening, opening: decision.source, games: decision.games, fit: decision.score } })); } catch { /* Navigation still works when storage is unavailable. */ }
+    try { reportLocalStorage.setItem(REPERTOIRE_PENDING_KEY, JSON.stringify({ type, item: { section, sectionLabel: decision.context, name: decision.opening, opening: decision.source, games: decision.games, fit: decision.score } })); } catch { /* Navigation still works when storage is unavailable. */ }
     onRepertoire?.(decision);
   };
   return (
@@ -11700,7 +11701,7 @@ function NextStudySession({ fitData, recentGames = [], onPractice, onViewChange 
       ],
     };
 
-    localStorage.setItem("openingFit:nextStudySession", JSON.stringify(payload));
+    reportLocalStorage.setItem("openingFit:nextStudySession", JSON.stringify(payload));
     setSavedMessage("Study session saved in this browser.");
   };
 
@@ -13386,7 +13387,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
     }
 
     try {
-      const stored = JSON.parse(localStorage.getItem(REPORT_HISTORY_KEY) || "[]");
+      const stored = JSON.parse(reportLocalStorage.getItem(REPORT_HISTORY_KEY) || "[]");
       setSavedReports(Array.isArray(stored) ? stored : []);
     } catch {
       setSavedReports([]);
@@ -13483,7 +13484,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
       reportRecord,
       ...savedReports.filter((report) => report.playerName !== playerName),
     ].slice(0, 8);
-    localStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(updated));
+    reportLocalStorage.setItem(REPORT_HISTORY_KEY, JSON.stringify(updated));
     setSavedReports(updated);
   };
 
@@ -13506,7 +13507,7 @@ function ReportExportAndHistory({ data, onLoadReport, entitlement = null, onUpgr
       }
     }
 
-    localStorage.removeItem(REPORT_HISTORY_KEY);
+    reportLocalStorage.removeItem(REPORT_HISTORY_KEY);
     setSavedReports([]);
   };
 
@@ -13971,8 +13972,8 @@ export default function App() {
     }
 
     const resetPublicLandingScroll = () => {
-      const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
-      const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
+      const hasSavedReport = Boolean(reportLocalStorage.getItem(STORAGE_KEY));
+      const landingSeen = reportLocalStorage.getItem("openingfit_landing_seen") === "true";
       const hasHash = Boolean(window.location.hash && window.location.hash !== "#");
 
       if (!hasSavedReport && !landingSeen && !hasHash) {
@@ -14019,7 +14020,7 @@ export default function App() {
   const premiumCheckoutInFlightRef = useRef(false);
 
   const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem("openingFit:theme");
+    const savedTheme = reportLocalStorage.getItem("openingFit:theme");
     return savedTheme === "light" || savedTheme === "dark" ? savedTheme : "dark";
   });
   const [username, setUsername] = useState("");
@@ -14027,11 +14028,11 @@ export default function App() {
   const [platform, setPlatform] = useState("chesscom");
   const [importMonths, setImportMonths] = useState(3);
   const [analysisTimeFormat, setAnalysisTimeFormat] = useState(() =>
-    normalizeAnalysisTimeFormat(localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom")
+    normalizeAnalysisTimeFormat(reportLocalStorage.getItem(ANALYSIS_TIME_FORMAT_KEY) || "custom")
   );
   const [reportFilters, setReportFilters] = useState(loadStoredReportFilters);
   const [openingSamplePercent, setOpeningSamplePercent] = useState(() =>
-    clampOpeningSamplePercent(localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
+    clampOpeningSamplePercent(reportLocalStorage.getItem(OPENING_SAMPLE_PERCENT_KEY) ?? 2)
   );
   const [apiStatus, setApiStatus] = useState("checking");
   const [loading, setLoading] = useState(false);
@@ -14044,7 +14045,7 @@ export default function App() {
   const [data, setData] = useState(() => {
     const routed = reportForInitialPath(getCurrentPath());
     if (routed) return routed;
-    const restored = readPersistedReport(localStorage, STORAGE_KEY);
+    const restored = readPersistedReport(reportLocalStorage, STORAGE_KEY);
     return restored.ok ? enforceReportRoleContract(restored.analysis).report : null;
   });
   const [activeView, setActiveView] = useState(getInitialAppView);
@@ -14102,7 +14103,7 @@ export default function App() {
 
     if (!supabaseUser?.id) {
       try {
-        localStorage.setItem(AUTH_RETURN_PATH_KEY, "/account#account-membership");
+        reportLocalStorage.setItem(AUTH_RETURN_PATH_KEY, "/account#account-membership");
       } catch {
         // Login still works if return-path storage is unavailable.
       }
@@ -14138,7 +14139,7 @@ export default function App() {
     event?.preventDefault?.();
     const currentPath = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
     if (!accountUser && currentPath !== "/login") {
-      localStorage.setItem(AUTH_RETURN_PATH_KEY, currentPath);
+      reportLocalStorage.setItem(AUTH_RETURN_PATH_KEY, currentPath);
     }
     setActiveView("profile");
 
@@ -14201,8 +14202,8 @@ export default function App() {
   const shouldShowLandingIntro = () => {
     if (isPrivateSeoPath(getCurrentPath())) return false;
 
-    const landingSeen = localStorage.getItem("openingfit_landing_seen") === "true";
-    const hasSavedReport = Boolean(localStorage.getItem(STORAGE_KEY));
+    const landingSeen = reportLocalStorage.getItem("openingfit_landing_seen") === "true";
+    const hasSavedReport = Boolean(reportLocalStorage.getItem(STORAGE_KEY));
     const hasAppHash = window.location.hash && window.location.hash !== "#";
     return !hasSavedReport && !landingSeen && !hasAppHash;
   };
@@ -14260,9 +14261,9 @@ export default function App() {
     const previousUserId = previousAuthUserIdRef.current;
 
     if (!previousUserId && currentUserId) {
-      const returnPath = localStorage.getItem(AUTH_RETURN_PATH_KEY);
+      const returnPath = reportLocalStorage.getItem(AUTH_RETURN_PATH_KEY);
       if (returnPath) {
-        localStorage.removeItem(AUTH_RETURN_PATH_KEY);
+        reportLocalStorage.removeItem(AUTH_RETURN_PATH_KEY);
         const cleanReturnPath = returnPath.startsWith("/") && !returnPath.startsWith("//") ? returnPath : "/";
 
         if (window.location.pathname === "/login" || window.location.pathname === "/account") {
@@ -14328,7 +14329,7 @@ export default function App() {
   }, [authHydrated, authLoading, cloudReportHistory, profileLoaded, profileLoading, supabaseUser?.id]);
 
   const rememberLandingSeen = ({ keepPublicLanding = true } = {}) => {
-    localStorage.setItem("openingfit_landing_seen", "true");
+    reportLocalStorage.setItem("openingfit_landing_seen", "true");
     setShowPublicLanding(Boolean(keepPublicLanding));
   };
 
@@ -14341,7 +14342,7 @@ export default function App() {
       return;
     }
 
-    localStorage.setItem("openingFit:theme", nextTheme);
+    reportLocalStorage.setItem("openingFit:theme", nextTheme);
     document.documentElement.dataset.theme = nextTheme;
     document.body.classList.remove("light", "dark");
     document.body.classList.add(nextTheme);
@@ -14352,7 +14353,7 @@ export default function App() {
     if (supabaseUser?.id) return;
     if (isSampleReportPath(getCurrentPath())) {
       try {
-        const storedReport = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null")?.analysis;
+        const storedReport = JSON.parse(reportLocalStorage.getItem(STORAGE_KEY) || "null")?.analysis;
         if (storedReport && !isSampleReport(storedReport)) genuineReportBeforeSampleRef.current = storedReport;
       } catch {
         // Keep the example available even when an unrelated local save is invalid.
@@ -14362,12 +14363,12 @@ export default function App() {
       return;
     }
 
-    const savedUsername = localStorage.getItem(USERNAME_KEY);
-    const savedPlatform = localStorage.getItem(PLATFORM_KEY);
-    const savedMonths = localStorage.getItem(IMPORT_MONTHS_KEY);
-    const savedSamplePercent = localStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
-    const savedAnalysisTimeFormat = localStorage.getItem(ANALYSIS_TIME_FORMAT_KEY);
-    const savedAnalysis = readPersistedReport(localStorage, STORAGE_KEY);
+    const savedUsername = reportLocalStorage.getItem(USERNAME_KEY);
+    const savedPlatform = reportLocalStorage.getItem(PLATFORM_KEY);
+    const savedMonths = reportLocalStorage.getItem(IMPORT_MONTHS_KEY);
+    const savedSamplePercent = reportLocalStorage.getItem(OPENING_SAMPLE_PERCENT_KEY);
+    const savedAnalysisTimeFormat = reportLocalStorage.getItem(ANALYSIS_TIME_FORMAT_KEY);
+    const savedAnalysis = readPersistedReport(reportLocalStorage, STORAGE_KEY);
 
     if (savedUsername) setUsername(savedUsername);
 
@@ -14439,7 +14440,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
+    reportLocalStorage.setItem(
       OPENING_SAMPLE_PERCENT_KEY,
       String(openingSamplePercent)
     );
@@ -14447,11 +14448,11 @@ export default function App() {
 
   useEffect(() => {
     const normalized = normalizeAnalysisTimeFormat(analysisTimeFormat);
-    localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalized);
+    reportLocalStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalized);
   }, [analysisTimeFormat]);
 
   useEffect(() => {
-    localStorage.setItem(REPORT_FILTERS_KEY, JSON.stringify(normalizeReportFilters(reportFilters)));
+    reportLocalStorage.setItem(REPORT_FILTERS_KEY, JSON.stringify(normalizeReportFilters(reportFilters)));
   }, [reportFilters]);
 
   useEffect(() => {
@@ -14784,7 +14785,7 @@ export default function App() {
     };
 
     const result = commitReportCandidate({
-      storage: localStorage,
+      storage: reportLocalStorage,
       key: STORAGE_KEY,
       report: payload.analysis,
       payload: { username: importedUsername, platform: importedPlatform, savedAt },
@@ -14794,9 +14795,9 @@ export default function App() {
       return result;
     }
     try {
-      localStorage.setItem(USERNAME_KEY, importedUsername);
-      localStorage.setItem(PLATFORM_KEY, importedPlatform);
-      localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat));
+      reportLocalStorage.setItem(USERNAME_KEY, importedUsername);
+      reportLocalStorage.setItem(PLATFORM_KEY, importedPlatform);
+      reportLocalStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysis.analysisTimeFormat || analysisTimeFormat));
     } catch {
       // The verified report payload is authoritative; auxiliary preferences are optional.
     }
@@ -15052,7 +15053,7 @@ export default function App() {
     const requestedRoute = typeof requested === "string" ? null : requested;
     const requestedSection = typeof requested === "string" ? getAppSection(requested) : getAppSection(requestedRoute?.view);
     if (requestedSection === "report" && !isSampleReport(data)) {
-      const restored = readPersistedReport(localStorage, STORAGE_KEY);
+      const restored = readPersistedReport(reportLocalStorage, STORAGE_KEY);
       if (restored.ok) setData(enforceReportRoleContract(restored.analysis).report);
     }
     if (isSampleReport(data) && requestedSection === "train") {
@@ -15150,7 +15151,7 @@ export default function App() {
   };
 
   const openLastSuccessfulReport = () => {
-    const restored = readPersistedReport(localStorage, STORAGE_KEY);
+    const restored = readPersistedReport(reportLocalStorage, STORAGE_KEY);
     if (!restored.ok || isSampleReport(restored.analysis)) return false;
     setData(enforceReportRoleContract(restored.analysis).report);
     handleAppNavigate("report");
@@ -15179,7 +15180,7 @@ export default function App() {
     const cleanUsername = String(usernameOverride ?? username).trim();
     const selectedPlatform = platforms[selectedPlatformKey] || platforms.chesscom;
     const validation = validateImportUsername(cleanUsername);
-    const previousPersistedReport = readPersistedReport(localStorage, STORAGE_KEY);
+    const previousPersistedReport = readPersistedReport(reportLocalStorage, STORAGE_KEY);
     const hadPreviousReport = previousPersistedReport.ok && !isSampleReport(previousPersistedReport.analysis);
 
     setImportStage(IMPORT_STAGES.VALIDATING);
@@ -15270,8 +15271,8 @@ export default function App() {
     }
 
     try {
-      localStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
-      localStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysisTimeFormat));
+      reportLocalStorage.setItem(IMPORT_MONTHS_KEY, String(monthsToImport));
+      reportLocalStorage.setItem(ANALYSIS_TIME_FORMAT_KEY, normalizeAnalysisTimeFormat(analysisTimeFormat));
       setUsername(cleanUsername);
       setPlatform(selectedPlatformKey);
 
@@ -16280,7 +16281,7 @@ export default function App() {
   useEffect(() => {
     if (hasReport) {
       try {
-        localStorage.setItem("openingFit:landingSeen", "true");
+        reportLocalStorage.setItem("openingFit:landingSeen", "true");
       } catch {
         // Ignore storage failures.
       }
@@ -16518,7 +16519,7 @@ export default function App() {
           return path === "/report" ? genuineReportBeforeSampleRef.current : null;
         }
         if (path === "/report") {
-          const restored = readPersistedReport(localStorage, STORAGE_KEY);
+          const restored = readPersistedReport(reportLocalStorage, STORAGE_KEY);
           if (restored.ok) return enforceReportRoleContract(restored.analysis).report;
         }
         return current;

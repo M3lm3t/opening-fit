@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { getOpeningSignal } from "./OpeningEvidence";
@@ -189,7 +190,7 @@ export default function OpeningFitStudyPlanner({ data, username }) {
     setCloudPlannerReady(!user?.id);
 
     try {
-      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      const saved = JSON.parse(reportLocalStorage.getItem(key) || "{}");
       if (saved?.completed && typeof saved.completed === "object") {
         setCompleted(saved.completed);
       }
@@ -236,7 +237,7 @@ export default function OpeningFitStudyPlanner({ data, username }) {
     };
 
     try {
-      localStorage.setItem(key, JSON.stringify(snapshot));
+      reportLocalStorage.setItem(key, JSON.stringify(snapshot));
     } catch {
       // Ignore local storage failure.
     }

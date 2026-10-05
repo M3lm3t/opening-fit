@@ -1,4 +1,5 @@
 import { buildApiUrl } from "./apiBase.js";
+import { REPORT_CAPABILITIES, STAGE6_REPORTS } from "./reportRollout.js";
 
 const IMPORT_TIMEOUT_MS = 15 * 60 * 1000;
 const JOB_START_TIMEOUT_MS = 75000;
@@ -123,13 +124,14 @@ async function legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeContro
   };
 }
 
-export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, onProgress, accessToken = "" }) {
+export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, onProgress, accessToken = "", stage6 = STAGE6_REPORTS }) {
   const apiPath = platformPath(platform);
   const cleanUsername = String(username || "").trim();
   const safeMonths = Number.isFinite(Number(months)) ? Number(months) : 3;
   const safeTimeControl = String(timeControl || "custom").trim().toLowerCase();
   const abortController = controller || new AbortController();
-  const startUrl = buildApiUrl("/api/analysis/jobs");
+  const jobPath = stage6 ? "/api/v2/analysis/jobs" : "/api/analysis/jobs";
+  const startUrl = buildApiUrl(jobPath);
   let timedOut = false;
   let startTimedOut = false;
   const timeoutId = globalThis.setTimeout(() => {
@@ -147,14 +149,15 @@ export async function importGames({ platform, username, months, timeControl = "c
       startResponse = await fetch(startUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
-        body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths, time_control: safeTimeControl }),
+        body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths, time_control: safeTimeControl,
+          ...(stage6 ? { capabilities: REPORT_CAPABILITIES } : {}) }),
         signal: abortController.signal,
       });
     } finally {
       globalThis.clearTimeout(startTimeout);
     }
 
-    if ([404, 405].includes(startResponse.status)) {
+    if (!stage6 && [404, 405].includes(startResponse.status)) {
       return await legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeControl, abortController, accessToken });
     }
 
@@ -171,18 +174,27 @@ export async function importGames({ platform, username, months, timeControl = "c
     if (!started?.jobId) {
       throw new ImportClientError({ type: "parse", status: startResponse.status, message: "Analysis server did not return a job ID.", responseText: startText, url: startUrl });
     }
+    if (stage6 && started.generation !== "stage6_v1") {
+      throw new ImportClientError({ type: "parse", status: 409, message: "The server did not confirm the requested report generation.", url: startUrl });
+    }
 
     onJobStarted?.(started);
     onProgress?.(started.progress || null, started);
-    const statusUrl = buildApiUrl(`/api/analysis/jobs/${encodeURIComponent(started.jobId)}`);
+    const statusUrl = buildApiUrl(`${jobPath}/${encodeURIComponent(started.jobId)}`);
     let lastJobUpdate = String(started.updatedAt || "");
     let lastJobActivityAt = Date.now();
     while (true) {
       if (abortController.signal.aborted) throw new DOMException("Import cancelled.", "AbortError");
-      const statusResponse = await fetch(statusUrl, { signal: abortController.signal, headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {} });
+      const statusResponse = await fetch(statusUrl, { signal: abortController.signal, headers: {
+        ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+        ...(stage6 ? { "X-OpeningFit-Report-Capabilities": REPORT_CAPABILITIES.join(",") } : {}),
+      } });
       const { json: job, responseText } = await readJsonResponse(statusResponse, statusUrl);
       if (!statusResponse.ok) {
         throw new ImportClientError({ type: "http", status: statusResponse.status, message: backendMessageFromJson(job, "Could not check analysis progress."), responseText, url: statusUrl });
+      }
+      if (stage6 && job.generation !== started.generation) {
+        throw new ImportClientError({ type: "parse", status: 409, message: "The analysis job changed report generation. Your previous report is unchanged.", url: statusUrl });
       }
       const jobUpdate = String(job.updatedAt || "");
       if (jobUpdate && jobUpdate !== lastJobUpdate) {

@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Chess } from "chess.js";
 import { useAuth } from "../context/AuthDataProvider.jsx";
@@ -16,8 +17,8 @@ import {
 import { recordMeaningfulCoachingActivity, saveCoachingResponsePlan } from "../services/coachingStateService.js";
 import "./PersonalOpeningTrainer.css";
 
-const readLocal = () => { try { return JSON.parse(localStorage.getItem(PERSONAL_TRAINING_STORAGE_KEY) || "{}") || {}; } catch { return {}; } };
-const writeLocal = (value) => { try { localStorage.setItem(PERSONAL_TRAINING_STORAGE_KEY, JSON.stringify(value)); } catch { /* Authenticated cloud persistence may still succeed. */ } };
+const readLocal = () => { try { return JSON.parse(reportLocalStorage.getItem(PERSONAL_TRAINING_STORAGE_KEY) || "{}") || {}; } catch { return {}; } };
+const writeLocal = (value) => { try { reportLocalStorage.setItem(PERSONAL_TRAINING_STORAGE_KEY, JSON.stringify(value)); } catch { /* Authenticated cloud persistence may still succeed. */ } };
 const anonymousOwner = () => { const state = readLocal(); if (state.anonymousOwnerId) return state.anonymousOwnerId; const id = `anonymous:${globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`}`; writeLocal({ ...state, anonymousOwnerId: id }); return id; };
 const STEP_LABELS = { recall: "Recall", decision: "Decision", reveal: "Reveal", rehearse: "Rehearse", commit: "Commit" };
 

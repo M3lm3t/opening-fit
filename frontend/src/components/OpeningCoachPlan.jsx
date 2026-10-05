@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import "./OpeningCoachPlan.css";
 import { getPlayerLevelText, getRatingAwareRecommendationCopy } from "./playerLevelLogic";
@@ -154,14 +155,14 @@ function storageKey(data) {
   const platform =
     data?.platform ||
     data?.source ||
-    localStorage.getItem("openingFit:lastPlatform") ||
+    reportLocalStorage.getItem("openingFit:lastPlatform") ||
     "unknown";
 
   const username =
     data?.username ||
     data?.player ||
     data?.handle ||
-    localStorage.getItem("openingFit:lastUsername") ||
+    reportLocalStorage.getItem("openingFit:lastUsername") ||
     "guest";
 
   return `openingFit:coachPlanProgress:${platform}:${username}`;
@@ -276,7 +277,7 @@ export default function OpeningCoachPlan({ data, compact = false }) {
 
   useEffect(() => {
     try {
-      const saved = JSON.parse(localStorage.getItem(key) || "{}");
+      const saved = JSON.parse(reportLocalStorage.getItem(key) || "{}");
       setChecked(saved && typeof saved === "object" ? saved : {});
     } catch {
       setChecked({});
@@ -285,7 +286,7 @@ export default function OpeningCoachPlan({ data, compact = false }) {
 
   useEffect(() => {
     try {
-      localStorage.setItem(key, JSON.stringify(checked));
+      reportLocalStorage.setItem(key, JSON.stringify(checked));
     } catch {
       // Progress tracking should never break the report.
     }

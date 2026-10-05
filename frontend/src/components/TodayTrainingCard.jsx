@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { canPersistReport } from "../fixtures/sampleReport.js";
@@ -10,7 +11,7 @@ const LOCAL_KEY = "openingFit:trainingProgress";
 
 function readLocalProgress() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
+    const parsed = JSON.parse(reportLocalStorage.getItem(LOCAL_KEY) || "{}");
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -19,7 +20,7 @@ function readLocalProgress() {
 
 function writeLocalProgress(patch) {
   try {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocalProgress(), ...patch }));
+    reportLocalStorage.setItem(LOCAL_KEY, JSON.stringify({ ...readLocalProgress(), ...patch }));
   } catch {
     // Local progress is helpful, not required.
   }

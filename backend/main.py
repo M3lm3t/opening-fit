@@ -1,4 +1,7 @@
 import stripe
+from report_rollout import (LEGACY, STAGE6, generation_context, require_capabilities,
+    request_capabilities, require_enabled, require_legacy_payload)
+from report_store import query_store, require_writable, write_rows
 from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
 from intelligence import enrich_analysis_result
@@ -325,6 +328,21 @@ class AnalysisJobRequest(BaseModel):
     time_control: str = "custom"
 
 
+class VersionedAnalysisJobRequest(AnalysisJobRequest):
+    capabilities: List[str]
+
+
+class ReportStoreRequest(BaseModel):
+    capabilities: List[str]
+    collection: str
+    operation: str = "select"
+    values: Any = None
+    filters: List[Tuple[str, str, Any]] = []
+    order: List[Tuple[str, bool]] = []
+    limit: int = 50
+    single: Optional[str] = None
+
+
 class GameCheckRequest(BaseModel):
     games: List[Dict[str, Any]]
     checked_ids: Optional[List[str]] = None
@@ -397,6 +415,10 @@ def profile_path(username: str, platform: str = "chess.com") -> Path:
 
 
 def save_user_profile(username: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    if generation_context.get() == STAGE6:
+        # New reports never enter the public username-keyed filesystem mirror.
+        return {"username": username, "lastUpdated": now_iso(), "importHistory": [], "isPremium": False}
+    require_legacy_payload(payload)
     clean_username = safe_username(username)
     platform = payload.get("platform", "chess.com")
 
@@ -489,6 +511,9 @@ def delete_cached_user_profiles(usernames: List[str]) -> int:
 
 
 def previous_saved_report(username: str, platform: str) -> Optional[Dict[str, Any]]:
+    if generation_context.get() == STAGE6:
+        # A username is not an owner. Client comparison uses owner-scoped history.
+        return None
     profile = load_user_profile(username, platform)
     if not profile:
         return None
@@ -10471,6 +10496,10 @@ def import_lichess_logic(username: str, months: int = 3, time_control: str = "cu
 
 
 def run_import_route(platform: str, username: str, months: int, time_control: str = "custom", progress: Optional[Callable[..., None]] = None):
+    if generation_context.get() == LEGACY:
+        from legacy_reports.adapter import run
+        return run(globals(), platform, username, months, time_control, progress)
+    require_enabled()
     clean_username = username.strip()
     clean_months = max(1, min(int(months or 3), 12))
 
@@ -10880,7 +10909,7 @@ def emit_mission_outcome(value: Mapping[str, Any]) -> None:
 def analysis_job_public(job: Dict[str, Any], *, include_mission_outcome: bool = False) -> Dict[str, Any]:
     payload = {
         key: job[key]
-        for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months", "timeControl")
+        for key in ("jobId", "status", "createdAt", "updatedAt", "platform", "username", "months", "timeControl", "generation")
         if key in job
     }
     if job.get("result") is not None:
@@ -10941,14 +10970,19 @@ def execute_analysis_job(job_id: str) -> None:
         platform, username, months = job["platform"], job["username"], job["months"]
         owner_user_id = str(job.get("ownerUserId") or "")
         time_control = job.get("timeControl", "custom")
+        generation = job.get("generation", LEGACY)
 
     try:
         progress = lambda stage, **counts: update_analysis_job_progress(job_id, stage, **counts)
         mission_evidence_context.enabled = True
+        generation_token = generation_context.set(generation)
         try:
+            if generation == STAGE6:
+                require_writable(get_supabase_admin_client())
             result = run_import_route(platform, username, months, time_control, progress)
         finally:
             mission_evidence_context.enabled = False
+            generation_context.reset(generation_token)
         if isinstance(result, JSONResponse):
             try:
                 error_payload = json.loads(result.body.decode("utf-8", errors="replace"))
@@ -10965,7 +10999,10 @@ def execute_analysis_job(job_id: str) -> None:
             excludedGames=result_counts.get("excludedGames"),
         )
         mission_outcome = None
-        if not owner_user_id:
+        if generation == STAGE6:
+            # Mission/auxiliary legacy storage is not a v4 report mirror.
+            mission_outcome = bounded_mission_outcome("disabled", "isolated_report_generation")
+        elif not owner_user_id:
             mission_outcome = bounded_mission_outcome("ineligible", "anonymous")
             emit_mission_outcome(mission_outcome)
         elif not missions_enabled():
@@ -11019,6 +11056,14 @@ def execute_analysis_job(job_id: str) -> None:
         if owner_user_id and mission_outcome:
             result["missionOutcome"] = dict(mission_outcome)
         result = compact_analysis_result(result)
+        if generation == STAGE6:
+            result["reportGeneration"] = STAGE6
+            result.setdefault("analysisId", job_id)
+            write_rows(get_supabase_admin_client(), owner_user_id, "report_history", [{
+                "user_id": owner_user_id, "report_key": f"analysis:{result['analysisId']}",
+                "analysis_id": result["analysisId"], "report": result,
+                "platform": platform, "username": username,
+            }], insert_only=True)
         with analysis_jobs_lock:
             if job := analysis_jobs.get(job_id):
                 job.update(status="completed", result=result, missionOutcome=mission_outcome,
@@ -11036,6 +11081,18 @@ def execute_analysis_job(job_id: str) -> None:
 
 @app.post("/api/analysis/jobs", status_code=202)
 def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
+    return _start_analysis_job(payload, request, LEGACY)
+
+
+@app.post("/api/v2/analysis/jobs", status_code=202)
+def start_versioned_analysis_job(payload: VersionedAnalysisJobRequest, request: Request):
+    require_capabilities(payload.capabilities)
+    get_auth_user(request)
+    require_writable(get_supabase_admin_client())
+    return _start_analysis_job(payload, request, STAGE6)
+
+
+def _start_analysis_job(payload, request, generation):
     platform_key = payload.platform.strip().lower()
     platform = "chess.com" if platform_key in {"chess.com", "chesscom"} else platform_key
     if platform not in {"chess.com", "lichess"}:
@@ -11050,6 +11107,8 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
     entitlement = trusted_entitlement_for_request(request)
     owner_user_id = str(getattr(get_auth_user(request), "id", "") or "") if request and request.headers.get("authorization", "").lower().startswith("bearer ") else ""
     request_key = f"{owner_user_id or 'anonymous'}:{platform}:{username.lower()}:{months}:{time_control}"
+    if generation != LEGACY:
+        request_key = f"{generation}:{request_key}"
 
     with analysis_jobs_lock:
         prune_analysis_jobs()
@@ -11079,6 +11138,7 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
         created_at = now_iso()
         job = {
             "jobId": job_id, "requestKey": request_key, "status": "queued",
+            "generation": generation,
             "createdAt": created_at, "updatedAt": created_at, "createdMonotonic": time.monotonic(), "platform": platform,
             "username": username, "months": months, "timeControl": time_control, "result": None, "error": None,
             "ownerUserId": owner_user_id, "paidAccess": entitlement_has_paid_access(entitlement),
@@ -11095,16 +11155,41 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
 
 @app.get("/api/analysis/jobs/{job_id}")
 def get_analysis_job(job_id: UUID, request: Request = None):
+    return _get_analysis_job(job_id, request, LEGACY)
+
+
+@app.get("/api/v2/analysis/jobs/{job_id}")
+def get_versioned_analysis_job(job_id: UUID, request: Request):
+    request_capabilities(request)
+    return _get_analysis_job(job_id, request, STAGE6)
+
+
+def _get_analysis_job(job_id, request, generation):
     with analysis_jobs_lock:
         prune_analysis_jobs()
         job = analysis_jobs.get(str(job_id))
         if not job:
             raise HTTPException(status_code=404, detail="Analysis job not found or expired.")
+        if job.get("generation", LEGACY) != generation:
+            raise HTTPException(status_code=404, detail="Analysis job not found for this report generation.")
         if job.get("ownerUserId"):
             auth_user = get_auth_user(request)
             if str(getattr(auth_user, "id", "") or "") != job["ownerUserId"]:
                 raise HTTPException(status_code=403, detail="That analysis job belongs to another account.")
         return analysis_job_public(job, include_mission_outcome=bool(job.get("ownerUserId")))
+
+
+@app.post("/api/v2/report-store/query")
+def report_store_query(payload: ReportStoreRequest, request: Request):
+    require_capabilities(payload.capabilities)
+    owner = str(getattr(get_auth_user(request), "id", "") or "")
+    if not owner:
+        raise HTTPException(401, "Sign in to read saved reports.")
+    if not 1 <= payload.limit <= 500 or len(payload.filters) > 20 or len(payload.order) > 5:
+        raise HTTPException(400, "Invalid report query limits.")
+    if len(json.dumps(payload.values)) > 2_000_000:
+        raise HTTPException(413, "Report payload is too large.")
+    return query_store(get_supabase_admin_client(), owner, payload)
 
 
 @app.get("/api/profile/{username}")
@@ -11174,6 +11259,11 @@ def analytics_event(request: AnalyticsEventRequest):
 
 @app.get("/api/demo")
 def demo_profile():
+    from legacy_reports.adapter import bind
+    return bind(globals())["demo_profile"]()
+
+
+def stage6_demo_profile():
     demo_best_openings = [
         {
             "name": "Vienna Game",
@@ -13737,6 +13827,7 @@ def activate_premium_from_checkout_session(supabase_admin, session: Any, source:
 @app.post("/api/account/sync")
 async def sync_account_profile(payload: AccountProfilePayload, request: Request):
     require_matching_auth_user(request, payload.userId)
+    require_legacy_payload(payload.lastReport)
     supabase_admin = get_supabase_admin_client()
 
     profile = {
@@ -15029,6 +15120,7 @@ def get_openingfit_user_state(
 @app.post("/api/account/state")
 def save_openingfit_user_state(payload: OpeningFitUserStatePayload, request: Request):
     require_matching_auth_user(request, payload.user_id)
+    require_legacy_payload(payload.model_dump())
     sb = _get_supabase_for_user_state()
 
     platform = _clean_platform(payload.platform)

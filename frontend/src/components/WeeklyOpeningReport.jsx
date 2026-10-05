@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useMemo } from "react";
 import {
   collectOpenings,
@@ -145,7 +146,7 @@ function makeSnapshot(data) {
 
 function loadHistory(key) {
   try {
-    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
+    const parsed = JSON.parse(reportLocalStorage.getItem(key) || "[]");
     return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
@@ -154,7 +155,7 @@ function loadHistory(key) {
 
 function saveHistory(key, history) {
   try {
-    localStorage.setItem(key, JSON.stringify(history.slice(0, MAX_HISTORY)));
+    reportLocalStorage.setItem(key, JSON.stringify(history.slice(0, MAX_HISTORY)));
   } catch {
     // Local storage should not interrupt the report.
   }

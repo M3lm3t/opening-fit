@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthDataProvider";
 import { canPersistReport, isSampleReport } from "../fixtures/sampleReport.js";
@@ -36,7 +37,7 @@ function getImportedAccountPlatform(report, fallback = "") {
 
 function readLocalReport() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(LOCAL_REPORT_KEY) || "null");
+    const parsed = JSON.parse(reportLocalStorage.getItem(LOCAL_REPORT_KEY) || "null");
     if (!parsed?.analysis) return null;
 
     const report = parsed.analysis;
@@ -280,7 +281,7 @@ export default function AccountRestoreSync({
           : "";
         const shouldMarkMigrated =
           migrationKey &&
-          localStorage.getItem(migrationKey) !== "true" &&
+          reportLocalStorage.getItem(migrationKey) !== "true" &&
           (localReport?.report === data ||
             JSON.stringify(localReport?.report || null) === JSON.stringify(data || null));
 
@@ -343,7 +344,7 @@ export default function AccountRestoreSync({
             savedAt: localReport?.savedAt || new Date().toISOString(),
             migratedFromLocal: true,
           });
-          localStorage.setItem(migrationKey, "true");
+          reportLocalStorage.setItem(migrationKey, "true");
           migratedLocalRef.current = migrationKey;
         }
 

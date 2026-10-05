@@ -1,10 +1,11 @@
+import { reportLocalStorage } from "./reportRollout.js";
 export const LOCAL_REPORT_SCHEMA_VERSION = 1;
 
 export function shouldClearLegacyStorageForAuthEvent(event, hasUser) {
   return !hasUser && event === "SIGNED_OUT";
 }
 
-export function readPersistedReport(storage = globalThis.localStorage, key = "openingFit:lastAnalysis") {
+export function readPersistedReport(storage = reportLocalStorage, key = "openingFit:lastAnalysis") {
   try {
     const raw = storage?.getItem?.(key);
     if (!raw) return { ok: false, reason: "missing", payload: null, analysis: null };
@@ -22,7 +23,7 @@ export function readPersistedReport(storage = globalThis.localStorage, key = "op
   }
 }
 
-export function persistReport(storage = globalThis.localStorage, key = "openingFit:lastAnalysis", payload = {}) {
+export function persistReport(storage = reportLocalStorage, key = "openingFit:lastAnalysis", payload = {}) {
   let previousRaw = null;
   let serialized;
   let failureReason = "local_write_failed";

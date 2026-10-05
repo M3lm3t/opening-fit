@@ -1,10 +1,11 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { useEffect, useMemo, useState } from "react";
 import { buildReturningProgress, orderedCompletedReports } from "../lib/progressExperience";
 import { REPERTOIRE_STORAGE_KEY } from "../lib/repertoireWorkspace";
 import { trackProductEvent } from "../lib/productAnalytics";
 import "./RetentionJourneyPage.css";
 
-const readRepertoire = () => { try { return JSON.parse(localStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; } };
+const readRepertoire = () => { try { return JSON.parse(reportLocalStorage.getItem(REPERTOIRE_STORAGE_KEY) || "null"); } catch { return null; } };
 const formatDate = (value) => value ? new Date(value).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" }) : "Unavailable";
 
 export default function RetentionJourneyPage({ user, data, reportHistory = [], activityHistory = [], onNavigate }) {

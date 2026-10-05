@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { findOpeningPracticePack } from "../data/openingPracticeLines";
 import { mergeWeakLines } from "./weakLineDetection";
 
@@ -246,7 +247,7 @@ export function readWeakestLineTrainingEvents() {
   if (typeof window === "undefined") return [];
 
   try {
-    const parsed = JSON.parse(window.localStorage.getItem(WEAKEST_LINE_TRAINING_EVENTS_KEY) || "[]");
+    const parsed = JSON.parse(reportLocalStorage.getItem(WEAKEST_LINE_TRAINING_EVENTS_KEY) || "[]");
     return Array.isArray(parsed) ? parsed.filter(Boolean) : [];
   } catch {
     return [];
@@ -261,7 +262,7 @@ export function saveWeakestLineTrainingEvent(event) {
     .slice(0, 50);
 
   try {
-    window.localStorage.setItem(WEAKEST_LINE_TRAINING_EVENTS_KEY, JSON.stringify(nextEvents));
+    reportLocalStorage.setItem(WEAKEST_LINE_TRAINING_EVENTS_KEY, JSON.stringify(nextEvents));
   } catch {
     // Local feedback is useful, not required.
   }

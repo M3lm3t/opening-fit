@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { reportLocalStorage } from "../lib/reportRollout.js";
 import { OPENINGS, findOpeningLine, normaliseOpeningKey } from "../data/openings";
 import { fetchOpeningFitCloudState, saveOpeningFitCloudState } from "./openingFitCloudState";
 import { normaliseReportDecision } from "../lib/recommendationEvidence.js";
@@ -83,7 +84,7 @@ function collectReportOpenings(data) {
 
 function loadLocalHabit() {
   try {
-    const parsed = JSON.parse(localStorage.getItem(DAILY_HABIT_KEY) || "{}");
+    const parsed = JSON.parse(reportLocalStorage.getItem(DAILY_HABIT_KEY) || "{}");
     return parsed && typeof parsed === "object" ? parsed : {};
   } catch {
     return {};
@@ -92,7 +93,7 @@ function loadLocalHabit() {
 
 function saveLocalHabit(state) {
   try {
-    localStorage.setItem(DAILY_HABIT_KEY, JSON.stringify(state));
+    reportLocalStorage.setItem(DAILY_HABIT_KEY, JSON.stringify(state));
   } catch {
     // Daily habits should not fail if storage is unavailable.
   }

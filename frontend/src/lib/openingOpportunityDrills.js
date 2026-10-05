@@ -1,3 +1,4 @@
+import { reportLocalStorage } from "./reportRollout.js";
 import { Chess } from "chess.js";
 import { findOpeningLine } from "../data/openings.ts";
 import { formatOpeningNameForDisplay } from "./openingNamePresentation.js";
@@ -453,10 +454,10 @@ export function updateOpeningOpportunityReviewProgress(progress = {}, drillId, c
   };
 }
 
-export function loadOpeningOpportunityProgress(storage = globalThis.localStorage) {
+export function loadOpeningOpportunityProgress(storage = reportLocalStorage) {
   try { return JSON.parse(storage?.getItem?.(OPENING_OPPORTUNITY_PROGRESS_KEY) || "{}") || {}; } catch { return {}; }
 }
 
-export function saveOpeningOpportunityProgress(progress, storage = globalThis.localStorage) {
+export function saveOpeningOpportunityProgress(progress, storage = reportLocalStorage) {
   try { storage?.setItem?.(OPENING_OPPORTUNITY_PROGRESS_KEY, JSON.stringify(progress)); return true; } catch { return false; }
 }
