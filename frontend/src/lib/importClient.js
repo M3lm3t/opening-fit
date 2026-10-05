@@ -1,5 +1,5 @@
 import { buildApiUrl } from "./apiBase.js";
-import { REPORT_CAPABILITIES, STAGE6_REPORTS } from "./reportRollout.js";
+import { REPORT_CAPABILITIES, PILOT_CLIENT, isReportPilot } from "./reportRollout.js";
 
 const IMPORT_TIMEOUT_MS = 15 * 60 * 1000;
 const JOB_START_TIMEOUT_MS = 75000;
@@ -124,7 +124,7 @@ async function legacyImport({ apiPath, cleanUsername, safeMonths, safeTimeContro
   };
 }
 
-export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, onProgress, accessToken = "", stage6 = STAGE6_REPORTS }) {
+export async function importGames({ platform, username, months, timeControl = "custom", controller, onJobStarted, onProgress, accessToken = "", stage6 = isReportPilot() }) {
   const apiPath = platformPath(platform);
   const cleanUsername = String(username || "").trim();
   const safeMonths = Number.isFinite(Number(months)) ? Number(months) : 3;
@@ -148,7 +148,8 @@ export async function importGames({ platform, username, months, timeControl = "c
     try {
       startResponse = await fetch(startUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}) },
+        headers: { "Content-Type": "application/json", ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+          ...(stage6 ? { "X-OpeningFit-Report-Client": PILOT_CLIENT } : {}) },
         body: JSON.stringify({ platform: apiPath, username: cleanUsername, months: safeMonths, time_control: safeTimeControl,
           ...(stage6 ? { capabilities: REPORT_CAPABILITIES } : {}) }),
         signal: abortController.signal,
@@ -187,7 +188,7 @@ export async function importGames({ platform, username, months, timeControl = "c
       if (abortController.signal.aborted) throw new DOMException("Import cancelled.", "AbortError");
       const statusResponse = await fetch(statusUrl, { signal: abortController.signal, headers: {
         ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-        ...(stage6 ? { "X-OpeningFit-Report-Capabilities": REPORT_CAPABILITIES.join(",") } : {}),
+        ...(stage6 ? { "X-OpeningFit-Report-Client": PILOT_CLIENT, "X-OpeningFit-Report-Capabilities": REPORT_CAPABILITIES.join(",") } : {}),
       } });
       const { json: job, responseText } = await readJsonResponse(statusResponse, statusUrl);
       if (!statusResponse.ok) {

@@ -7,7 +7,7 @@ from fastapi import HTTPException
 from fastapi.testclient import TestClient
 import main
 from legacy_reports.adapter import bind
-from report_rollout import CAPABILITIES, LEGACY, STAGE6, generation_context, contains_new_report
+from report_rollout import CAPABILITIES, LEGACY, STAGE6, PILOT_CLIENT, generation_context, contains_new_report
 
 A = "11111111-1111-4111-8111-111111111111"
 B = "22222222-2222-4222-8222-222222222222"
@@ -17,6 +17,7 @@ CAPS = sorted(CAPABILITIES)
 class MemoryDB:
     def __init__(self):
         self.rows = {"openingfit_report_rollout": [{"id": 1, "enabled": True}],
+            "openingfit_report_pilot_accounts": [{"user_id": A, "enabled": True}, {"user_id": B, "enabled": True}],
             "report_history": [{"id": "legacy-a", "user_id": A, "report": {"repertoireHealth": {"version": "repertoire_health_v3", "score": 61}}},
                                {"id": "legacy-b", "user_id": B, "report": {"repertoireHealth": {"version": "repertoire_health_v3", "score": 72}}}]}
         self.writes = []
@@ -59,7 +60,7 @@ def contract(monkeypatch):
 
 
 def headers(owner=A):
-    return {"Authorization": f"Bearer {owner}", "X-OpeningFit-Report-Capabilities": ",".join(CAPS)}
+    return {"Authorization": f"Bearer {owner}", "X-OpeningFit-Report-Capabilities": ",".join(CAPS), "X-OpeningFit-Report-Client": PILOT_CLIENT}
 
 
 def start(client, new=True, owner=A, capabilities=CAPS):

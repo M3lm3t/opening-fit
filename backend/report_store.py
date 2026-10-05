@@ -9,7 +9,7 @@ import hashlib
 import json
 from uuid import uuid4
 from fastapi import HTTPException
-from report_rollout import require_enabled
+from report_rollout import require_enabled, require_pilot_account, REPORT_ONLY_MESSAGE
 
 COLLECTIONS = frozenset({
     "report_history", "profiles", "openingfit_user_state", "openingfit_retention_snapshots",
@@ -19,6 +19,8 @@ COLLECTIONS = frozenset({
     "repertoire_entries", "repertoires", "settings",
 })
 TABLE = "openingfit_report_store_v2"
+READ_ONLY_COLLECTIONS = frozenset({"repertoire", "saved_openings", "weekly_training_plans",
+    "coaching_weekly_reviews", "coaching_response_plans", "repertoire_entries", "repertoires"})
 
 
 def require_writable(client):
@@ -42,6 +44,7 @@ def row_key(collection, row):
 
 
 def read_rows(client, owner, collection):
+    require_pilot_account(client, owner)
     if collection not in COLLECTIONS:
         raise HTTPException(400, "Unsupported report collection.")
     # No error fallback to another owner, public username, or unfiltered query.
@@ -58,6 +61,9 @@ def read_rows(client, owner, collection):
 
 
 def write_rows(client, owner, collection, values, *, insert_only=False):
+    require_pilot_account(client, owner)
+    if collection in READ_ONLY_COLLECTIONS:
+        raise HTTPException(409, REPORT_ONLY_MESSAGE)
     if collection not in COLLECTIONS:
         raise HTTPException(400, "Unsupported report collection.")
     require_writable(client)

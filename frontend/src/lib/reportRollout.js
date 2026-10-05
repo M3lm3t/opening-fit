@@ -4,6 +4,12 @@ export const REPORT_CAPABILITIES = Object.freeze([
 ]);
 // A new client build must opt in; backend and database switches also default off.
 export const STAGE6_REPORTS = import.meta.env?.VITE_STAGE6_REPORTS_ENABLED === "true";
+export const PILOT_CLIENT = "web-report-pilot-v1";
+export const REPORT_ONLY_MESSAGE = "This pilot supports report import and reading only. Missions, repertoire changes and training completion are unavailable. Those actions cannot save changes or record completion.";
+let pilotActive = false;
+export const isReportPilot = () => pilotActive;
+export function setReportPilot(active) { pilotActive = active === true; }
+const resolveEnabled = (enabled) => typeof enabled === "function" ? enabled() : enabled;
 export const REPORT_COLLECTIONS = new Set([
   "report_history", "profiles", "openingfit_user_state", "openingfit_retention_snapshots",
   "recommendation_history", "analysed_games", "activity_history", "analysis_history",
@@ -17,7 +23,8 @@ export function hasNewReport(value) {
   return value != null && typeof value === "object" && Object.values(value).some(hasNewReport);
 }
 
-export function reportStorageKey(key, enabled = STAGE6_REPORTS) {
+export function reportStorageKey(key, enabled = isReportPilot) {
+  enabled = resolveEnabled(enabled);
   if (enabled && /^openingfit\.(?!stage6\.).*(report|analysis|progress|repertoire|coach|training|recommendation|study|opportunity|habit)/i.test(String(key))) {
     return String(key).replace("openingfit.", "openingfit.stage6.");
   }
@@ -25,7 +32,7 @@ export function reportStorageKey(key, enabled = STAGE6_REPORTS) {
     ? String(key).replace("openingFit:", "openingFit:stage6:") : key;
 }
 
-export function isolatedLocalStorage(getStorage, enabled = STAGE6_REPORTS) {
+export function isolatedLocalStorage(getStorage, enabled = isReportPilot) {
   return {
     getItem(key) {
       const storage = getStorage();
@@ -46,9 +53,9 @@ export function isolatedLocalStorage(getStorage, enabled = STAGE6_REPORTS) {
 
 export const reportLocalStorage = isolatedLocalStorage(() => globalThis.localStorage);
 
-export function isolatedReportClient(client, { enabled = STAGE6_REPORTS, request } = {}) {
+export function isolatedReportClient(client, { enabled = isReportPilot, request } = {}) {
   if (!client) return client;
-  const failure = () => Promise.resolve({ data: null, error: { code: "REPORT_ISOLATION", message: "This action requires supported isolated report storage. Your report is unchanged." } });
+  const failure = () => Promise.resolve({ data: null, error: { code: "REPORT_ISOLATION", message: REPORT_ONLY_MESSAGE } });
   function query(collection) {
     const payload = { capabilities: REPORT_CAPABILITIES, collection, operation: "select", filters: [], order: [], limit: 50 };
     let invalid = false;
@@ -76,13 +83,14 @@ export function isolatedReportClient(client, { enabled = STAGE6_REPORTS, request
   return new Proxy(client, {
     get(target, property) {
       if (property === "from") return (table) => {
-        if (enabled && REPORT_COLLECTIONS.has(table)) return query(table);
+        const active = resolveEnabled(enabled);
+        if (active && REPORT_COLLECTIONS.has(table)) return query(table);
         const original = target.from(table);
         // Default-off builds must also refuse accidentally restored v4 payloads.
         return new Proxy(original, { get(builder, method) {
-          if (enabled && method === "delete") return () => { const blocked = query(table); blocked.delete(); return blocked; };
+          if (active && method === "delete") return () => { const blocked = query(table); blocked.delete(); return blocked; };
           if (["insert", "upsert", "update"].includes(method)) return (value, ...args) => {
-            if (hasNewReport(value) || (enabled && table !== "notification_preferences")) {
+            if (hasNewReport(value) || (active && table !== "notification_preferences")) {
               const blocked = query(table); blocked.delete(); return blocked;
             }
             return builder[method](value, ...args);
@@ -94,7 +102,7 @@ export function isolatedReportClient(client, { enabled = STAGE6_REPORTS, request
       if (property === "rpc") return (name, params) => {
         // Legacy report-derived RPC mutations are deliberately not part of v2.
         // Never fall back to a legacy writer when a v2 operation is unsupported.
-        if (hasNewReport(params) || (enabled && name !== "get_meaningful_consistency")) return failure();
+        if (hasNewReport(params) || (resolveEnabled(enabled) && name !== "get_meaningful_consistency")) return failure();
         return target.rpc(name, params);
       };
       const member = target[property];

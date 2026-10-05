@@ -1,6 +1,7 @@
 """API-to-database isolation checks, opt-in and hard-pinned to the test cluster.
 
-Run with OPENINGFIT_STAGE6_LOCAL_DB=1 after stage6_local_bootstrap.sql.
+Run with OPENINGFIT_STAGE6_LOCAL_DB=1 after stage6_local_bootstrap.sql and the
+202610050001_stage6_report_pilot.sql migration in the isolated cluster.
 No connection strings, production configuration, or credentials are read.
 """
 import json
@@ -61,7 +62,19 @@ class LocalDB:
         return Query()
 
 
-def test_real_database_api_reads_ownership_generation_and_rollback(contract, monkeypatch):
+@pytest.fixture
+def local_pilot_membership():
+    directory = sql("show data_directory").replace("\\", "/").lower()
+    assert directory == str(ROOT / ".release-build/stage6-isolation/postgres").replace("\\", "/").lower()
+    assert sql("select count(*) from public.openingfit_report_pilot_accounts") == "0"
+    sql(f"insert into public.openingfit_report_pilot_accounts(user_id,enabled) values ('{A}',true),('{B}',true)")
+    try:
+        yield
+    finally:
+        sql("update public.openingfit_report_rollout set enabled=false where id=1; delete from public.openingfit_report_pilot_accounts")
+
+
+def test_real_database_api_reads_ownership_generation_and_rollback(contract, monkeypatch, local_pilot_membership):
     client, _ = contract
     directory = sql("show data_directory").replace("\\", "/").lower()
     assert directory == str(ROOT / ".release-build/stage6-isolation/postgres").replace("\\", "/").lower()

@@ -1,6 +1,7 @@
 import { supabase } from "../lib/supabaseClient.js";
 import { buildApiUrl } from "../lib/apiBase.js";
 import { missionsClientEnabled } from "../lib/missionFeatureGate.js";
+import { isReportPilot, REPORT_ONLY_MESSAGE } from "../lib/reportRollout.js";
 
 const currentReads = new Map();
 
@@ -31,6 +32,7 @@ async function authHeaders() {
 }
 
 async function request(path, { method = "GET", body, signal } = {}) {
+  if (isReportPilot()) throw new MissionApiError("report_only_pilot", REPORT_ONLY_MESSAGE, 409);
   if (!missionsClientEnabled()) throw new MissionApiError("missions_disabled", "Missions are disabled.");
   let response;
   try {

@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { isolatedReportClient } from "./reportRollout.js";
+import { isolatedReportClient, PILOT_CLIENT } from "./reportRollout.js";
 import { buildApiUrl } from "./apiBase.js";
 
 const viteEnv = import.meta.env || {};
@@ -167,7 +167,7 @@ export const supabase = isolatedReportClient(rawSupabase, {
     const token = data?.session?.access_token;
     if (!token) return { data: null, error: { code: "401", message: "Sign in to read or save reports." } };
     const response = await fetch(buildApiUrl("/api/v2/report-store/query"), {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "X-OpeningFit-Report-Client": PILOT_CLIENT },
       body: JSON.stringify(payload),
     });
     const result = await response.json();

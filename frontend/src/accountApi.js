@@ -1,5 +1,5 @@
 import { supabase } from "./lib/supabaseClient";
-import { STAGE6_REPORTS, hasNewReport } from "./lib/reportRollout.js";
+import { isReportPilot, hasNewReport } from "./lib/reportRollout.js";
 import { buildApiUrl, getApiBaseUrl } from "./lib/apiBase";
 import { openSubscriptionCheckout } from "./lib/billingNavigation.js";
 import { canStartCheckout, normaliseBillingInterval } from "./lib/premiumExperience";
@@ -76,7 +76,7 @@ async function authHeaders() {
 
 export async function syncAccountProfile({ user, username, platform, lastReport }) {
   if (!user?.id) return null;
-  if (STAGE6_REPORTS || hasNewReport(lastReport)) {
+  if (isReportPilot() || hasNewReport(lastReport)) {
     const { data, error } = await supabase.from("profiles").upsert({
       user_id: user.id, username, platform, last_report: lastReport,
       email: user.email, display_name: user.user_metadata?.display_name || user.email || "",
@@ -108,7 +108,7 @@ export async function syncAccountProfile({ user, username, platform, lastReport 
 
 export async function loadAccountProfile(userId) {
   if (!userId) return null;
-  if (STAGE6_REPORTS) {
+  if (isReportPilot()) {
     const { data, error } = await supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle();
     if (error) throw new Error(error.message);
     return { ok: true, profile: data };

@@ -1,6 +1,7 @@
 import stripe
 from report_rollout import (LEGACY, STAGE6, generation_context, require_capabilities,
-    request_capabilities, require_enabled, require_legacy_payload)
+    request_capabilities, require_enabled, require_legacy_payload, require_pilot_client,
+    require_pilot_account, pilot_account_allowed, enabled as stage6_enabled, PILOT_CLIENT, REPORT_ONLY_MESSAGE)
 from report_store import query_store, require_writable, write_rows
 from collections import Counter, defaultdict
 from fastapi.responses import JSONResponse, Response
@@ -10978,6 +10979,7 @@ def execute_analysis_job(job_id: str) -> None:
         generation_token = generation_context.set(generation)
         try:
             if generation == STAGE6:
+                require_pilot_account(get_supabase_admin_client(), owner_user_id)
                 require_writable(get_supabase_admin_client())
             result = run_import_route(platform, username, months, time_control, progress)
         finally:
@@ -11087,7 +11089,9 @@ def start_analysis_job(payload: AnalysisJobRequest, request: Request = None):
 @app.post("/api/v2/analysis/jobs", status_code=202)
 def start_versioned_analysis_job(payload: VersionedAnalysisJobRequest, request: Request):
     require_capabilities(payload.capabilities)
-    get_auth_user(request)
+    owner = str(getattr(get_auth_user(request), "id", "") or "")
+    require_pilot_client(request)
+    require_pilot_account(get_supabase_admin_client(), owner)
     require_writable(get_supabase_admin_client())
     return _start_analysis_job(payload, request, STAGE6)
 
@@ -11161,6 +11165,9 @@ def get_analysis_job(job_id: UUID, request: Request = None):
 @app.get("/api/v2/analysis/jobs/{job_id}")
 def get_versioned_analysis_job(job_id: UUID, request: Request):
     request_capabilities(request)
+    owner = str(getattr(get_auth_user(request), "id", "") or "")
+    require_pilot_client(request)
+    require_pilot_account(get_supabase_admin_client(), owner)
     return _get_analysis_job(job_id, request, STAGE6)
 
 
@@ -11185,11 +11192,24 @@ def report_store_query(payload: ReportStoreRequest, request: Request):
     owner = str(getattr(get_auth_user(request), "id", "") or "")
     if not owner:
         raise HTTPException(401, "Sign in to read saved reports.")
+    require_pilot_client(request)
+    require_pilot_account(get_supabase_admin_client(), owner)
     if not 1 <= payload.limit <= 500 or len(payload.filters) > 20 or len(payload.order) > 5:
         raise HTTPException(400, "Invalid report query limits.")
     if len(json.dumps(payload.values)) > 2_000_000:
         raise HTTPException(413, "Report payload is too large.")
     return query_store(get_supabase_admin_client(), owner, payload)
+
+
+@app.get("/api/report-pilot")
+def report_pilot_status(request: Request):
+    owner = str(getattr(get_auth_user(request), "id", "") or "")
+    require_pilot_client(request)
+    client = get_supabase_admin_client()
+    allowed = pilot_account_allowed(client, owner)
+    rows = client.table("openingfit_report_rollout").select("enabled").eq("id", 1).execute().data or [] if allowed else []
+    return {"allowed": allowed, "creationEnabled": bool(allowed and stage6_enabled() and rows and rows[0].get("enabled") is True),
+            "scope": "reports-only", "userId": owner}
 
 
 @app.get("/api/profile/{username}")
@@ -12501,6 +12521,8 @@ def missions_schema_readiness() -> Dict[str, Any]:
 
 
 def _mission_user_id(request: Request) -> str:
+    if request.headers.get("x-openingfit-report-client") == PILOT_CLIENT and request.method != "GET":
+        raise HTTPException(409, {"code": "report_only_pilot", "message": REPORT_ONLY_MESSAGE})
     try:
         return str(getattr(get_auth_user(request), "id", "") or "")
     except HTTPException as exc:

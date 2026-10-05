@@ -1,5 +1,7 @@
 # Stage 6 report isolation — local implementation
 
+The report-only pilot scope is now accepted. See [the web pilot release candidate and launch runbook](stage6-web-pilot-release.md) for the additional account admission migration, explicit web entry, current validation and launch order. The original evidence below remains valid where the pilot delta does not change it; its pending-scope decision is superseded.
+
 Implemented on the existing Stage 6A–6D branch. Android 1.0.19 (22) manual internal testing is user-confirmed; its files and signed artifacts are unchanged. No UI polish, production migration, push, deployment or Google upload is included.
 
 ## Contract and boundaries

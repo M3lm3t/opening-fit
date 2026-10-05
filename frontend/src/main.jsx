@@ -12,9 +12,14 @@ import ReferralCaptureNotice from "./components/ReferralCaptureNotice";
 import { initializeNativeAppShell } from "./lib/nativeAppShell.js";
 import { isWebApp } from "./lib/platform.js";
 import "./styles/nativeAppShell.css";
+import { STAGE6_REPORTS } from "./lib/reportRollout.js";
+import { isPilotEntry } from "./lib/reportPilot.js";
+
+const ReportPilot = React.lazy(() => import("./components/ReportPilot.jsx"));
 
 const AdminReferralsPage = React.lazy(() => import("./components/AdminReferralsPage"));
 const isReferralAdminRoute = window.location.pathname === "/admin/referrals";
+const pilotEntry = isPilotEntry({ enabled: STAGE6_REPORTS, native: !isWebApp(), pathname: window.location.pathname });
 
 async function startOpeningFit() {
   try {
@@ -26,14 +31,14 @@ async function startOpeningFit() {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <ErrorBoundary>
-        <AuthDataProvider>
+        {pilotEntry ? <React.Suspense fallback={<p role="status">Loading report pilot…</p>}><ReportPilot /></React.Suspense> : <AuthDataProvider>
           <MissionFeatureProvider>
           <ReferralCaptureNotice />
           <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>
             {isReferralAdminRoute ? <AdminReferralsPage /> : <App />}
           </React.Suspense>
           </MissionFeatureProvider>
-        </AuthDataProvider>
+        </AuthDataProvider>}
         <Analytics />
       </ErrorBoundary>
     </React.StrictMode>
