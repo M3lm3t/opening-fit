@@ -19,7 +19,7 @@ const ReportPilot = React.lazy(() => import("./components/ReportPilot.jsx"));
 
 const AdminReferralsPage = React.lazy(() => import("./components/AdminReferralsPage"));
 const isReferralAdminRoute = window.location.pathname === "/admin/referrals";
-const pilotEntry = isPilotEntry({ enabled: STAGE6_REPORTS, native: !isWebApp(), pathname: window.location.pathname });
+const pilotEntry = isPilotEntry({ native: !isWebApp(), pathname: window.location.pathname });
 
 async function startOpeningFit() {
   try {
@@ -31,7 +31,7 @@ async function startOpeningFit() {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <ErrorBoundary>
-        {pilotEntry ? <React.Suspense fallback={<p role="status">Loading report pilot…</p>}><ReportPilot /></React.Suspense> : <AuthDataProvider>
+        {pilotEntry ? <React.Suspense fallback={<p role="status">Loading report pilot…</p>}><ReportPilot enabled={STAGE6_REPORTS} /></React.Suspense> : <AuthDataProvider>
           <MissionFeatureProvider>
           <ReferralCaptureNotice />
           <React.Suspense fallback={<main className="routeLoadingFallback" role="status" aria-live="polite"><div aria-hidden="true" /><p>Loading OpeningFit…</p></main>}>

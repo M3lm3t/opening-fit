@@ -5,10 +5,10 @@ import { isReportPilot, setReportPilot, isolatedReportClient, PILOT_CLIENT } fro
 import { selectNextMission } from "../services/missionApi.js";
 
 const session = { user: { id: "account-a" }, access_token: "test-token" };
-test("pilot build leaves ordinary web and every native route legacy", () => {
+test("pilot URL is reserved even when disabled; ordinary web and native routes stay legacy", () => {
   assert.equal(isReportPilot(), false);
-  for (const native of [true, false]) for (const enabled of [true, false]) for (const pathname of ["/", "/report-pilot"]) {
-    assert.equal(isPilotEntry({ enabled, native, pathname }), enabled && !native && pathname === "/report-pilot");
+  for (const native of [true, false]) for (const enabled of [true, false]) for (const pathname of ["/", "/login", "/report", "/report-pilot", "/report-pilot/", "/report-pilot-extra"]) {
+    assert.equal(isPilotEntry({ enabled, native, pathname }), !native && ["/report-pilot", "/report-pilot/"].includes(pathname));
   }
 });
 

@@ -1,7 +1,9 @@
 import { buildApiUrl } from "./apiBase.js";
 import { PILOT_CLIENT, REPORT_CAPABILITIES } from "./reportRollout.js";
 
-export const isPilotEntry = ({ enabled, native, pathname }) => enabled === true && !native && pathname === "/report-pilot";
+// Reserve the URL independently of feature availability. A disabled build must
+// show the pilot's explicit access state, never fall through to the home app.
+export const isPilotEntry = ({ native, pathname }) => !native && /^\/report-pilot\/?$/.test(pathname || "");
 
 async function pilotRequest(path, session, options = {}) {
   if (!session?.user?.id || !session.access_token) throw new Error("Sign in to your approved test account first.");

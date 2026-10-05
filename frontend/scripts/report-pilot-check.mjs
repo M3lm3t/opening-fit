@@ -12,7 +12,7 @@ supabase.auth.getSession = async () => ({data:{session:${JSON.stringify(session)
 supabase.auth.onAuthStateChange = (callback) => { window.pilotAuthChange = callback; return {data:{subscription:{unsubscribe(){}}}}; };
 supabase.from = () => { throw Error('Pilot touched a direct legacy table'); };
 supabase.rpc = () => { throw Error('Pilot invoked a legacy RPC'); };
-createRoot(document.getElementById('root')).render(React.createElement(ReportPilot));`;
+createRoot(document.getElementById('root')).render(React.createElement(ReportPilot, {enabled: true}));`;
 const server = await createServer({
   server: { host: "127.0.0.1", port: 5196, strictPort: true },
   define: { "import.meta.env.VITE_SUPABASE_URL": JSON.stringify("https://pilot.invalid"),

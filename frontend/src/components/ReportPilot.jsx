@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabaseClient.js";
-import { setReportPilot, REPORT_ONLY_MESSAGE } from "../lib/reportRollout.js";
+import { setReportPilot, REPORT_ONLY_MESSAGE, STAGE6_REPORTS } from "../lib/reportRollout.js";
 import { loadPilotEligibility, loadPilotHistory, confirmedPilotReport } from "../lib/reportPilot.js";
 import { importGames } from "../lib/importClient.js";
 import { buildReportDecisionModel } from "../lib/reportDecisionModel.js";
@@ -62,7 +62,7 @@ function PilotWorkspace({ session, eligibility }) {
   </>;
 }
 
-export default function ReportPilot() {
+function PilotAccess() {
   const [state, setState] = useState({ status: "loading" });
   useEffect(() => {
     let generation = 0;
@@ -90,14 +90,20 @@ export default function ReportPilot() {
     }).catch(() => { if (active && generation === initialGeneration) setState({ status: "error", message: "Could not verify your session." }); });
     return () => { active = false; ++generation; pending?.abort(); data.subscription.unsubscribe(); setReportPilot(false); };
   }, []);
-  return <main className="reportPilot" style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
-    <h1>OpeningFit report pilot</h1>
-    <p role="note">{REPORT_ONLY_MESSAGE}</p>
-    <p><a href="/">Return to the standard app</a> — the standard app and Android continue using legacy reports.</p>
+  return <>
     {state.status === "loading" ? <p role="status">Checking pilot access…</p> : null}
     {state.status === "signed-out" ? <p>Sign in through the standard app, then return to /report-pilot.</p> : null}
     {state.status === "denied" ? <p>This account is not enabled for the pilot. Use the standard app to continue with legacy reports.</p> : null}
     {state.status === "error" ? <><p role="alert">{state.message}</p><button type="button" onClick={() => window.location.reload()}>Retry access check</button></> : null}
     {state.status === "ready" ? <PilotWorkspace key={`${state.session.user.id}:${state.session.access_token}`} session={state.session} eligibility={state.eligibility} /> : null}
+  </>;
+}
+
+export default function ReportPilot({ enabled = STAGE6_REPORTS }) {
+  return <main className="reportPilot" style={{ maxWidth: 1100, margin: "0 auto", padding: 24 }}>
+    <h1>OpeningFit report pilot</h1>
+    <p role="note">{REPORT_ONLY_MESSAGE}</p>
+    <p><a href="/">Return to the standard app</a> — the standard app and Android continue using legacy reports.</p>
+    {enabled ? <PilotAccess /> : <p role="status">The report pilot is unavailable in this web build. Use the standard app for legacy reports.</p>}
   </main>;
 }
